@@ -5,14 +5,16 @@
 
 Spectrum WhittedIntegrator::Li(const RayDifferential& ray, const Scene& scene, Sampler& sampler, int depth) const {
     Log("WhittedIntegrator::Li");
-    Log("ray %f %f %f, %f %f %f", ray.o.x, ray.o.y, ray.o.z, ray.d.x, ray.d.y, ray.d.z);
+
+    ray.LogSelf();
+
     Spectrum L(0.);
     // Find closest ray intersection or return background radiance
     SurfaceInteraction isect;
     float tHit;
     if (!scene.Intersect(ray, & tHit, &isect)) {
         Spectrum test_spectrum;
-        test_spectrum.c[0] = 0.5;
+        test_spectrum.c[0] = 0.6;
         test_spectrum.c[1] = 0.7;
         test_spectrum.c[2] = 0.9;
         return test_spectrum;

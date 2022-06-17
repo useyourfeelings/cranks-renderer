@@ -1,5 +1,6 @@
 #include "camera.h"
-#include "../tool/logger.h"
+#include "film.h"
+//#include "../tool/logger.h"
 
 //float Camera::GenerateRayDifferential(const CameraSample& sample,
 //    RayDifferential* rd) const {
@@ -70,13 +71,19 @@ float PerspectiveCamera::GenerateRayDifferential(const CameraSample& sample,
     //ProfilePhase prof(Prof::GenerateCameraRay);
     // Compute raster and camera sample positions
     Point3f pFilm = Point3f(sample.pFilm.x, sample.pFilm.y, 0);
-    Point3f pCamera = RasterToCamera(pFilm); // 从相片上的某个点还原到camera空间
+    Point3f pCamera = RasterToCamera(pFilm); // 从相片上的某个点还原到camera空间的near面上。
 
-    // 相机空间里相机就在原点。所以相机到点的向量已确定。
+    Log("GenerateRayDifferential RasterToCamera");
+    pFilm.LogSelf();
+    Log("screen to camera");
+    pCamera.LogSelf();
+
+    // 相机空间里相机就在原点。pCamera-0即可得到光的方向。
     Vector3f dir = Normalize(Vector3f(pCamera.x, pCamera.y, pCamera.z));
 
-    *ray = RayDifferential(Point3f(0, 0, 0), dir); // 简单初始化
-
+    *ray = RayDifferential(Point3f(0, 0, 0), dir); // 相机空间的光
+    Log("ray init");
+    ray->LogSelf();
     
     /* 暂时忽略
     // Modify ray for depth of field
@@ -120,8 +127,12 @@ float PerspectiveCamera::GenerateRayDifferential(const CameraSample& sample,
     ray->medium = medium;
     */
 
+    *ray = CameraToWorld(*ray); // 回到world
 
-    *ray = CameraToWorld(*ray);
+    Log("ray to world");
+    CameraToWorld.LogSelf();
+    ray->LogSelf();
+
     ray->hasDifferentials = true;
     return 1;
 }

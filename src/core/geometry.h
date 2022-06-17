@@ -214,8 +214,11 @@ public:
 		float time = 0.f) :o(o), d(d), tMax(tMax), time(time) {
 	}
 
-
 	Point3f operator()(float t) const { return o + d * t; }
+
+	void LogSelf() const {
+		Log("Ray %f %f %f, %f %f %f", o.x, o.y, o.z, d.x, d.y, d.z);
+	}
 
 	Point3f o;
 	Vector3f d;
@@ -241,8 +244,11 @@ public:
 		rxDirection = d + (rxDirection - d) * s;
 		ryDirection = d + (ryDirection - d) * s;
 	}
-	
 
+	void LogSelf() const {
+		Log("RayDifferential %f %f %f, %f %f %f", o.x, o.y, o.z, d.x, d.y, d.z);
+	}
+	
 	// RayDifferential Public Data
 	bool hasDifferentials;
 	Point3f rxOrigin, ryOrigin;

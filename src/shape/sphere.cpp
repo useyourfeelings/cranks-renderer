@@ -1,13 +1,13 @@
 #include "sphere.h"
 
 bool Sphere::Intersect(const Ray& ray, float* tHit, SurfaceInteraction* isect) const {
-	//Log("Sphere ray o d %f %f %f, %f %f %f, radius %f", ray.o.x, ray.o.y, ray.o.z, ray.d.x, ray.d.y, ray.d.z, radius);
+	ray.LogSelf();
 	WorldToObject.LogSelf();
 
 	// ray到local坐标。球在原点。
 	Ray r = WorldToObject(ray);
 
-	//Log("Sphere ray o d %f %f %f, %f %f %f, radius %f", r.o.x, r.o.y, r.o.z, r.d.x, r.d.y, r.d.z, radius);
+	r.LogSelf();
 
 	// https://en.wikipedia.org/wiki/Line%E2%80%93sphere_intersection
 

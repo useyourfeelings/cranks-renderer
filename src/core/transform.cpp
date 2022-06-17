@@ -107,7 +107,7 @@ inline Point3<T> Transform::operator()(const Point3<T>& p) const {
     float zp = (m.m[2][0] * x + m.m[2][1] * y) + (m.m[2][2] * z + m.m[2][3]);
     float wp = (m.m[3][0] * x + m.m[3][1] * y) + (m.m[3][2] * z + m.m[3][3]);
 
-    Log("trans point %f %f %f %f", xp, yp, zp, wp);
+    //Log("trans point %f %f %f %f", xp, yp, zp, wp);
 
     if (wp == 1)
         return Point3<T>(xp, yp, zp);
@@ -268,8 +268,12 @@ Transform LookAt(const Point3f& eye, const Point3f& look, const Vector3f& up) {
         return Transform();
     }
 
-    auto right = Normalize(Cross(dir, up));
-    auto up_n = Cross(right, dir);
+    //auto right = Normalize(Cross(dir, up));
+    //auto up_n = Cross(right, dir);
+
+    // left handed
+    auto right = Normalize(Cross(up, dir));
+    auto up_n = Cross(dir, right);
 
     auto a = Matrix4x4( right.x, right.y, right.z, 0,
                         up_n.x,  up_n.y,  up_n.z,  0,

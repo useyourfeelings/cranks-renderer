@@ -2,8 +2,9 @@
 #define CORE_CAMERA_H
 
 #include<memory>
+#include "pbr.h"
 #include "transform.h"
-#include "film.h"
+#include "spectrum.h"
 
 struct CameraSample {
     Point2f pFilm;
@@ -13,7 +14,7 @@ struct CameraSample {
 
 class Camera {
 public:
-    Camera(const Transform& CameraToWorld, std::shared_ptr<Film> film):film(film) {};
+    Camera(const Transform& CameraToWorld, std::shared_ptr<Film> film):film(film), CameraToWorld(CameraToWorld) {};
     virtual ~Camera() {};
 
     virtual float GenerateRayDifferential(const CameraSample& sample, RayDifferential* rd) const = 0;

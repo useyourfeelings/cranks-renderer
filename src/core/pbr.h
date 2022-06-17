@@ -21,6 +21,8 @@ class Primitive;
 class BSDF;
 //class CoefficientSpectrum;
 //class RGBSpectrum;
+//class Spectrum;
+class Film;
 
 template <typename T> class Texture;
 

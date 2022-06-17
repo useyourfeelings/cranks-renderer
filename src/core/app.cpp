@@ -41,7 +41,7 @@ void PbrApp::RenderScene() {
 	Log("%s", std::filesystem::current_path().c_str());
 
 	SetFilm(100, 100);
-	SetCamera(Point3f(10, 0, 0), Point3f(10, 0, 10), Vector3f(0, 1, 0));
+	SetCamera(Point3f(0, 0, 0), Point3f(0, 0, 10), Vector3f(0, 1, 0));
 	SetSampler();
 	SetIntegrator();
 
@@ -65,7 +65,7 @@ void PbrApp::SetPerspectiveCamera(Point3f pos, Point3f look, Vector3f up) {
 	Point2f screenMin, screenMax;
 	float fov = 90;
 	float aspect_ratio = 1;// 1.6;
-	float near = 0.01, far = 100;
+	float near = 2, far = 200;
 
 	if (film_list.empty() || film_list.back()->status != 0)
 		SetFilm(100, 100);
@@ -91,9 +91,10 @@ void PbrApp::SetPerspectiveCamera(Point3f pos, Point3f look, Vector3f up) {
 
 	//Transform t = Translate(Vector3f(pos.x, pos.y, pos.z));
 
-	Transform t = Inverse(LookAt(pos, look, up));
+	// LookAtÊÇworld to camera
+	Transform camera2World = Inverse(LookAt(pos, look, up));
 
-	this->camera = std::shared_ptr<Camera>(new PerspectiveCamera(t, BBox2f(screenMin, screenMax), fov, aspect_ratio, film, near, far));
+	this->camera = std::shared_ptr<Camera>(new PerspectiveCamera(camera2World, BBox2f(screenMin, screenMax), fov, aspect_ratio, film, near, far));
 
 }
 

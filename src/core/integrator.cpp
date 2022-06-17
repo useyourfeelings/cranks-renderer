@@ -1,4 +1,5 @@
 #include "integrator.h"
+#include "film.h"
 #include "../tool/logger.h"
 
 void SamplerIntegrator::Render(const Scene& scene) {
