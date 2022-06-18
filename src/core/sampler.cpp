@@ -47,6 +47,8 @@ float RandomSampler::Get1D() {
 Point2f RandomSampler::Get2D() {
     //ProfilePhase _(Prof::GetSample);
     //CHECK_LT(currentPixelSampleIndex, samplesPerPixel);
+
+    // return { rng.UniformFloat() * 2 - 1, rng.UniformFloat() * 2 -1 };
     return { rng.UniformFloat(), rng.UniformFloat() };
 }
 

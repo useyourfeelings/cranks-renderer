@@ -25,7 +25,7 @@ public:
 
     virtual float GenerateRayDifferential(const CameraSample& sample, RayDifferential* rd) const = 0;
 
-    void AddSample(const Point2f& pixel, Spectrum L, float sampleWeight = 1.);
+    void AddSample(const Point2f& pixel, Spectrum L, float sampleWeight, int samplesPerPixel);
 
     void SetFilm(std::shared_ptr<Film> film) {
         this->film = film;

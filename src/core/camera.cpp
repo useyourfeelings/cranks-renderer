@@ -10,9 +10,9 @@
 //    return 0;
 //}
 
-void Camera::AddSample(const Point2f& pixel, Spectrum L, float sampleWeight) {
+void Camera::AddSample(const Point2f& pixel, Spectrum L, float sampleWeight, int samplesPerPixel) {
     int pixel_index = pixel.x + pixel.y * film->fullResolution.x;
-    film->pixels[pixel_index] += L * sampleWeight;
+    film->pixels[pixel_index] += L * sampleWeight / samplesPerPixel;
 }
 
 void PerspectiveCamera::SetPerspectiveData(Point3f pos, Point3f look, Vector3f up, float fov, float aspect_ratio, float near, float far, int resX, int resY) {

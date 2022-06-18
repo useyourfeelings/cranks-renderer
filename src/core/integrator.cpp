@@ -77,7 +77,7 @@ void SamplerIntegrator::Render(const Scene& scene) {
             // Add camera ray's contribution to image
             //filmTile->AddSample(cameraSample.pFilm, L, rayWeight);
 
-            camera->AddSample(Point2f(pixel.x, pixel.y), L, rayWeight);
+            camera->AddSample(Point2f(pixel.x, pixel.y), L, rayWeight, sampler->samplesPerPixel);
 
             // Free _MemoryArena_ memory from computing image sample
             // value
