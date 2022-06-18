@@ -8,7 +8,8 @@ void SamplerIntegrator::Render(const Scene& scene) {
     // Render image tiles in parallel
 
     // Compute number of tiles, _nTiles_, to use for parallel rendering
-    BBox2i sampleBounds = this->pixelBounds;// camera->film->GetSampleBounds();
+    //BBox2i sampleBounds = this->pixelBounds;// camera->film->GetSampleBounds();
+    BBox2i sampleBounds = BBox2i(Point2i(0, 0), Point2i(camera->resolutionX, camera->resolutionY));
     // sampleBounds ¿‡À∆600 400
 
     int i = sampleBounds.pMin.x;

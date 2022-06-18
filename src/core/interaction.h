@@ -30,7 +30,7 @@ public:
 
 	//Vector3f pError;
 	Vector3f wo; // 射出方向
-	Vector3f n; // normal
+	Vector3f n; // 对于shape的normal
 };
 
 class SurfaceInteraction : public Interaction {

@@ -14,7 +14,7 @@
 #include "../tool/logger.h"
 
 // raw data
-class DefaultPbrInfo {
+class PbrInfo {
 public:
 	/*DefaultPbrInfo():camera_pos(0, 0, 0),
 		camera_look(0, 0, 10),
@@ -30,7 +30,7 @@ public:
 	Vector3f camera_up;
 	float camera_fov, camera_aspect_ratio, camera_near, camera_far;*/
 
-	DefaultPbrInfo() :
+	PbrInfo() :
 		camera_fov(90),
 		camera_aspect_ratio(1),
 		camera_near(1),
@@ -106,7 +106,8 @@ public:
 	std::unique_ptr<Integrator> integrator;
 	std::vector<std::shared_ptr<Film>> film_list;
 
-	DefaultPbrInfo default_setting;
+	PbrInfo default_setting;
+	PbrInfo setting;
 };
 
 static PbrApp app;

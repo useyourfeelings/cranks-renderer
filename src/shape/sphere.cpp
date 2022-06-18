@@ -4,7 +4,7 @@ bool Sphere::Intersect(const Ray& ray, float* tHit, SurfaceInteraction* isect) c
 	ray.LogSelf();
 	WorldToObject.LogSelf();
 
-	// ray到local坐标。球在原点。
+	// ray到模型空间。球在原点。
 	Ray r = WorldToObject(ray);
 
 	r.LogSelf();
@@ -37,7 +37,7 @@ bool Sphere::Intersect(const Ray& ray, float* tHit, SurfaceInteraction* isect) c
 	if (Quadratic(a, b, c, &t1, &t2) == 0)
 		return false; // no root
 
-	Log("Sphere wtf2");
+	Log("Sphere wtf2 %f %f", t1, t2);
 
 	if (t1 > r.tMax || t2 <= 0) // out of range
 		return false;
@@ -52,10 +52,11 @@ bool Sphere::Intersect(const Ray& ray, float* tHit, SurfaceInteraction* isect) c
 			return false;
 	}
 
-	Log("Sphere wtf4");
+	Log("Sphere wtf4 %f", t);
 
-	auto hitPoint = ray(t); // get hit position
-
+	auto hitPoint = r(t); // get hit position
+	Log("hitPoint");
+	hitPoint.LogSelf();
 
 	// todo 
 
@@ -115,7 +116,8 @@ bool Sphere::Intersect(const Ray& ray, float* tHit, SurfaceInteraction* isect) c
 
 
 	// 最后生成信息并转回world
-	*isect = (ObjectToWorld)(SurfaceInteraction(hitPoint, Normalize(Cross(dpdu, dpdv)), Point2f(u, v), -r.d, r.time, this));
+	//*isect = (ObjectToWorld)(SurfaceInteraction(hitPoint, Normalize(Cross(dpdu, dpdv)), Point2f(u, v), -r.d, r.time, this));
+	*isect = (ObjectToWorld)(SurfaceInteraction(hitPoint, hitPoint - Point3f(0, 0, 0), Point2f(u, v), -r.d, r.time, this));
 
 	*tHit = t;
 

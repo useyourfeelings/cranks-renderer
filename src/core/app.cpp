@@ -50,7 +50,7 @@ void PbrApp::RenderScene() {
 			default_setting.camera_resX, default_setting.camera_resY);
 	}
 
-	SetFilm(100, 100);
+	SetFilm(camera->resolutionX, camera->resolutionY);
 	
 	SetSampler();
 	SetIntegrator();
@@ -121,7 +121,7 @@ void PbrApp::SetWhittedIntegrator() {
 	Log("SetWhittedIntegrator");
 
 	int maxDepth = 5;
-	BBox2i bounds(Point2i(0, 0), this->camera->film->fullResolution);
+	BBox2i bounds(Point2i(0, 0), Point2i(camera->resolutionX, camera->resolutionY));
 
 	this->integrator = std::unique_ptr<Integrator>(new WhittedIntegrator(maxDepth, camera, sampler, bounds));
 }

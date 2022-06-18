@@ -13,22 +13,46 @@ Spectrum WhittedIntegrator::Li(const RayDifferential& ray, const Scene& scene, S
     SurfaceInteraction isect;
     float tHit;
     if (!scene.Intersect(ray, & tHit, &isect)) {
-        Spectrum test_spectrum;
-        test_spectrum.c[0] = 0.6;
-        test_spectrum.c[1] = 0.7;
-        test_spectrum.c[2] = 0.9;
-        return test_spectrum;
+        Spectrum sky_spectrum;
+        /*sky_spectrum.c[0] = 0.6;
+        sky_spectrum.c[1] = 0.7;
+        sky_spectrum.c[2] = 0.9;*/
+
+        // https://raytracing.github.io/books/RayTracingInOneWeekend.html
+        // gradient sky
+
+        float t = (ray.d.y + 1) * 0.5; // map to [0, 1]
+        /*sky_spectrum.c[0] = 1 - t + t * 0.5;
+        sky_spectrum.c[1] = 1 - t + t * 0.7;
+        sky_spectrum.c[2] = 1 - t + t * 1;*/
+
+        sky_spectrum.c[0] = 1 - t * 0.5;
+        sky_spectrum.c[1] = 1 - t * 0.3;
+        sky_spectrum.c[2] = 1;
+
+        return sky_spectrum;
 
 
         for (const auto& light : scene.lights) L += light->Le(ray);
         return L;
     }
 
-    Log("scene Intersect");
+    Log("scene Intersect at");
+    isect.p.LogSelf();
+    Log("primitive = %s", isect.primitive->name.c_str());
+
+    // draw normal
     Spectrum test_spectrum;
-    test_spectrum.c[0] = 0.8;
+    /*test_spectrum.c[0] = 0.8;
     test_spectrum.c[1] = 0.3;
-    test_spectrum.c[2] = 0.3;
+    test_spectrum.c[2] = 0.3;*/
+
+    isect.n.LogSelf();
+
+    test_spectrum.c[0] = 0.5 * (isect.n.x + 1); // map to [0, 1]
+    test_spectrum.c[1] = 0.5 * (isect.n.y + 1);
+    test_spectrum.c[2] = 0.5 * (isect.n.z + 1);
+
     return test_spectrum;
 
     // Compute emitted and reflected light at ray intersection point

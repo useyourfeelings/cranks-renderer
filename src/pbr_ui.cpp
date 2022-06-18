@@ -151,7 +151,7 @@ int make_pbr_ui()
         cameraChanged = true;
     }
 
-    if (ImGui::SliderInt2("resolution", resolution, 0, 200)) {
+    if (ImGui::SliderInt2("resolution", resolution, 0, 1000)) {
         cameraChanged = true;
     }
 
