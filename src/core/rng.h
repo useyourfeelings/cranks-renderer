@@ -11,7 +11,7 @@ public:
 
 
 	float UniformFloat() {
-		return dis(e);
+		return float(dis(e));
 	}
 
 	// https://en.cppreference.com/w/cpp/numeric/random/uniform_real_distribution

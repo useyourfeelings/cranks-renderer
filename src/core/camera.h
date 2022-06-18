@@ -14,32 +14,35 @@ struct CameraSample {
 
 class Camera {
 public:
-    Camera(const Transform& CameraToWorld, std::shared_ptr<Film> film):film(film), CameraToWorld(CameraToWorld) {};
+    //Camera(const Transform& CameraToWorld, std::shared_ptr<Film> film):film(film), CameraToWorld(CameraToWorld) {};
+    //Camera(std::shared_ptr<Film> film) :film(film) {};
+
+    Camera() {};
+    
     virtual ~Camera() {};
+
+    virtual void SetPerspectiveData(Point3f pos, Point3f look, Vector3f up, float fov, float aspect_ratio, float near, float far, int resX, int resY)  = 0;
 
     virtual float GenerateRayDifferential(const CameraSample& sample, RayDifferential* rd) const = 0;
 
     void AddSample(const Point2f& pixel, Spectrum L, float sampleWeight = 1.);
 
+    void SetFilm(std::shared_ptr<Film> film) {
+        this->film = film;
+    };
+
     Transform CameraToWorld;
     std::shared_ptr<Film> film;
+
+    int resolutionX, resolutionY;
 };
-
-//class ProjectiveCamera:public Camera {
-//public:
-//	ProjectiveCamera() {}
-//
-//
-//
-//
-//};
-
 
 class PerspectiveCamera : public Camera  {
 public:
     // PerspectiveCamera Public Methods
-    PerspectiveCamera(const Transform &CameraToWorld, const BBox2f& screenWindow,
-        float fov, float asp, std::shared_ptr<Film> film, float near, float far);
+    //PerspectiveCamera(const Transform &CameraToWorld, const BBox2f& screenWindow, float fov, float asp, std::shared_ptr<Film> film, float near, float far);
+
+    PerspectiveCamera(Point3f pos, Point3f look, Vector3f up, float fov, float aspect_ratio, float near, float far, int resX, int resY);
     //float GenerateRay(const CameraSample& sample, Ray*) const;
     
     float GenerateRayDifferential(const CameraSample& sample, RayDifferential* rd) const;
@@ -49,6 +52,8 @@ public:
     Spectrum Sample_Wi(const Interaction& ref, const Point2f& sample,
         Vector3f* wi, Float* pdf, Point2f* pRaster,
         VisibilityTester* vis) const;*/
+
+    void SetPerspectiveData(Point3f pos, Point3f look, Vector3f up, float fov, float aspect_ratio, float near, float far, int resX, int resY);
 
     // ProjectiveCamera Data
     Transform CameraToScreen, RasterToCamera;

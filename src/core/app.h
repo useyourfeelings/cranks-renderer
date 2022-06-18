@@ -13,6 +13,50 @@
 #include "geometry.h"
 #include "../tool/logger.h"
 
+// raw data
+class DefaultPbrInfo {
+public:
+	/*DefaultPbrInfo():camera_pos(0, 0, 0),
+		camera_look(0, 0, 10),
+		camera_up(0, 1, 0),
+		camera_fov(90),
+		camera_aspect_ratio(1.2),
+		camera_near(1),
+		camera_far(200)
+	{
+	};
+
+	Point3f camera_pos, camera_look;
+	Vector3f camera_up;
+	float camera_fov, camera_aspect_ratio, camera_near, camera_far;*/
+
+	DefaultPbrInfo() :
+		camera_fov(90),
+		camera_aspect_ratio(1),
+		camera_near(1),
+		camera_far(200),
+		camera_resX(100),
+		camera_resY(100)
+	{
+		camera_pos[0] = 0;
+		camera_pos[1] = 0;
+		camera_pos[2] = 0;
+
+		camera_look[0] = 0;
+		camera_look[1] = 0;
+		camera_look[2] = 10;
+
+		camera_up[0] = 0;
+		camera_up[1] = 1;
+		camera_up[2] = 0;
+	};
+
+	float camera_pos[3], camera_look[3], camera_up[3];
+	float camera_aspect_ratio, camera_near, camera_far;
+	float camera_fov;
+	int camera_resX, camera_resY;
+};
+
 class PbrApp {
 public:
 	PbrApp(){
@@ -25,7 +69,6 @@ public:
 		scene = std::make_unique<Scene>();
 
 	}
-
 
 	void SayHi() {
 		Log("PbrApp hi");
@@ -49,7 +92,7 @@ public:
 	void SetFilm(int width, int height);
 
 	void SetCamera(Point3f pos, Point3f look, Vector3f up);
-	void SetPerspectiveCamera(Point3f pos, Point3f look, Vector3f up);
+	void SetPerspectiveCamera(Point3f pos, Point3f look, Vector3f up, float fov, float aspect_ratio, float near, float far, int resX, int resY);
 
 	void SetSampler();
 	void SetRandomSampler();
@@ -62,6 +105,8 @@ public:
 	std::shared_ptr<Sampler> sampler;
 	std::unique_ptr<Integrator> integrator;
 	std::vector<std::shared_ptr<Film>> film_list;
+
+	DefaultPbrInfo default_setting;
 };
 
 static PbrApp app;

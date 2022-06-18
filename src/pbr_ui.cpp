@@ -78,16 +78,38 @@ int make_pbr_ui()
 
     //InitCanvas();
 
-    ImGui::SetNextWindowSize(ImVec2(400, 600), ImGuiCond_FirstUseEver);
-    ImGui::Begin("Hello, pbr!");                          // Create a window called "Hello, world!" and append into it.
+    //Log("wtf1");
 
-    ImGui::Text("look at");               // Display some text (you can use a format strings too)
+    static int init_status = 0;
 
-    static int pos[3] = {0, 0, 0};
-    static int look[3] = { 0, 0, 10};
-    static int up[3] = { 0, 1, 0};
-    static int fov = 90;
-    static float aspect_ratio = 1.2;
+    static float pos[3] = { 0, 0, 0 };
+    static float look[3] = { 0, 0, 10 };
+    static float up[3] = { 0, 1, 0 };
+    static float fov = 90;
+    static float aspect_ratio = 1.2f;
+    static float near_far[2] = { 2, 200};
+    static int resolution[2] = { 100, 100 };
+
+    if (init_status == 0) {
+        PBR_API_get_defualt_camera_setting(pos, look, up, fov, aspect_ratio, near_far[0], near_far[1], resolution[0], resolution[1]);
+        init_status = 1;
+    }
+
+    ImGui::SetNextWindowSize(ImVec2(480, 600), ImGuiCond_FirstUseEver);
+    //ImGui::Begin("Hello, pbr!");
+    if (!ImGui::Begin("Hello, pbr!"))
+    {
+        ImGui::End();
+        return 0;
+    }
+
+    ImGui::Text("camera setting");
+    ImGui::SameLine();
+    if (ImGui::Button("load default")) {
+        PBR_API_get_defualt_camera_setting(pos, look, up, fov, aspect_ratio, near_far[0], near_far[1], resolution[0], resolution[1]);
+        PBR_API_set_perspective_camera(pos, look, up, fov, aspect_ratio, near_far[0], near_far[1], resolution[0], resolution[1]);
+    }
+    
 
     //ImGui::Text("pos");
     //ImGui::SameLine();
@@ -95,15 +117,15 @@ int make_pbr_ui()
     ImGui::PushItemWidth(400);
 
     bool cameraChanged = false;
-    if (ImGui::SliderInt3("pos", pos, -100, 100)) {
+    if (ImGui::SliderFloat3("pos", pos, -100, 100)) {
         cameraChanged = true;
     }
 
-    if (ImGui::SliderInt3("look", look, -100, 100)) {
+    if (ImGui::SliderFloat3("look", look, -100, 100)) {
         cameraChanged = true;
     }
 
-    if (ImGui::SliderInt3("up", up, -100, 100)) {
+    if (ImGui::SliderFloat3("up", up, -100, 100)) {
         cameraChanged = true;
     }
 
@@ -111,7 +133,7 @@ int make_pbr_ui()
 
     ImGui::PushItemWidth(160);
 
-    if (ImGui::SliderInt("fov", &fov, 0, 180)) {
+    if (ImGui::SliderFloat("fov", &fov, 0, 180)) {
         cameraChanged = true;
     }
 
@@ -123,37 +145,48 @@ int make_pbr_ui()
 
     ImGui::PopItemWidth();
 
-    
+    ImGui::PushItemWidth(400);
+
+    if (ImGui::SliderFloat2("near_far", near_far, 0.001f, 200)) {
+        cameraChanged = true;
+    }
+
+    if (ImGui::SliderInt2("resolution", resolution, 0, 200)) {
+        cameraChanged = true;
+    }
+
+    ImGui::PopItemWidth();
 
     if (cameraChanged) {
         Log("cameraChanged");
+        PBR_API_set_perspective_camera(pos, look, up, fov, aspect_ratio, near_far[0], near_far[1], resolution[0], resolution[1]);
     }
 
     //ImGui::Checkbox("Demo Window", &show_demo_window);      // Edit bools storing our window open/close state
     //ImGui::Checkbox("Another Window", &show_another_window);
 
-    ImGui::SliderFloat("float", &f, 0.0f, 1.0f);            // Edit 1 float using a slider from 0.0f to 1.0f
+    //ImGui::SliderFloat("float", &f, 0.0f, 1.0f);            // Edit 1 float using a slider from 0.0f to 1.0f
     //ImGui::ColorEdit3("clear color", (float*)&clear_color); // Edit 3 floats representing a color
 
-    if (ImGui::Button("Button"))                            // Buttons return true when clicked (most widgets return true when edited/activated)
-        counter++;
-    ImGui::SameLine();
-    ImGui::Text("counter = %d", counter);
+    //ImGui::SameLine();
+    //ImGui::Text("counter = %d", counter);
 
     //ImGui::Text("Application average %.3f ms/frame (%.1f FPS)", 1000.0f / ImGui::GetIO().Framerate, ImGui::GetIO().Framerate);
-
-    if (ImGui::Button("Button2")) {
+    ImGui::Dummy(ImVec2(60, 30));
+    if (ImGui::Button("print scene", ImVec2(100, 30))) {
         
         counter++;
 
         PBR_API_print_scene();
     }
 
+    ImGui::Dummy(ImVec2(60, 30));
+
     if (ImGui::Button("Render", ImVec2(400, 120))) {
 
         PBR_API_add_sphere("wtfSphere 1"s, 6, 0, 0, 28);
         PBR_API_add_sphere("wtfSphere 2"s, 10, -20, -30, 40);
-        //PBR_API_add_sphere("wtfSphere 3"s, 20, 30, 30, 60);
+        PBR_API_add_sphere("wtfSphere 3"s, 20, 30, 30, 60);
 
         PBR_API_add_point_light("wtf Light"s, 0, 10, 0);
         PBR_API_render();

@@ -15,31 +15,63 @@ void Camera::AddSample(const Point2f& pixel, Spectrum L, float sampleWeight) {
     film->pixels[pixel_index] += L * sampleWeight;
 }
 
-PerspectiveCamera::PerspectiveCamera(const Transform& CameraToWorld, const BBox2f& screenWindow, 
-    float fov, float asp, std::shared_ptr<Film> film, float near, float far):
-	Camera(CameraToWorld, film), 
-    near(near), far(far), fov(fov), asp(asp)
-{
-	A = film->fullResolution.x * film->fullResolution.y;
+void PerspectiveCamera::SetPerspectiveData(Point3f pos, Point3f look, Vector3f up, float fov, float aspect_ratio, float near, float far, int resX, int resY) {
+    Log("SetPerspectiveData");
+    this->CameraToWorld = Inverse(LookAt(pos, look, up));
+    CameraToWorld.LogSelf();
+
+    //float aspectRatio = film->fullResolution.x / film->fullResolution.y;
+
+    this->asp = aspect_ratio;
+    this->fov = fov;
+    this->near = near;
+    this->far = far;
+    this->resolutionX = resX;
+    this->resolutionY = resY;
+
+    Point2f screenMin, screenMax;
+
+    if (aspect_ratio > 1.f) {
+        screenMin.x = -aspect_ratio;
+        screenMax.x = aspect_ratio;
+        screenMin.y = -1.f;
+        screenMax.y = 1.f;
+    }
+    else {
+        screenMin.x = -1.f;
+        screenMax.x = 1.f;
+        screenMin.y = -1.f / aspect_ratio;
+        screenMax.y = 1.f / aspect_ratio;
+    }
 
     // screenWindow是趋近于ndc的一个东西
 
     // camera转到ndc
     //CameraToScreen = Perspective(fov, asp, 1e-2f, 1000.f);
     CameraToScreen = Perspective(fov, asp, near, far);
-    
+
     // 从ndc转到2d像素坐标。
     ScreenToRaster =
-        Scale(film->fullResolution.x, film->fullResolution.y, 1) * // 再scale。放大到film的真实大小，也就是最终图像的2d坐标。
-        Scale(1 / (screenWindow.pMax.x - screenWindow.pMin.x),     // 再scale归一，映射到[0, 1]。注意y是负的，就是越往下越大。
-            1 / (screenWindow.pMin.y - screenWindow.pMax.y), 1) *
-        Translate(Vector3f(-screenWindow.pMin.x, -screenWindow.pMax.y, 0)); // 先Translate，根据上面的screen。整体往右下挪，左上挪到原点。
+        //Scale(film->fullResolution.x, film->fullResolution.y, 1) * // 再scale。放大到film的真实大小，也就是最终图像的2d坐标。
+        Scale(resX, resY, 1) * // 再scale。放大到film的真实大小，也就是最终图像的2d坐标。
+        Scale(1 / (screenMax.x - screenMin.x),     // 再scale归一，映射到[0, 1]。注意y是负的，就是越往下越大。
+            1 / (screenMin.y - screenMax.y), 1) *
+        Translate(Vector3f(-screenMin.x, -screenMax.y, 0)); // 先Translate，根据上面的screen。整体往右下挪，左上挪到原点。
 
     RasterToScreen = Inverse(ScreenToRaster); // 逆
 
     // 2d到ndc，再到camera。
     // 可以从相片上的某个点还原到camera空间。
     RasterToCamera = Inverse(CameraToScreen) * RasterToScreen;
+}
+
+PerspectiveCamera::PerspectiveCamera(Point3f pos, Point3f look, Vector3f up, float fov, float asp, float near, float far, int resX, int resY):
+	//Camera(film), 
+    near(near), far(far), fov(fov), asp(asp)
+{
+	//A = film->fullResolution.x * film->fullResolution.y;
+
+    SetPerspectiveData(pos, look, up, fov, asp, near, far, resX, resY);
 }
 
 //float PerspectiveCamera::GenerateRay(const CameraSample& sample, Ray* ray) const {
