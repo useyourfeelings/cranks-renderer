@@ -2,6 +2,8 @@
 #define CORE_REFLECTION_H
 
 #include<string>
+#include<memory>
+#include<vector>
 #include "transform.h"
 #include "spectrum.h"
 #include "interaction.h"
@@ -16,6 +18,11 @@ enum BxDFType {
 	BSDF_TRANSMISSION,
 };
 
+inline float AbsCosTheta(const Vector3f& w) { return std::abs(w.z); }
+
+inline bool SameHemisphere(const Vector3f& w, const Vector3f& wp) {
+    return w.z * wp.z > 0;
+}
 
 class BxDF {
 public:
@@ -37,10 +44,18 @@ public:
         ng(si.n),
         ss(Normalize(si.shading.dpdu)),
         ts(Cross(ns, ss)) {}
-    void Add(BxDF* b) {
-        //CHECK_LT(nBxDFs, MaxBxDFs);
-        bxdfs[nBxDFs++] = b;
+
+    ~BSDF() {}
+
+    //void Add(BxDF* b) {
+    //    //CHECK_LT(nBxDFs, MaxBxDFs);
+    //    bxdfs[nBxDFs++] = b;
+    //}
+
+    void Add(std::shared_ptr<BxDF> bxdf) {
+        bxdfs.push_back(bxdf);
     }
+
     int NumComponents(BxDFType flags = BSDF_ALL) const;
     Vector3f WorldToLocal(const Vector3f& v) const {
         return Vector3f(Dot(v, ss), Dot(v, ts), Dot(v, ns));
@@ -68,14 +83,16 @@ public:
 
 private:
     // BSDF Private Methods
-    ~BSDF() {}
+    
 
     // BSDF Private Data
     const Vector3f ns, ng; //Normal3f ns, ng;
     const Vector3f ss, ts;
     int nBxDFs = 0;
     static const int MaxBxDFs = 8;
-    BxDF* bxdfs[MaxBxDFs];
+    //BxDF* bxdfs[MaxBxDFs];
+
+    std::vector<std::shared_ptr<BxDF>> bxdfs;
     friend class MixMaterial;
 };
 

@@ -37,23 +37,25 @@ Spectrum WhittedIntegrator::Li(const RayDifferential& ray, const Scene& scene, S
         return L;
     }
 
-    Log("scene Intersect at");
-    isect.p.LogSelf();
-    Log("primitive = %s", isect.primitive->name.c_str());
+    Log("scene Intersect");
+    //isect.p.LogSelf();
+    //Log("primitive = %s", isect.primitive->name.c_str());
+    isect.LogSelf();
 
-    // draw normal
-    Spectrum test_spectrum;
-    /*test_spectrum.c[0] = 0.8;
-    test_spectrum.c[1] = 0.3;
-    test_spectrum.c[2] = 0.3;*/
 
-    isect.n.LogSelf();
+    if (0) {
+        // draw normal
 
-    test_spectrum.c[0] = 0.5 * (isect.n.x + 1); // map to [0, 1]
-    test_spectrum.c[1] = 0.5 * (isect.n.y + 1);
-    test_spectrum.c[2] = 0.5 * (isect.n.z + 1);
+        Spectrum test_spectrum;
 
-    return test_spectrum;
+        isect.n.LogSelf();
+
+        test_spectrum.c[0] = 0.5 * (isect.n.x + 1); // map to [0, 1]
+        test_spectrum.c[1] = 0.5 * (isect.n.y + 1);
+        test_spectrum.c[2] = 0.5 * (isect.n.z + 1);
+
+        return test_spectrum;
+    }
 
     // Compute emitted and reflected light at ray intersection point
 
@@ -62,7 +64,11 @@ Spectrum WhittedIntegrator::Li(const RayDifferential& ray, const Scene& scene, S
     const Vector3f& n = isect.n;
     Vector3f wo = isect.wo;
 
+    isect.n.LogSelf("n");
+
+
     // Compute scattering functions for surface interaction
+    // 根据材质添加BxDF。一个材质可能包含多种bxdf。
     isect.ComputeScatteringFunctions(ray);
     
     //if (!isect.bsdf)
@@ -77,22 +83,57 @@ Spectrum WhittedIntegrator::Li(const RayDifferential& ray, const Scene& scene, S
         float pdf;
         //VisibilityTester visibility;
 
-
+        // 光源的基本值
         Spectrum Li = light->Sample_Li(isect, &wi, &pdf);
-        if (Li.IsBlack() || pdf == 0) continue;
+
+        Log("base Li %f %f %f pdf = %f", Li.c[0], Li.c[1], Li.c[2], pdf);
+
+        
+        wo.LogSelf("wo");
+        wi.LogSelf("wi");
+        
+
+        // 为0的话直接跳过
+        if (Li.IsBlack() || pdf == 0)
+            continue;
+
+        // 算bsdf里的每个bxdf
         Spectrum f = isect.bsdf->f(wo, wi);
+
+        Log("bsdf f = %f %f %f", f.c[0], f.c[1], f.c[2]);
 
         // 交点到光源之间是否有阻挡
 
         if (!f.IsBlack()) {
-            Ray temp_ray(isect.p, wi);
+            //Ray temp_ray(isect.p, wi);
+
+            Ray temp_ray(light->pos, Normalize(isect.p - light->pos));
+            Log("temp_ray");
+            temp_ray.LogSelf();
+
             SurfaceInteraction temp_isect;
             float temp_t;
-            scene.Intersect(temp_ray, &temp_t, &temp_isect);
+            auto ires = scene.Intersect(temp_ray, &temp_t, &temp_isect);
 
             // todo: two sides. compare roots
-            if(temp_isect.primitive->id == isect.primitive->id)
-                L += f * Li * std::abs(Dot(wi, n)) / pdf;
+            //if (ires && temp_isect.primitive->id == isect.primitive->id) {
+            if (ires) {
+                if (std::abs(temp_isect.p.x - isect.p.x) <= Error1 &&
+                    std::abs(temp_isect.p.y - isect.p.y) <= Error1 &&
+                    std::abs(temp_isect.p.z - isect.p.z) <= Error1){
+
+                    L += f * Li * std::abs(Dot(wi, n)) / pdf;
+                    Log("light can see");
+                }
+                else {
+                    Log("light can not see 1");
+                }
+                
+            }
+            else {
+                Log("light can not see 2");
+            }
+                
         }
             
     }

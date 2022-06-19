@@ -2,13 +2,32 @@
 #include "primitive.h"
 
 SurfaceInteraction::SurfaceInteraction(
-    const Point3f& p, const Vector3f& n, const Point2f& uv,
-    const Vector3f& wo, float time, const Shape* shape)
-    : Interaction(p, n, wo, time),
+    const Point3f& p, const Vector3f& shape_n, const Point2f& uv,
+    const Vector3f& wo, const Vector3f& dpdu, const Vector3f& dpdv,
+    float time, const Shape* shape)
+    : Interaction(p, shape_n, Normalize(Cross(dpdu, dpdv)), wo, time),
     uv(uv),
-
+    dpdu(dpdu),
+    dpdv(dpdv),
     shape(shape){
 
+    shading.n = n;
+    shading.dpdu = dpdu;
+    shading.dpdv = dpdv;
+
+
+}
+
+void SurfaceInteraction::LogSelf() {
+    Log("interaction primitive = %s", primitive->name.c_str());
+    Log("p");
+    p.LogSelf();
+    Log("n");
+    n.LogSelf();
+    Log("dpdu");
+    dpdu.LogSelf();
+    Log("dpdv");
+    dpdv.LogSelf();
 }
 
 void SurfaceInteraction::ComputeDifferentials( const RayDifferential& ray) const {

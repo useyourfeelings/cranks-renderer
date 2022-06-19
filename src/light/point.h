@@ -9,7 +9,9 @@ public:
     PointLight(const Transform& LightToWorld, const Spectrum& I)
         : Light((int)LightFlags::DeltaPosition, LightToWorld),
         pLight(LightToWorld(Point3f(0, 0, 0))),
-        I(I) {}
+        I(I) {
+        pos = LightToWorld(Point3f(0, 0, 0));
+    }
     Spectrum Sample_Li(const Interaction& ref, Vector3f* wi, float* pdf) const;
     /*Spectrum Power() const;
     Float Pdf_Li(const Interaction&, const Vector3f&) const;
@@ -19,9 +21,11 @@ public:
     void Pdf_Le(const Ray&, const Normal3f&, Float* pdfPos,
         Float* pdfDir) const;*/
 
+    Point3f pLight;
+
 private:
     // PointLight Private Data
-    const Point3f pLight;
+    
     const Spectrum I;
 };
 

@@ -1,8 +1,9 @@
 #include "material.h"
+#include "reflection.h"
 
 void MatteMaterial::ComputeScatteringFunctions(SurfaceInteraction* si, TransportMode mode) const {
     // Perform bump mapping with _bumpMap_, if present
-    if (bumpMap) Bump(bumpMap, si);
+    //if (bumpMap) Bump(bumpMap, si);
 
     //// Evaluate textures for _MatteMaterial_ material and allocate BRDF
     //si->bsdf = ARENA_ALLOC(arena, BSDF)(*si);
@@ -14,6 +15,16 @@ void MatteMaterial::ComputeScatteringFunctions(SurfaceInteraction* si, Transport
     //    else
     //        si->bsdf->Add(ARENA_ALLOC(arena, OrenNayar)(r, sig));
     //}
+
+    Spectrum r;
+    r.c[0] = 0.6;
+    r.c[1] = 0.7;
+    r.c[2] = 0.8;
+
+    si->bsdf = std::make_shared<BSDF>(*si);
+
+    si->bsdf->Add(std::make_shared<LambertianReflection>(r));
+
 }
 
 void Material::Bump(const std::shared_ptr<Texture<float>>& d,

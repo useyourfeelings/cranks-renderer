@@ -41,7 +41,8 @@ public:
         const std::shared_ptr<Material>& material
         //const std::shared_ptr<AreaLight>& areaLight,
         //const MediumInterface& mediumInterface
-    ) :shape(shape) {
+    ) :shape(shape),
+        material(material) {
 
     }
 

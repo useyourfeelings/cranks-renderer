@@ -54,7 +54,7 @@ bool Sphere::Intersect(const Ray& ray, float* tHit, SurfaceInteraction* isect) c
 
 	Log("Sphere wtf4 %f", t);
 
-	auto hitPoint = r(t); // get hit position
+	Point3f hitPoint = r(t); // get hit position
 	Log("hitPoint");
 	hitPoint.LogSelf();
 
@@ -69,9 +69,10 @@ bool Sphere::Intersect(const Ray& ray, float* tHit, SurfaceInteraction* isect) c
 	// radius default = 1
 	// zmin default -radius
 	// zmax default radius
-	// thetaMin default -1
-	// thetaMax default 1
+	// thetaMin default acos(-1)   Pi 
+	// thetaMax default acos(1)   2Pi
 	// phimax default = 360      Radians(360) 2pi
+
 
 	float phi = std::atan2(hitPoint.y, hitPoint.x);
 	if (phi < 0)
@@ -94,30 +95,75 @@ bool Sphere::Intersect(const Ray& ray, float* tHit, SurfaceInteraction* isect) c
 	// 他为什么用百分比作为微小量而不是直接用φ？
 
 	// 微分的理解
-	// 比如对x = r sin(θ) cos(φ)求u的偏导。得到x的变化率。
+	// 比如对x = r sin(θ) cos(φ)求u的偏导。得到x的变化率(之于φ的百分比)。
 	// 同理得到yz的变化率。那么xyz在几何意义上实际是一个向量/方向。
 	// 思考一下2d上的微分同样是一种方向。
 
-	// d (r sin(θ) cos(φ)) /du
-	// = rsin(θ) d cos(u*phiMax)/du
-	// = -rsin(θ)sin(φ)phiMax
-	// = -y*phiMax
-	// 同样可求y和z上的偏导数。
+	/*
 
-	// 最后得到dpdu
+	dx / du
+	= d(r sin(θ) cos(φ)) / du
+	= rsin(θ) d cos(u * phiMax) / du         // float u = phi / phiMax;代入
+	= -rsin(θ)sin(φ)phiMax
+	= -y * phiMax
+
+	dy / du
+	= d(r sin(θ) sin(φ)) / du
+	= rsin(θ)d(u * phiMax) / du
+	= rsin(θ)cos(φ)phiMax
+	= x * phiMax
+
+	dz / du
+	= d(r cos(θ)) / du
+	= 0
+
+	*/
+
+	// 最后得到dp/du。当前点上的
 	Vector3f dpdu(-phiMax * hitPoint.y, phiMax * hitPoint.x, 0);
 
 	// 这个是可以在普通xyz坐标系验证的。
 	// 粗略看一下。θ不变的情况下，z是不变的。可简化成xy的2d平面。
 	// 看看一个圆上切线方向。确实就是(-y, x)，方向能对上。如果严格按u来算的话想必结果是一致的。
 
-	// 同样可算出dpdv。
-	Vector3f dpdv;
+	// 同样可算出dp/dv。
+
+	/*
+	
+	dx / dv
+	= d(r sin(θ) cos(φ)) / dv
+	= rcos(φ) cos(θ) (thetaMax - thetaMin)
+	= z * cos(φ) * (thetaMax - thetaMin)
+
+	dy / dv
+	= d(r sin(θ) sin(φ)) / dv
+	= rsin(φ) cos(θ) (thetaMax - thetaMin)
+	= z * sin(φ) * (thetaMax - thetaMin)
+
+	dz / dv
+	= d (rcos(θ)) / dv
+	= -r sin(θ) * (thetaMax - thetaMin)
+
+	*/
+
+	Vector3f dpdv = Vector3f(hitPoint.z * cosPhi, hitPoint.z * sinPhi, -radius * std::sin(theta)) 
+		* (thetaMax - thetaMin);
+
+	Log("dpdu");
+	dpdu.LogSelf();
+
+	Log("dpdv");
+	dpdv.LogSelf();
 
 
 	// 最后生成信息并转回world
 	//*isect = (ObjectToWorld)(SurfaceInteraction(hitPoint, Normalize(Cross(dpdu, dpdv)), Point2f(u, v), -r.d, r.time, this));
-	*isect = (ObjectToWorld)(SurfaceInteraction(hitPoint, hitPoint - Point3f(0, 0, 0), Point2f(u, v), -r.d, r.time, this));
+	*isect = (ObjectToWorld)(SurfaceInteraction(
+		hitPoint, 
+		hitPoint - Point3f(0, 0, 0), 
+		Point2f(u, v), -r.d, 
+		dpdu, dpdv,
+		r.time, this));
 
 	*tHit = t;
 

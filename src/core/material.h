@@ -24,6 +24,7 @@ public:
 class MatteMaterial : public Material {
 public:
     // MatteMaterial Public Methods
+    MatteMaterial() {}
     MatteMaterial(const std::shared_ptr<Texture<Spectrum>>& Kd,
         const std::shared_ptr<Texture<float>>& sigma,
         const std::shared_ptr<Texture<float>>& bumpMap)

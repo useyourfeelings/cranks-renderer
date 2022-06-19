@@ -30,6 +30,7 @@ template <typename T> class Texture;
 #define Infinity std::numeric_limits<float>::infinity()
 
 // const
+static float Error1 = 1;// 2;// 1.5;//0.001;
 static float Pi = 3.14159265358979323846;
 static float InvPi = 0.31830988618379067154;
 

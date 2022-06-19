@@ -19,7 +19,7 @@ void PbrApp::AddSphere(std::string &name, float radius, Point3f pos) {
 
 	std::shared_ptr<Shape> shape = std::make_shared<Sphere>(t, Inverse(t), radius, zmin, zmax, phimax);
 
-	auto material = nullptr; //std::make_shared<MatteMaterial>();
+	auto material = std::make_shared<MatteMaterial>();
 
 	scene->AddPrimitive(std::make_shared<GeometricPrimitive>(shape, material), name);
 }
@@ -107,7 +107,7 @@ void PbrApp::SetSampler() {
 void PbrApp::SetRandomSampler() {
 	Log("SetRandomSampler");
 
-	this->sampler = std::shared_ptr<Sampler>(new RandomSampler(4)); // 8 better than 4. 4 better than 1.
+	this->sampler = std::shared_ptr<Sampler>(new RandomSampler(1)); // 8 better than 4. 4 better than 1.
 }
 
 void PbrApp::SetIntegrator() {
@@ -120,7 +120,7 @@ void PbrApp::SetIntegrator() {
 void PbrApp::SetWhittedIntegrator() {
 	Log("SetWhittedIntegrator");
 
-	int maxDepth = 5;
+	int maxDepth = 1;
 	BBox2i bounds(Point2i(0, 0), Point2i(camera->resolutionX, camera->resolutionY));
 
 	this->integrator = std::unique_ptr<Integrator>(new WhittedIntegrator(maxDepth, camera, sampler, bounds));

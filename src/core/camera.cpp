@@ -11,7 +11,7 @@
 //}
 
 void Camera::AddSample(const Point2f& pixel, Spectrum L, float sampleWeight, int samplesPerPixel) {
-    int pixel_index = pixel.x + pixel.y * film->fullResolution.x;
+    int pixel_index = pixel.x + pixel.y * resolutionX;
     film->pixels[pixel_index] += L * sampleWeight / samplesPerPixel;
 }
 

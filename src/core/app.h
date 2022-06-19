@@ -31,16 +31,16 @@ public:
 	float camera_fov, camera_aspect_ratio, camera_near, camera_far;*/
 
 	PbrInfo() :
-		camera_fov(90),
+		camera_fov(100),
 		camera_aspect_ratio(1),
 		camera_near(1),
 		camera_far(200),
-		camera_resX(100),
-		camera_resY(100)
+		camera_resX(160),
+		camera_resY(160)
 	{
 		camera_pos[0] = 0;
 		camera_pos[1] = 0;
-		camera_pos[2] = 0;
+		camera_pos[2] = -20;
 
 		camera_look[0] = 0;
 		camera_look[1] = 0;

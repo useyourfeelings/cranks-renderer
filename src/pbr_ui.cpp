@@ -147,7 +147,7 @@ int make_pbr_ui()
 
     ImGui::PushItemWidth(400);
 
-    if (ImGui::SliderFloat2("near_far", near_far, 0.001f, 200)) {
+    if (ImGui::SliderFloat2("near_far", near_far, 0.001f, 1000)) {
         cameraChanged = true;
     }
 
@@ -184,11 +184,13 @@ int make_pbr_ui()
 
     if (ImGui::Button("Render", ImVec2(400, 120))) {
 
-        PBR_API_add_sphere("wtfSphere 1"s, 6, 0, 0, 28);
-        PBR_API_add_sphere("wtfSphere 2"s, 10, -20, -30, 40);
+        PBR_API_add_sphere("wtfSphere 1"s, 6, 0, 0, 0);
+        PBR_API_add_sphere("wtfSphere 2"s, 10, -20, 20, 40);
         PBR_API_add_sphere("wtfSphere 3"s, 20, 30, 30, 60);
+        PBR_API_add_sphere("wtfSphere 4"s, 200, 0, -210, 0);
+        PBR_API_add_sphere("wtfSphere 5"s, 2, 7.2, -5, 0);
 
-        PBR_API_add_point_light("wtf Light"s, 0, 10, 0);
+        PBR_API_add_point_light("wtf Light"s, 0, 30, 0);
         PBR_API_render();
     }
 

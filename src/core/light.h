@@ -23,6 +23,8 @@ public:
 	const int flags;
 	const int nSamples;
 
+	Point3f pos;
+
 	const Transform LightToWorld, WorldToLight;
 };
 
