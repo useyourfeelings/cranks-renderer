@@ -15,14 +15,14 @@ void Camera::AddSample(const Point2f& pixel, Spectrum L, float sampleWeight, int
     film->pixels[pixel_index] += L * sampleWeight / samplesPerPixel;
 }
 
-void PerspectiveCamera::SetPerspectiveData(Point3f pos, Point3f look, Vector3f up, float fov, float aspect_ratio, float near, float far, int resX, int resY) {
+void PerspectiveCamera::SetPerspectiveData(Point3f pos, Point3f look, Vector3f up, float fov, float asp, float near, float far, int resX, int resY) {
     Log("SetPerspectiveData");
     this->CameraToWorld = Inverse(LookAt(pos, look, up));
     CameraToWorld.LogSelf();
 
     //float aspectRatio = film->fullResolution.x / film->fullResolution.y;
 
-    this->asp = aspect_ratio;
+    this->asp = asp;
     this->fov = fov;
     this->near = near;
     this->far = far;
@@ -31,17 +31,17 @@ void PerspectiveCamera::SetPerspectiveData(Point3f pos, Point3f look, Vector3f u
 
     Point2f screenMin, screenMax;
 
-    if (aspect_ratio > 1.f) {
-        screenMin.x = -aspect_ratio;
-        screenMax.x = aspect_ratio;
+    if (asp > 1.f) {
+        screenMin.x = -asp;
+        screenMax.x = asp;
         screenMin.y = -1.f;
         screenMax.y = 1.f;
     }
     else {
         screenMin.x = -1.f;
         screenMax.x = 1.f;
-        screenMin.y = -1.f / aspect_ratio;
-        screenMax.y = 1.f / aspect_ratio;
+        screenMin.y = -1.f / asp;
+        screenMax.y = 1.f / asp;
     }
 
     // screenWindow是趋近于ndc的一个东西
@@ -103,7 +103,13 @@ float PerspectiveCamera::GenerateRayDifferential(const CameraSample& sample,
     //ProfilePhase prof(Prof::GenerateCameraRay);
     // Compute raster and camera sample positions
     Point3f pFilm = Point3f(sample.pFilm.x, sample.pFilm.y, 0);
-    Point3f pCamera = RasterToCamera(pFilm); // 从相片上的某个点还原到camera空间的near面上。
+
+    //Point3f pCamera = RasterToCamera(pFilm); // 从相片上的某个点还原到camera空间的near面上。
+
+    Point3f pCamera_zfront = RasterToCamera(pFilm); // 从相片上的某个点还原到camera空间的near面上。
+
+    // perspective转换的ndc坐标系是yup。但场景是zup。所以直接交换一下yz。
+    Point3f pCamera(pCamera_zfront.x, pCamera_zfront.z, pCamera_zfront.y);
 
     Log("GenerateRayDifferential RasterToCamera");
     pFilm.LogSelf();

@@ -4,7 +4,7 @@
 #include "../tool/logger.h"
 
 Spectrum WhittedIntegrator::Li(const RayDifferential& ray, const Scene& scene, Sampler& sampler, int depth) const {
-    Log("WhittedIntegrator::Li");
+    Log("WhittedIntegrator::Li depth = %d", depth);
 
     ray.LogSelf();
 
@@ -117,13 +117,17 @@ Spectrum WhittedIntegrator::Li(const RayDifferential& ray, const Scene& scene, S
 
             // todo: two sides. compare roots
             //if (ires && temp_isect.primitive->id == isect.primitive->id) {
-            if (ires) {
+            if (ires && temp_isect.primitive->id == isect.primitive->id) {
+                temp_isect.LogSelf();
+
                 if (std::abs(temp_isect.p.x - isect.p.x) <= Error1 &&
                     std::abs(temp_isect.p.y - isect.p.y) <= Error1 &&
                     std::abs(temp_isect.p.z - isect.p.z) <= Error1){
 
                     L += f * Li * std::abs(Dot(wi, n)) / pdf;
-                    Log("light can see");
+
+                    auto add = f * Li * std::abs(Dot(wi, n)) / pdf;
+                    Log("light can see. add %f %f %f", add.c[0], add.c[1], add.c[2]);
                 }
                 else {
                     Log("light can not see 1");
@@ -143,43 +147,4 @@ Spectrum WhittedIntegrator::Li(const RayDifferential& ray, const Scene& scene, S
         //L += SpecularTransmit(ray, isect, scene, sampler, depth);
     }
     return L;
-}
-
-
-Spectrum SamplerIntegrator::SpecularReflect(
-    const RayDifferential& ray, const SurfaceInteraction& isect,
-    const Scene& scene, Sampler& sampler, int depth) const {
-    // Compute specular reflection direction _wi_ and BSDF value
-    Vector3f wo = isect.wo, wi;
-    float pdf;
-    BxDFType type = BxDFType(BSDF_REFLECTION | BSDF_SPECULAR);
-    Spectrum f = isect.bsdf->Sample_f(wo, &wi, sampler.Get2D(), &pdf, type);
-
-    // Return contribution of specular reflection
-    const Vector3f& ns = isect.shading.n;
-    if (pdf > 0.f && !f.IsBlack() && std::abs(Dot(wi, ns)) != 0.f) {
-        // Compute ray differential _rd_ for specular reflection
-        RayDifferential rd = isect.SpawnRay(wi);
-        //if (ray.hasDifferentials) {
-        //    rd.hasDifferentials = true;
-        //    rd.rxOrigin = isect.p + isect.dpdx;
-        //    rd.ryOrigin = isect.p + isect.dpdy;
-        //    // Compute differential reflected directions
-        //    Vector3f dndx = isect.shading.dndu * isect.dudx +
-        //        isect.shading.dndv * isect.dvdx;
-        //    Vector3f dndy = isect.shading.dndu * isect.dudy +
-        //        isect.shading.dndv * isect.dvdy;
-        //    Vector3f dwodx = -ray.rxDirection - wo,
-        //        dwody = -ray.ryDirection - wo;
-        //    float dDNdx = Dot(dwodx, ns) + Dot(wo, dndx);
-        //    float dDNdy = Dot(dwody, ns) + Dot(wo, dndy);
-        //    rd.rxDirection =
-        //        wi - dwodx + 2.f * Vector3f(Dot(wo, ns) * dndx + dDNdx * ns);
-        //    rd.ryDirection =
-        //        wi - dwody + 2.f * Vector3f(Dot(wo, ns) * dndy + dDNdy * ns);
-        //}
-        return f * Li(rd, scene, sampler, depth + 1) * std::abs(Dot(wi, ns)) / pdf;
-    }
-    else
-        return Spectrum(0.f);
 }

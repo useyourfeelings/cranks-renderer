@@ -17,9 +17,9 @@ void Film::WritePPMImage() {
 	for (int j = 0; j < fullResolution.y; ++j) {
 		for (int i = 0; i < fullResolution.x; ++i) {
 			index = i + fullResolution.x * j;
-			f << int(pixels[index].c[0] * 255) << " " 
-				<< int(pixels[index].c[1] * 255) << " " 
-				<< int(pixels[index].c[2] * 255) << std::endl;
+			f << std::min(int(pixels[index].c[0] * 255), 255) << " " 
+				<< std::min(int(pixels[index].c[1] * 255), 255) << " "
+				<< std::min(int(pixels[index].c[2] * 255), 255) << std::endl;
 		}
 	}
 

@@ -19,7 +19,7 @@ SurfaceInteraction::SurfaceInteraction(
 }
 
 void SurfaceInteraction::LogSelf() {
-    Log("interaction primitive = %s", primitive->name.c_str());
+    Log("interaction hit primitive = %s", primitive->name.c_str());
     Log("p");
     p.LogSelf();
     Log("n");

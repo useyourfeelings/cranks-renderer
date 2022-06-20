@@ -10,6 +10,6 @@ Spectrum PointLight::Sample_Li(const Interaction& ref, Vector3f* wi, float* pdf)
     // *vis = VisibilityTester(ref, Interaction(pLight, ref.time, mediumInterface));
 
     // Ö¸ÊýË¥¼õ
-    return I;
-    return I / DistanceSquared(pLight, ref.p) * 500;
+    // return I;
+    return I / DistanceSquared(pLight, ref.p) * 5000;
 }

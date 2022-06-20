@@ -17,9 +17,9 @@ void MatteMaterial::ComputeScatteringFunctions(SurfaceInteraction* si, Transport
     //}
 
     Spectrum r;
-    r.c[0] = 0.6;
+    r.c[0] = 0.9;
     r.c[1] = 0.7;
-    r.c[2] = 0.8;
+    r.c[2] = 0.7;
 
     si->bsdf = std::make_shared<BSDF>(*si);
 

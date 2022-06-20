@@ -185,12 +185,13 @@ int make_pbr_ui()
     if (ImGui::Button("Render", ImVec2(400, 120))) {
 
         PBR_API_add_sphere("wtfSphere 1"s, 6, 0, 0, 0);
-        PBR_API_add_sphere("wtfSphere 2"s, 10, -20, 20, 40);
-        PBR_API_add_sphere("wtfSphere 3"s, 20, 30, 30, 60);
-        PBR_API_add_sphere("wtfSphere 4"s, 200, 0, -210, 0);
-        PBR_API_add_sphere("wtfSphere 5"s, 2, 7.2, -5, 0);
+        PBR_API_add_sphere("wtfSphere 2"s, 10, -20, 40, 20);
+        PBR_API_add_sphere("wtfSphere 3"s, 20, 30, 40, 30);
+        PBR_API_add_sphere("wtfSphere 4"s, 200, 0, 0, -210);
+        PBR_API_add_sphere("wtfSphere 5"s, 2, 7.2, 0, -5);
 
-        PBR_API_add_point_light("wtf Light"s, 0, 30, 0);
+        //PBR_API_add_point_light("wtf Light"s, 0, 30, 0);
+        PBR_API_add_point_light("wtf Light"s, 0, 0, 30);
         PBR_API_render();
     }
 
