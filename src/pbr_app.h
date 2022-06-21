@@ -1,1 +1,1 @@
-int make_pbr_ui(void);
+int RendererUI(void);

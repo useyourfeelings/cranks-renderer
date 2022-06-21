@@ -1,6 +1,7 @@
 #include "imgui.h"
 #include "core/api.h"
 #include "tool/logger.h"
+#include "events.h"
 
 using namespace std::literals;
 
@@ -63,8 +64,15 @@ void InitCanvas() {
     ImGui::End();
 }
 
-int make_pbr_ui()
+int RendererUI()
 {
+    static int registered = 0;
+
+    if (registered == 0) {
+        register_event(666, PBR_API_render);
+        registered = 1;
+    }
+
     static float f = 0.0f;
     static int counter = 0;
 
@@ -74,7 +82,7 @@ int make_pbr_ui()
 
     ImGui::StyleColorsLight();
 
-    InitLogger();
+    LoggerUI();
 
     //InitCanvas();
 
@@ -192,7 +200,9 @@ int make_pbr_ui()
 
         //PBR_API_add_point_light("wtf Light"s, 0, 30, 0);
         PBR_API_add_point_light("wtf Light"s, 0, 0, 30);
-        PBR_API_render();
+        //PBR_API_render();
+
+        send_event(666);
     }
 
     ImGui::End();

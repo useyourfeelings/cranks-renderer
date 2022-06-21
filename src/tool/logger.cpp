@@ -1,6 +1,9 @@
 #include "logger.h"
 #include "imgui.h"
 
+#include<mutex>
+//static std::mutex logger_mutex;
+
 // copy from imgui demo
 
 // log from imgui
@@ -13,18 +16,29 @@
 //  static ExampleAppLog my_log;
 //  my_log.AddLog("Hello %d world\n", 123);
 //  my_log.Draw("title");
-struct ExampleAppLog
+class ExampleAppLog
 {
+public:
     ImGuiTextBuffer     Buf;
     ImGuiTextFilter     Filter;
     ImVector<int>       LineOffsets; // Index to lines offset. We maintain this with AddLog() calls.
     bool                AutoScroll;  // Keep scrolling if already at the bottom.
+
+    std::mutex logger_mutex;
 
     ExampleAppLog()
     {
         AutoScroll = true;
         Clear();
     }
+
+    /*void Lock() {
+        logger_mutex.lock();
+    }
+
+    void Unlock() {
+        logger_mutex.unlock();
+    }*/
 
     void Clear()
     {
@@ -47,6 +61,7 @@ struct ExampleAppLog
 
     void Draw(const char* title, bool* p_open = NULL)
     {
+        std::lock_guard<std::mutex> guard(logger_mutex); // Log()可供其他线程调用。所以在所有操作共同数据的地方都应加锁。
         if (!ImGui::Begin(title, p_open))
         {
             ImGui::End();
@@ -133,10 +148,13 @@ struct ExampleAppLog
     }
 };
 
-static ExampleAppLog pbr_log;
+
+
+static ExampleAppLog renderer_log;
+
 
 // Demonstrate creating a simple log window with basic filtering.
-void InitLogger()
+void LoggerUI()
 {
     // For the demo: add a debug button _BEFORE_ the normal log window contents
     // We take advantage of a rarely used feature: multiple calls to Begin()/End() are appending to the _same_ window.
@@ -160,7 +178,7 @@ void InitLogger()
     //ImGui::End();
 
     // Actually call in the regular Log helper (which will Begin() into the same window as we just did)
-    pbr_log.Draw("pbr Log");
+    renderer_log.Draw("Renderer Log");
 }
 
 //void Log(const char* fmt, ...) IM_FMTARGS(2) {
@@ -172,16 +190,19 @@ void InitLogger()
 //    pbr_log.AddLog("\n");
 //}
 
-void Log(const char* fmt, ...) IM_FMTARGS(2) {
-    int old_size = pbr_log.Buf.size();
+void Log(const char* fmt, ...) {
+
+    std::lock_guard<std::mutex> guard(renderer_log.logger_mutex);
+
+    int old_size = renderer_log.Buf.size();
     va_list args;
     va_start(args, fmt);
-    pbr_log.Buf.appendfv(fmt, args);
+    renderer_log.Buf.appendfv(fmt, args);
     va_end(args);
 
-    pbr_log.Buf.append("\n");
+    renderer_log.Buf.append("\n");
 
-    for (int new_size = pbr_log.Buf.size(); old_size < new_size; old_size++)
-        if (pbr_log.Buf[old_size] == '\n')
-            pbr_log.LineOffsets.push_back(old_size + 1);
+    for (int new_size = renderer_log.Buf.size(); old_size < new_size; old_size++)
+        if (renderer_log.Buf[old_size] == '\n')
+            renderer_log.LineOffsets.push_back(old_size + 1);
 }

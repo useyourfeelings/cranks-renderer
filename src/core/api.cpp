@@ -65,5 +65,6 @@ int PBR_API_get_defualt_camera_setting(float* pos, float* look, float* up, float
 int PBR_API_render() {
 	Log("PBR_API_render");
 	app.RenderScene();
+	Log("PBR_API_render over");
 	return 0;
 }

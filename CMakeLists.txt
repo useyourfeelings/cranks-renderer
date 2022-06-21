@@ -44,7 +44,11 @@ include_directories(${GLFW_DIR}/deps)
 # cranks-renderer code
 file(GLOB PBR_CODE
 	src/main.cpp
-  src/pbr_ui.cpp
+  src/renderer_ui.cpp
+  src/gui_main.h
+  src/gui_main.cpp
+  src/events.h
+  src/events.cpp
   src/core/*.h
   src/core/*.cpp
   src/shape/*.h
@@ -66,3 +70,4 @@ add_executable(cranks-renderer ${PBR_CODE} ${IMGUI_DIR}/backends/imgui_impl_glfw
 target_link_libraries(cranks-renderer ${LIBRARIES})
 target_compile_definitions(cranks-renderer PUBLIC -DImTextureID=ImU64)
 
+target_compile_features(cranks-renderer PRIVATE cxx_std_17)

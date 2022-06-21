@@ -35,8 +35,8 @@ public:
 		camera_aspect_ratio(1),
 		camera_near(1),
 		camera_far(200),
-		camera_resX(500),
-		camera_resY(500)
+		camera_resX(100),
+		camera_resY(100)
 	{
 		camera_pos[0] = 0;
 		camera_pos[1] = -20; // 0
@@ -60,11 +60,10 @@ public:
 class PbrApp {
 public:
 	PbrApp(){
-		Log("PbrApp()");
+		//Log("PbrApp()"); // cause exception. mutex not initialized
 		camera = nullptr;
 		sampler = nullptr;
 		integrator = nullptr;
-		//integrator = nullptr;
 
 		scene = std::make_unique<Scene>();
 
