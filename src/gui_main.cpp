@@ -354,9 +354,9 @@ static void glfw_error_callback(int error, const char* description)
     fprintf(stderr, "Glfw Error %d: %s\n", error, description);
 }
 
-int gui_thread_func()
-//int main(int, char**)
+int gui_main() //int main(int, char**)
 {
+    printf("gui_main start\n");
     // Setup GLFW window
     glfwSetErrorCallback(glfw_error_callback);
     if (!glfwInit())
@@ -562,6 +562,8 @@ int gui_thread_func()
 
     glfwDestroyWindow(window);
     glfwTerminate();
+
+    printf("gui_main end\n");
 
     return 0;
 }

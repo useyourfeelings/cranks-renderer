@@ -35,8 +35,8 @@ public:
 		camera_aspect_ratio(1),
 		camera_near(1),
 		camera_far(200),
-		camera_resX(100),
-		camera_resY(100)
+		camera_resX(200),
+		camera_resY(200)
 	{
 		camera_pos[0] = 0;
 		camera_pos[1] = -20; // 0
@@ -60,7 +60,7 @@ public:
 class PbrApp {
 public:
 	PbrApp(){
-		//Log("PbrApp()"); // cause exception. mutex not initialized
+		//Log("PbrApp()"); // can cause exception. mutex not initialized. global variable problem.
 		camera = nullptr;
 		sampler = nullptr;
 		integrator = nullptr;

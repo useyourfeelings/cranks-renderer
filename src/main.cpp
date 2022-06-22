@@ -1,9 +1,6 @@
 #include<iostream>
-#include "events.h"
-//#include"gui_main.h"
-
-//#include<vector>
-//#include<thread>
+#include "base/events.h"
+#include"gui_main.h"
 
 /*
 main线程
@@ -18,21 +15,11 @@ gui线程
 */
 
 
-
 int main(int, char**)
 {
-    //gui_thread_func();
     std::cout << "Cranks Renderer main" << std::endl;
 
-    /*std::vector<std::thread> threads;
-
-    threads.push_back(std::thread(gui_thread_func));
-    for (std::thread& thread : threads) {
-        thread.join();
-    }*/
-
-    event_loop();
-    //gui_thread_func();
+    EventLoop(gui_main);
 
     std::cout << "Cranks Renderer over" << std::endl;
 

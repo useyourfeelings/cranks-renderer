@@ -1,8 +1,3 @@
-# Example usage:
-#  mkdir build
-#  cd build
-#  cmake -g "Visual Studio 14 2015" ..
-
 cmake_minimum_required(VERSION 2.8)
 project(cranks-renderer C CXX)
 
@@ -13,7 +8,7 @@ if(NOT CMAKE_BUILD_TYPE)
 endif()
 
 set (CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -DVK_PROTOTYPES")
-set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DVK_PROTOTYPES")
+set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DVK_PROTOTYPES /EHsc")
 
 # GLFW
 set(GLFW_DIR third_party/glfw) # Set this to point to an up-to-date GLFW repo
@@ -29,6 +24,17 @@ include_directories(${GLFW_DIR}/include)
 set(IMGUI_DIR third_party/imgui)
 include_directories(${IMGUI_DIR} ${IMGUI_DIR}/backends ..)
 
+# xc imgui source
+file(GLOB IMGUI_CODE
+  ${IMGUI_DIR}/backends/imgui_impl_glfw.cpp
+  ${IMGUI_DIR}/backends/imgui_impl_vulkan.cpp
+  ${IMGUI_DIR}/imgui.cpp
+  ${IMGUI_DIR}/imgui_draw.cpp
+  ${IMGUI_DIR}/imgui_demo.cpp
+  ${IMGUI_DIR}/imgui_tables.cpp
+  ${IMGUI_DIR}/imgui_widgets.cpp
+)
+
 # Libraries
 find_package(Vulkan REQUIRED)
 #find_library(VULKAN_LIBRARY
@@ -43,7 +49,7 @@ include_directories(${GLFW_DIR}/deps)
 
 # cranks-renderer code
 file(GLOB PBR_CODE
-	src/main.cpp
+    src/main.cpp
   src/renderer_ui.cpp
   src/gui_main.h
   src/gui_main.cpp
@@ -59,15 +65,31 @@ file(GLOB PBR_CODE
   src/light/*.cpp
   src/integrator/*.h
   src/integrator/*.cpp
+  src/base/*.h
+  src/base/*.cpp
 )
 
 # SOURCE_GROUP(PBR_CODE FILES ${PBR_CODE_FILES})
 source_group(cranks-renderer src)
+source_group(base src/base)
+source_group(core src/core)
+source_group(shape src/shape)
+source_group(tool src/tool)
+source_group(light src/light)
+source_group(integrator src/integrator)
+
+source_group(imgui ${IMGUI_DIR})
+
 #source_group(TREE "src" FILES ${PBR_CODE})
 #source_group(cranks-renderer  FILES ${PBR_CODE})
 
-add_executable(cranks-renderer ${PBR_CODE} ${IMGUI_DIR}/backends/imgui_impl_glfw.cpp ${IMGUI_DIR}/backends/imgui_impl_vulkan.cpp ${IMGUI_DIR}/imgui.cpp ${IMGUI_DIR}/imgui_draw.cpp ${IMGUI_DIR}/imgui_demo.cpp ${IMGUI_DIR}/imgui_tables.cpp ${IMGUI_DIR}/imgui_widgets.cpp)
+add_executable(cranks-renderer ${PBR_CODE} ${IMGUI_CODE})
+
 target_link_libraries(cranks-renderer ${LIBRARIES})
 target_compile_definitions(cranks-renderer PUBLIC -DImTextureID=ImU64)
 
+# c++ 17
 target_compile_features(cranks-renderer PRIVATE cxx_std_17)
+
+# linker generate debug info
+target_link_options(cranks-renderer PUBLIC /DEBUG)

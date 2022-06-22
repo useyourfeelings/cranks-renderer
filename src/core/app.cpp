@@ -107,7 +107,7 @@ void PbrApp::SetSampler() {
 void PbrApp::SetRandomSampler() {
 	Log("SetRandomSampler");
 
-	this->sampler = std::shared_ptr<Sampler>(new RandomSampler(1)); // 8 better than 4. 4 better than 1.
+	this->sampler = std::shared_ptr<Sampler>(new RandomSampler(4)); // 8 better than 4. 4 better than 1.
 }
 
 void PbrApp::SetIntegrator() {

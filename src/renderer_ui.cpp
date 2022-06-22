@@ -1,7 +1,7 @@
 #include "imgui.h"
 #include "core/api.h"
 #include "tool/logger.h"
-#include "events.h"
+#include "base/events.h"
 
 using namespace std::literals;
 
@@ -64,12 +64,14 @@ void InitCanvas() {
     ImGui::End();
 }
 
+int RENDER_TASK_ID = -1;
+
 int RendererUI()
 {
     static int registered = 0;
 
     if (registered == 0) {
-        register_event(666, PBR_API_render);
+        RENDER_TASK_ID = RegisterEvent(PBR_API_render);
         registered = 1;
     }
 
@@ -202,7 +204,7 @@ int RendererUI()
         PBR_API_add_point_light("wtf Light"s, 0, 0, 30);
         //PBR_API_render();
 
-        send_event(666);
+        SendEvent(RENDER_TASK_ID);
     }
 
     ImGui::End();
