@@ -88,8 +88,8 @@ add_executable(cranks-renderer ${PBR_CODE} ${IMGUI_CODE})
 target_link_libraries(cranks-renderer ${LIBRARIES})
 target_compile_definitions(cranks-renderer PUBLIC -DImTextureID=ImU64)
 
-# c++ 17
-target_compile_features(cranks-renderer PRIVATE cxx_std_17)
+# c++ 20
+target_compile_features(cranks-renderer PRIVATE cxx_std_20)
 
 # linker generate debug info
 target_link_options(cranks-renderer PUBLIC /DEBUG)

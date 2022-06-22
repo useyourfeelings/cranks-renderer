@@ -5,11 +5,11 @@ Scene::Scene() {
 	current_id = 0;
 }
 
-void Scene::AddLight(std::shared_ptr<Light> light, std::string& name) {
+void Scene::AddLight(std::shared_ptr<Light> light, const std::string& name) {
 	lights.push_back(light);
 }
 
-void Scene::AddPrimitive(std::shared_ptr<Primitive> p, std::string& name) {
+void Scene::AddPrimitive(std::shared_ptr<Primitive> p, const std::string& name) {
 	p->SetId(++ current_id);
 	p->SetName(name);
 	Log("AddPrimitive %d %s", current_id, p->name.c_str());

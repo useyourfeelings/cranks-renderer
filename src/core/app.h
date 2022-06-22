@@ -78,9 +78,9 @@ public:
 
 	//
 
-	void AddSphere(std::string& name, float radius, Point3f position);
+	void AddSphere(const std::string& name, float radius, Point3f position);
 	
-	void AddPointLight(std::string& name, Point3f position);
+	void AddPointLight(const std::string& name, Point3f position);
 
 	//
 

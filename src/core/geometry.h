@@ -2,8 +2,7 @@
 #define CORE_GEOMETRY_H
 
 #include "pbr.h"
-//#include <string>
-//using namespace std::literals;
+#include <string>
 
 template <typename T>
 class Point3;
@@ -63,7 +62,7 @@ public:
 		return x * x + y * y + z * z; 
 	}
 
-	void LogSelf(char *msg = "") {
+	void LogSelf(const std::string &msg = std::string()) {
 		Log("%s Vector3 %f %f %f", msg, x, y, z);
 	}
 

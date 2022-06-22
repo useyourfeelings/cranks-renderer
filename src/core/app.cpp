@@ -7,7 +7,7 @@
 #include "../integrator/whitted.h"
 #include "../tool/logger.h"
 
-void PbrApp::AddSphere(std::string &name, float radius, Point3f pos) {
+void PbrApp::AddSphere(const std::string &name, float radius, Point3f pos) {
 	Log("AddSphere %s", name.c_str());
 
 	auto t = Translate(Vector3f(pos.x, pos.y, pos.z));
@@ -24,7 +24,7 @@ void PbrApp::AddSphere(std::string &name, float radius, Point3f pos) {
 	scene->AddPrimitive(std::make_shared<GeometricPrimitive>(shape, material), name);
 }
 
-void PbrApp::AddPointLight(std::string& name, Point3f pos) {
+void PbrApp::AddPointLight(const std::string& name, Point3f pos) {
 	auto t = Translate(Vector3f(pos.x, pos.y, pos.z));
 
 	this->scene->AddLight(std::make_shared<PointLight>(t, Spectrum(1.0)), name);

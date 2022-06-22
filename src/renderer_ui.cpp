@@ -2,8 +2,7 @@
 #include "core/api.h"
 #include "tool/logger.h"
 #include "base/events.h"
-
-using namespace std::literals;
+#include<format>
 
 void InitCanvas() {
     ImGuiWindowFlags window_flags = 0;
@@ -127,15 +126,18 @@ int RendererUI()
     ImGui::PushItemWidth(400);
 
     bool cameraChanged = false;
-    if (ImGui::SliderFloat3("pos", pos, -100, 100)) {
+    ImGui::SliderFloat3("pos", pos, -100, 100);
+    if (ImGui::IsItemDeactivatedAfterEdit()) {
         cameraChanged = true;
     }
 
-    if (ImGui::SliderFloat3("look", look, -100, 100)) {
+    ImGui::SliderFloat3("look", look, -100, 100);
+    if (ImGui::IsItemDeactivatedAfterEdit()) {
         cameraChanged = true;
     }
 
-    if (ImGui::SliderFloat3("up", up, -100, 100)) {
+    ImGui::SliderFloat3("up", up, -100, 100);
+    if (ImGui::IsItemDeactivatedAfterEdit()) {
         cameraChanged = true;
     }
 
@@ -143,13 +145,15 @@ int RendererUI()
 
     ImGui::PushItemWidth(160);
 
-    if (ImGui::SliderFloat("fov", &fov, 0, 180)) {
+    ImGui::SliderFloat("fov", &fov, 0, 180);
+    if (ImGui::IsItemDeactivatedAfterEdit()) {
         cameraChanged = true;
     }
 
     ImGui::SameLine();
 
-    if (ImGui::SliderFloat("aspect_ratio", &aspect_ratio, 0.5f, 2, "%.1f")) {
+    ImGui::SliderFloat("aspect_ratio", &aspect_ratio, 0.5f, 2, "%.1f");
+    if (ImGui::IsItemDeactivatedAfterEdit()) {
         cameraChanged = true;
     }
 
@@ -157,11 +161,13 @@ int RendererUI()
 
     ImGui::PushItemWidth(400);
 
-    if (ImGui::SliderFloat2("near_far", near_far, 0.001f, 1000)) {
+    ImGui::SliderFloat2("near_far", near_far, 0.001f, 1000);
+    if (ImGui::IsItemDeactivatedAfterEdit()) {
         cameraChanged = true;
     }
 
-    if (ImGui::SliderInt2("resolution", resolution, 0, 1000)) {
+    ImGui::SliderInt2("resolution", resolution, 0, 1000);
+    if (ImGui::IsItemDeactivatedAfterEdit()) {
         cameraChanged = true;
     }
 
@@ -194,14 +200,14 @@ int RendererUI()
 
     if (ImGui::Button("Render", ImVec2(400, 120))) {
 
-        PBR_API_add_sphere("wtfSphere 1"s, 6, 0, 0, 0);
-        PBR_API_add_sphere("wtfSphere 2"s, 10, -20, 40, 20);
-        PBR_API_add_sphere("wtfSphere 3"s, 20, 30, 40, 30);
-        PBR_API_add_sphere("wtfSphere 4"s, 200, 0, 0, -210);
-        PBR_API_add_sphere("wtfSphere 5"s, 2, 7.2, 0, -5);
+        PBR_API_add_sphere("wtfSphere 1", 6, 0, 0, 0);
+        PBR_API_add_sphere("wtfSphere 2", 10, -20, 40, 20);
+        PBR_API_add_sphere("wtfSphere 3", 20, 30, 40, 30);
+        PBR_API_add_sphere("wtfSphere 4", 200, 0, 0, -210);
+        PBR_API_add_sphere("wtfSphere 5", 2, 7.2, 0, -5);
 
         //PBR_API_add_point_light("wtf Light"s, 0, 30, 0);
-        PBR_API_add_point_light("wtf Light"s, 0, 0, 30);
+        PBR_API_add_point_light("wtf Light", 0, 0, 30);
         //PBR_API_render();
 
         SendEvent(RENDER_TASK_ID);

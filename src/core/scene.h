@@ -17,8 +17,8 @@ public:
 	bool Intersect(const Ray& ray, float* tHit, SurfaceInteraction* isect) const;
 	bool Intersect(const Ray& ray, int except_id) const;
 
-	void AddLight(std::shared_ptr<Light>, std::string& name);
-	void AddPrimitive(std::shared_ptr<Primitive>, std::string &name);
+	void AddLight(std::shared_ptr<Light>, const std::string& name);
+	void AddPrimitive(std::shared_ptr<Primitive>, const std::string &name);
 	void PrintScene();
 
 	std::list<std::shared_ptr<Light>> lights;

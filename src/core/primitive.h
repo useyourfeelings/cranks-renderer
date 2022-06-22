@@ -25,7 +25,7 @@ public:
         id = new_id;
     }
 
-    void SetName(std::string &new_name) {
+    void SetName(const std::string &new_name) {
         name = new_name;
     }
 
