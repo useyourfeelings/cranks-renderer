@@ -1,6 +1,5 @@
 #include "camera.h"
 #include "film.h"
-//#include "../tool/logger.h"
 
 //float Camera::GenerateRayDifferential(const CameraSample& sample,
 //    RayDifferential* rd) const {

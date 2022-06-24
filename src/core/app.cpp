@@ -6,6 +6,7 @@
 #include "../shape/sphere.h"
 #include "../integrator/whitted.h"
 #include "../tool/logger.h"
+#include "setting.h"
 
 void PbrApp::AddSphere(const std::string &name, float radius, Point3f pos) {
 	Log("AddSphere %s", name.c_str());
@@ -34,6 +35,18 @@ void PbrApp::PrintScene() {
 	scene->PrintScene();
 }
 
+void PbrApp::GetRenderProgress(int* now, int* total) {
+	if (this->integrator != nullptr) {
+		*now = this->integrator->render_progress_now;
+		*total = this->integrator->render_progress_total;
+	}
+	else {
+		*now = 0;
+		*total = 0;
+	}
+	
+}
+
 void PbrApp::RenderScene() {
 	//std::string str = GetCurrentWorkingDir();
 
@@ -43,11 +56,18 @@ void PbrApp::RenderScene() {
 	//SetCamera(Point3f(0, 0, 0), Point3f(0, 0, 10), Vector3f(0, 1, 0));
 
 	if (camera == nullptr) {
-		SetPerspectiveCamera(Point3f(default_setting.camera_pos[0], default_setting.camera_pos[1], default_setting.camera_pos[2]),
+		setting.LoadDefaultSetting();
+		/*SetPerspectiveCamera(Point3f(setting.Get("camera_pos")[0], default_setting.camera_pos[1], default_setting.camera_pos[2]),
 			Point3f(default_setting.camera_look[0], default_setting.camera_look[1], default_setting.camera_look[2]),
 			Vector3f(default_setting.camera_up[0], default_setting.camera_up[1], default_setting.camera_up[2]),
 			default_setting.camera_fov, default_setting.camera_aspect_ratio, default_setting.camera_near, default_setting.camera_far,
-			default_setting.camera_resX, default_setting.camera_resY);
+			default_setting.camera_resX, default_setting.camera_resY);*/
+
+		SetPerspectiveCamera(Point3f(setting.Get("camera_pos")[0], setting.Get("camera_pos")[1], setting.Get("camera_pos")[2]),
+			Point3f(setting.Get("camera_look")[0], setting.Get("camera_look")[1], setting.Get("camera_look")[2]),
+			Vector3f(setting.Get("camera_up")[0], setting.Get("camera_up")[1], setting.Get("camera_up")[2]),
+			setting.Get("camera_fov"), setting.Get("camera_asp"), setting.Get("camera_near"), 
+			setting.Get("camera_far"), setting.Get("camera_resX"), setting.Get("camera_resY"), setting.Get("ray_sample_no"));
 	}
 
 	SetFilm(camera->resolutionX, camera->resolutionY);
@@ -61,7 +81,6 @@ void PbrApp::RenderScene() {
 void PbrApp::SetFilm(int width, int height) {
 	Log("SetFilm");
 	film_list.push_back(std::make_shared<Film>(Point2i(width, height)));
-
 	camera->SetFilm(film_list.back());
 }
 
@@ -72,7 +91,9 @@ void PbrApp::SetCamera(Point3f pos, Point3f look, Vector3f up) {
 	//SetPerspectiveCamera(pos, look, up);
 }
 
-void PbrApp::SetPerspectiveCamera(Point3f pos, Point3f look, Vector3f up, float fov, float aspect_ratio, float near, float far, int resX, int resY) {
+void PbrApp::SetPerspectiveCamera(Point3f pos, Point3f look, Vector3f up, 
+	float fov, float aspect_ratio, float near, float far, 
+	int resX, int resY, int ray_sample_no) {
 	Log("SetPerspectiveCamera");
 
 	if (camera != nullptr) {
@@ -94,6 +115,8 @@ void PbrApp::SetPerspectiveCamera(Point3f pos, Point3f look, Vector3f up, float 
 
 	this->camera = std::shared_ptr<Camera>(new PerspectiveCamera(pos, look, up, fov, aspect_ratio, near, far, resX, resY));
 
+	//this->sampler->SetSamplesPerPixel(ray_sample_no);
+
 	//SetFilm(100, 100);
 }
 
@@ -107,7 +130,7 @@ void PbrApp::SetSampler() {
 void PbrApp::SetRandomSampler() {
 	Log("SetRandomSampler");
 
-	this->sampler = std::shared_ptr<Sampler>(new RandomSampler(4)); // 8 better than 4. 4 better than 1.
+	this->sampler = std::shared_ptr<Sampler>(new RandomSampler(setting.Get("ray_sample_no"))); // 8 better than 4. 4 better than 1.
 }
 
 void PbrApp::SetIntegrator() {
@@ -124,4 +147,8 @@ void PbrApp::SetWhittedIntegrator() {
 	BBox2i bounds(Point2i(0, 0), Point2i(camera->resolutionX, camera->resolutionY));
 
 	this->integrator = std::unique_ptr<Integrator>(new WhittedIntegrator(maxDepth, camera, sampler, bounds));
+}
+
+void PbrApp::SaveSetting() {
+	setting.SaveFile();
 }

@@ -30,8 +30,13 @@ public:
     }*/
     int CurrentSampleNumber() const { return currentPixelSampleIndex; }
 
+    int SetSamplesPerPixel(int s) { 
+        samplesPerPixel = s;
+        return 0;
+    }
+
     // Sampler Public Data
-    const int samplesPerPixel;
+    int samplesPerPixel;
 
 protected:
     // Sampler Protected Data

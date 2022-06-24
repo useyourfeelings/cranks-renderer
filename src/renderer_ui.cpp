@@ -98,15 +98,17 @@ int RendererUI()
     static float aspect_ratio = 1.2f;
     static float near_far[2] = { 2, 200};
     static int resolution[2] = { 100, 100 };
+    static int ray_sample_no = 1;
 
     if (init_status == 0) {
-        PBR_API_get_defualt_camera_setting(pos, look, up, fov, aspect_ratio, near_far[0], near_far[1], resolution[0], resolution[1]);
+        PBR_API_get_camera_setting(pos, look, up, fov, aspect_ratio, near_far[0], near_far[1], resolution[0], resolution[1], ray_sample_no);
+        PBR_API_set_perspective_camera(pos, look, up, fov, aspect_ratio, near_far[0], near_far[1], resolution[0], resolution[1], ray_sample_no);
         init_status = 1;
     }
 
     ImGui::SetNextWindowSize(ImVec2(480, 600), ImGuiCond_FirstUseEver);
     //ImGui::Begin("Hello, pbr!");
-    if (!ImGui::Begin("Hello, pbr!"))
+    if (!ImGui::Begin("Hello Crank!"))
     {
         ImGui::End();
         return 0;
@@ -115,11 +117,14 @@ int RendererUI()
     ImGui::Text("camera setting");
     ImGui::SameLine();
     if (ImGui::Button("load default")) {
-        PBR_API_get_defualt_camera_setting(pos, look, up, fov, aspect_ratio, near_far[0], near_far[1], resolution[0], resolution[1]);
-        PBR_API_set_perspective_camera(pos, look, up, fov, aspect_ratio, near_far[0], near_far[1], resolution[0], resolution[1]);
+        PBR_API_get_defualt_camera_setting(pos, look, up, fov, aspect_ratio, near_far[0], near_far[1], resolution[0], resolution[1], ray_sample_no);
+        PBR_API_set_perspective_camera(pos, look, up, fov, aspect_ratio, near_far[0], near_far[1], resolution[0], resolution[1], ray_sample_no);
     }
     
-
+    ImGui::SameLine();
+    if (ImGui::Button("save setting")) {
+        PBR_API_save_setting();
+    }
     //ImGui::Text("pos");
     //ImGui::SameLine();
 
@@ -173,9 +178,15 @@ int RendererUI()
 
     ImGui::PopItemWidth();
 
+    ImGui::SliderInt("ray_sample_no", &ray_sample_no, 1, 8);
+    if (ImGui::IsItemDeactivatedAfterEdit()) {
+        cameraChanged = true;
+    }
+    
+
     if (cameraChanged) {
         Log("cameraChanged");
-        PBR_API_set_perspective_camera(pos, look, up, fov, aspect_ratio, near_far[0], near_far[1], resolution[0], resolution[1]);
+        PBR_API_set_perspective_camera(pos, look, up, fov, aspect_ratio, near_far[0], near_far[1], resolution[0], resolution[1], ray_sample_no);
     }
 
     //ImGui::Checkbox("Demo Window", &show_demo_window);      // Edit bools storing our window open/close state
@@ -196,19 +207,31 @@ int RendererUI()
         PBR_API_print_scene();
     }
 
-    ImGui::Dummy(ImVec2(60, 30));
+    //ImGui::Dummy(ImVec2(30, 30));
+
+
+    int progress_now, progress_total;
+    char buf[32];
+
+    PBR_API_get_render_progress(&progress_now, &progress_total);
+    sprintf(buf, "%d/%d", progress_now, progress_total);
+    ImGui::ProgressBar(float(progress_now) / progress_total, ImVec2(0.f, 0.f), buf);
 
     if (ImGui::Button("Render", ImVec2(400, 120))) {
 
-        PBR_API_add_sphere("wtfSphere 1", 6, 0, 0, 0);
-        PBR_API_add_sphere("wtfSphere 2", 10, -20, 40, 20);
-        PBR_API_add_sphere("wtfSphere 3", 20, 30, 40, 30);
-        PBR_API_add_sphere("wtfSphere 4", 200, 0, 0, -210);
-        PBR_API_add_sphere("wtfSphere 5", 2, 7.2, 0, -5);
+        static int set_default_scene = 0;
+        if (set_default_scene == 0) {
+            set_default_scene = 1;
 
-        //PBR_API_add_point_light("wtf Light"s, 0, 30, 0);
-        PBR_API_add_point_light("wtf Light", 0, 0, 30);
-        //PBR_API_render();
+            PBR_API_add_sphere("wtfSphere 1", 6, 0, 0, 0);
+            PBR_API_add_sphere("wtfSphere 2", 10, -20, 40, 20);
+            PBR_API_add_sphere("wtfSphere 3", 20, 30, 40, 30);
+            PBR_API_add_sphere("wtfSphere 4", 200, 0, 0, -210);
+            PBR_API_add_sphere("wtfSphere 5", 2, 7.2, 0, -5);
+
+            //PBR_API_add_point_light("wtf Light"s, 0, 30, 0);
+            PBR_API_add_point_light("wtf Light", 0, 0, 30);
+        }
 
         SendEvent(RENDER_TASK_ID);
     }

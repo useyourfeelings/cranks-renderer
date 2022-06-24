@@ -14,6 +14,9 @@ void SamplerIntegrator::Render(const Scene& scene) {
     BBox2i sampleBounds = BBox2i(Point2i(0, 0), Point2i(camera->resolutionX, camera->resolutionY));
     // sampleBounds ÀàËÆ600 400
 
+    this->render_progress_total = camera->resolutionX * camera->resolutionY;
+    this->render_progress_now = 0;
+
     int i = sampleBounds.pMin.x;
     int j = sampleBounds.pMin.y;
 
@@ -24,6 +27,8 @@ void SamplerIntegrator::Render(const Scene& scene) {
         Point2i pixel(i, j);
 
         this->sampler->StartPixel(pixel);
+
+        this->render_progress_now++;
 
         // Do this check after the StartPixel() call; this keeps
         // the usage of RNG values from (most) Samplers that use

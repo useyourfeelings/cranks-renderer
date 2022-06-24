@@ -21,7 +21,7 @@ Spectrum WhittedIntegrator::Li(const RayDifferential& ray, const Scene& scene, S
         // https://raytracing.github.io/books/RayTracingInOneWeekend.html
         // gradient sky
 
-        float t = (ray.d.y + 1) * 0.5; // map to [0, 1]
+        float t = (ray.d.z + 1) * 0.5; // map to [0, 1]
         /*sky_spectrum.c[0] = 1 - t + t * 0.5;
         sky_spectrum.c[1] = 1 - t + t * 0.7;
         sky_spectrum.c[2] = 1 - t + t * 1;*/
