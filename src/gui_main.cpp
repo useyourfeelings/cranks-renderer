@@ -463,8 +463,19 @@ int gui_main() //int main(int, char**)
     // Our state
     bool show_demo_window = true;
     bool show_another_window = false;
-    //ImVec4 clear_color = ImVec4(0.45f, 0.55f, 0.60f, 1.00f);
     ImVec4 clear_color = ImVec4(0.65f, 0.75f, 0.60f, 1.00f);
+
+    // my style
+    ImGui::StyleColorsLight();
+    ImGuiStyle& style = ImGui::GetStyle();
+    style.ItemSpacing = ImVec2(8, 8);
+    style.FrameRounding = 2;
+    style.FrameBorderSize = 1;
+    style.TabBorderSize = 1;
+    style.ScrollbarSize = 16;
+    style.WindowRounding = 1;
+    style.TabRounding = 2;
+    style.WindowMenuButtonPosition = 1; // right
 
     // Main loop
     while (!glfwWindowShouldClose(window))
