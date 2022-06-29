@@ -49,10 +49,12 @@ include_directories(${GLFW_DIR}/deps)
 
 # cranks-renderer code
 file(GLOB PBR_CODE
-    src/main.cpp
+  src/main.cpp
   src/renderer_ui.cpp
   src/gui_main.h
   src/gui_main.cpp
+  src/vulkan_main.h
+  src/vulkan_main.cpp
   src/events.h
   src/events.cpp
   src/core/*.h

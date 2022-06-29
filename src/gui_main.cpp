@@ -472,10 +472,11 @@ int gui_main() //int main(int, char**)
     style.FrameRounding = 2;
     style.FrameBorderSize = 1;
     style.TabBorderSize = 1;
-    style.ScrollbarSize = 16;
-    style.WindowRounding = 1;
     style.TabRounding = 2;
+    style.WindowRounding = 1;
+    style.ScrollbarSize = 16;
     style.WindowMenuButtonPosition = 1; // right
+    style.GrabRounding = 1;
 
     // Main loop
     while (!glfwWindowShouldClose(window))
