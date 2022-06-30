@@ -172,7 +172,7 @@ public:
                     << properties.deviceType << " " << properties.limits.maxMemoryAllocationCount << std::endl;
                 if (properties.deviceType == VK_PHYSICAL_DEVICE_TYPE_DISCRETE_GPU)
                 {
-                    this->gpu = device;
+                    this->physicalGPU = device;
                     break;
                 }
             }
@@ -183,12 +183,12 @@ public:
         uint32_t queueFamily = -1;
         {
             uint32_t count;
-            vkGetPhysicalDeviceQueueFamilyProperties(gpu, &count, NULL);
+            vkGetPhysicalDeviceQueueFamilyProperties(physicalGPU, &count, NULL);
             //VkQueueFamilyProperties* queues = (VkQueueFamilyProperties*)malloc(sizeof(VkQueueFamilyProperties) * count);
             std::vector<VkQueueFamilyProperties> queues(count);
 
             std::cout << "gpu queue family count = " << count << std::endl;
-            vkGetPhysicalDeviceQueueFamilyProperties(gpu, &count, queues.data());
+            vkGetPhysicalDeviceQueueFamilyProperties(physicalGPU, &count, queues.data());
             for (uint32_t i = 0; i < count; i++) {
                 std::cout << "gpu queue family " << queues[i].queueFlags<<" queue count "<< queues[i].queueCount << std::endl;
 
@@ -227,9 +227,9 @@ public:
             create_info.pQueueCreateInfos = queue_info;
             create_info.enabledExtensionCount = device_extension_count;
             create_info.ppEnabledExtensionNames = device_extensions;
-            err = vkCreateDevice(gpu, &create_info, nullptr, &logicalGPU);
+            err = vkCreateDevice(physicalGPU, &create_info, nullptr, &gpu);
             //check_vk_result(err);
-            vkGetDeviceQueue(logicalGPU, queueFamily, 0, &graphicsQueue);
+            vkGetDeviceQueue(gpu, queueFamily, 0, &graphicsQueue);
         }
 
         // wsi
@@ -254,12 +254,12 @@ public:
             // 这里估计一般是support的，刚好能成功。正规的需要遍历queue来挑选。
             // 所以graphicsQueue == presentQueue
             VkBool32 support;
-            vkGetPhysicalDeviceSurfaceSupportKHR(gpu, queueFamily, surface, &support);
+            vkGetPhysicalDeviceSurfaceSupportKHR(physicalGPU, queueFamily, surface, &support);
             if (support != VK_TRUE) {
                 throw std::runtime_error("Error no WSI support on physical device");
             }
 
-            vkGetDeviceQueue(logicalGPU, queueFamily, 0, &presentQueue);
+            vkGetDeviceQueue(gpu, queueFamily, 0, &presentQueue);
         }
 
         // surface cap/format/mode
@@ -271,29 +271,29 @@ public:
 
         {
             
-            err = vkGetPhysicalDeviceSurfaceCapabilitiesKHR(gpu, surface, &cap);
+            err = vkGetPhysicalDeviceSurfaceCapabilitiesKHR(physicalGPU, surface, &cap);
             if (err != VK_SUCCESS) {
                 throw std::runtime_error("vkGetPhysicalDeviceSurfaceCapabilitiesKHR fail");
             }
 
             uint32_t formatCount;
-            vkGetPhysicalDeviceSurfaceFormatsKHR(gpu, surface, &formatCount, nullptr);
+            vkGetPhysicalDeviceSurfaceFormatsKHR(physicalGPU, surface, &formatCount, nullptr);
 
             std::vector<VkSurfaceFormatKHR> formats;
 
             if (formatCount != 0) {
                 formats.resize(formatCount);
-                vkGetPhysicalDeviceSurfaceFormatsKHR(gpu, surface, &formatCount, formats.data());
+                vkGetPhysicalDeviceSurfaceFormatsKHR(physicalGPU, surface, &formatCount, formats.data());
             }
 
             std::vector<VkPresentModeKHR> presentModes;
 
             uint32_t presentModeCount;
-            vkGetPhysicalDeviceSurfacePresentModesKHR(gpu, surface, &presentModeCount, nullptr);
+            vkGetPhysicalDeviceSurfacePresentModesKHR(physicalGPU, surface, &presentModeCount, nullptr);
 
             if (presentModeCount != 0) {
                 presentModes.resize(presentModeCount);
-                vkGetPhysicalDeviceSurfacePresentModesKHR(gpu, surface, &presentModeCount, presentModes.data());
+                vkGetPhysicalDeviceSurfacePresentModesKHR(physicalGPU, surface, &presentModeCount, presentModes.data());
             }
 
             // choose
@@ -350,12 +350,12 @@ public:
                 info.imageExtent.width = width = cap.currentExtent.width;
                 info.imageExtent.height = height = cap.currentExtent.height;
             }
-            err = vkCreateSwapchainKHR(logicalGPU, &info, nullptr, &swapChain);
+            err = vkCreateSwapchainKHR(gpu, &info, nullptr, &swapChain);
             if (err != VK_SUCCESS) {
                 throw std::runtime_error("vkCreateSwapchainKHR fail");
             }
 
-            err = vkGetSwapchainImagesKHR(logicalGPU, swapChain, &imageCount, NULL);
+            err = vkGetSwapchainImagesKHR(gpu, swapChain, &imageCount, NULL);
             if (err != VK_SUCCESS) {
                 throw std::runtime_error("vkGetSwapchainImagesKHR fail");
             }
@@ -363,7 +363,7 @@ public:
             std::cout << "imageCount = "<< imageCount << std::endl;
 
             swapChainImages.resize(imageCount);
-            err = vkGetSwapchainImagesKHR(logicalGPU, swapChain, &imageCount, swapChainImages.data());
+            err = vkGetSwapchainImagesKHR(gpu, swapChain, &imageCount, swapChainImages.data());
             if (err != VK_SUCCESS) {
                 throw std::runtime_error("vkGetSwapchainImagesKHR fail");
             }
@@ -398,7 +398,7 @@ public:
 
                 createInfo.image = swapChainImages[i];
 
-                err = vkCreateImageView(logicalGPU, &createInfo, nullptr, &swapChainImageViews[i]);
+                err = vkCreateImageView(gpu, &createInfo, nullptr, &swapChainImageViews[i]);
                 if (err != VK_SUCCESS) {
                     throw std::runtime_error("vkCreateImageView fail");
                 }
@@ -413,7 +413,7 @@ public:
             vert_info.sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO;
             vert_info.codeSize = sizeof(__glsl_shader_vert_spv);
             vert_info.pCode = (uint32_t*)__glsl_shader_vert_spv;
-            err = vkCreateShaderModule(logicalGPU, &vert_info, nullptr, &vertShader);
+            err = vkCreateShaderModule(gpu, &vert_info, nullptr, &vertShader);
             if (err != VK_SUCCESS || vertShader == VK_NULL_HANDLE) {
                 throw std::runtime_error("vkCreateShaderModule fail");
             }
@@ -422,7 +422,7 @@ public:
             frag_info.sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO;
             frag_info.codeSize = sizeof(__glsl_shader_frag_spv);
             frag_info.pCode = (uint32_t*)__glsl_shader_frag_spv;
-            err = vkCreateShaderModule(logicalGPU, &frag_info, nullptr, &fragShader);
+            err = vkCreateShaderModule(gpu, &frag_info, nullptr, &fragShader);
             if (err != VK_SUCCESS || fragShader == VK_NULL_HANDLE) {
                 throw std::runtime_error("vkCreateShaderModule fail");
             }
@@ -560,7 +560,7 @@ public:
             rpInfo.pSubpasses = &subpass;
             rpInfo.dependencyCount = 1;
             rpInfo.pDependencies = &dependency;
-            err = vkCreateRenderPass(logicalGPU, &rpInfo, nullptr, &renderPass);
+            err = vkCreateRenderPass(gpu, &rpInfo, nullptr, &renderPass);
             if (err != VK_SUCCESS) {
                 throw std::runtime_error("vkCreateRenderPass fail");
             }
@@ -588,7 +588,7 @@ public:
             descriptorLayout.bindingCount = 1;
             descriptorLayout.pBindings = layoutBinding;
 
-            err = vkCreateDescriptorSetLayout(logicalGPU, &descriptorLayout, nullptr, &descriptorSetLayout);
+            err = vkCreateDescriptorSetLayout(gpu, &descriptorLayout, nullptr, &descriptorSetLayout);
             if (err != VK_SUCCESS) {
                 throw std::runtime_error("vkCreateDescriptorSetLayout fail");
             }
@@ -604,7 +604,7 @@ public:
             layout_info.pSetLayouts = &descriptorSetLayout;
             layout_info.pushConstantRangeCount = 1;
             layout_info.pPushConstantRanges = push_constants;
-            err = vkCreatePipelineLayout(logicalGPU, &layout_info, nullptr, &pipelineLayout);
+            err = vkCreatePipelineLayout(gpu, &layout_info, nullptr, &pipelineLayout);
             if (err != VK_SUCCESS) {
                 throw std::runtime_error("vkCreatePipelineLayout fail");
             }
@@ -626,7 +626,7 @@ public:
             pplInfo.layout = pipelineLayout;
             pplInfo.renderPass = renderPass;
             pplInfo.subpass = 0;// subpass;
-            err = vkCreateGraphicsPipelines(logicalGPU, VK_NULL_HANDLE, 1, &pplInfo, nullptr, &graphicsPipeline);
+            err = vkCreateGraphicsPipelines(gpu, VK_NULL_HANDLE, 1, &pplInfo, nullptr, &graphicsPipeline);
             if (err != VK_SUCCESS) {
                 throw std::runtime_error("vkCreateGraphicsPipelines fail");
             }
@@ -641,13 +641,13 @@ public:
             semaphoreCreateInfo.pNext = nullptr;
 
             // Semaphore used to ensure that image presentation is complete before starting to submit again
-            err = vkCreateSemaphore(logicalGPU, &semaphoreCreateInfo, nullptr, &presentCompleteSemaphore);
+            err = vkCreateSemaphore(gpu, &semaphoreCreateInfo, nullptr, &presentCompleteSemaphore);
             if (err != VK_SUCCESS) {
                 throw std::runtime_error("vkCreateSemaphore fail");
             }
 
             // Semaphore used to ensure that all commands submitted have been finished before submitting the image to the queue
-            err = vkCreateSemaphore(logicalGPU, &semaphoreCreateInfo, nullptr, &renderCompleteSemaphore);
+            err = vkCreateSemaphore(gpu, &semaphoreCreateInfo, nullptr, &renderCompleteSemaphore);
             if (err != VK_SUCCESS) {
                 throw std::runtime_error("vkCreateSemaphore fail");
             }
@@ -661,7 +661,7 @@ public:
             for (auto& fence : waitFences)
             {
                 std::cout << "vkCreateFence"<< std::endl;
-                err = vkCreateFence(logicalGPU, &fenceCreateInfo, nullptr, &fence);
+                err = vkCreateFence(gpu, &fenceCreateInfo, nullptr, &fence);
                 if (err != VK_SUCCESS) {
                     throw std::runtime_error("vkCreateFence fail");
                 }
@@ -686,7 +686,7 @@ public:
             {
                 attachment[0] = swapChainImageViews[i];
 
-                err = vkCreateFramebuffer(logicalGPU, &info, nullptr, &frameBuffers[i]);
+                err = vkCreateFramebuffer(gpu, &info, nullptr, &frameBuffers[i]);
                 if (err != VK_SUCCESS) {
                     throw std::runtime_error("vkCreateFramebuffer fail");
                 }
@@ -699,7 +699,7 @@ public:
             cmdPoolInfo.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
             cmdPoolInfo.queueFamilyIndex = queueFamily;
             cmdPoolInfo.flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT;
-            err = vkCreateCommandPool(logicalGPU, &cmdPoolInfo, nullptr, &cmdPool);
+            err = vkCreateCommandPool(gpu, &cmdPoolInfo, nullptr, &cmdPool);
             if (err != VK_SUCCESS) {
                 throw std::runtime_error("vkCreateCommandPool fail");
             }
@@ -715,7 +715,7 @@ public:
             commandBufferAllocateInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
             commandBufferAllocateInfo.commandBufferCount = imageCount;
 
-            err = vkAllocateCommandBuffers(logicalGPU, &commandBufferAllocateInfo, cmdBuffers.data());
+            err = vkAllocateCommandBuffers(gpu, &commandBufferAllocateInfo, cmdBuffers.data());
             if (err != VK_SUCCESS) {
                 throw std::runtime_error("vkAllocateCommandBuffers fail");
             }
@@ -792,11 +792,11 @@ public:
 
     int draw() {
         // Get next image in the swap chain (back/front buffer)
-        VK_CHECK_RESULT(vkAcquireNextImageKHR(logicalGPU, swapChain, UINT64_MAX, presentCompleteSemaphore, VK_NULL_HANDLE, &currentBuffer));
+        VK_CHECK_RESULT(vkAcquireNextImageKHR(gpu, swapChain, UINT64_MAX, presentCompleteSemaphore, VK_NULL_HANDLE, &currentBuffer));
 
         // Use a fence to wait until the command buffer has finished execution before using it again
-        VK_CHECK_RESULT(vkWaitForFences(logicalGPU, 1, &waitFences[currentBuffer], VK_TRUE, UINT64_MAX));
-        VK_CHECK_RESULT(vkResetFences(logicalGPU, 1, &waitFences[currentBuffer]));
+        VK_CHECK_RESULT(vkWaitForFences(gpu, 1, &waitFences[currentBuffer], VK_TRUE, UINT64_MAX));
+        VK_CHECK_RESULT(vkResetFences(gpu, 1, &waitFences[currentBuffer]));
 
         // Pipeline stage at which the queue submission will wait (via pWaitSemaphores)
         VkPipelineStageFlags waitStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
@@ -845,7 +845,7 @@ public:
 
             draw();
 
-            vkDeviceWaitIdle(logicalGPU);
+            vkDeviceWaitIdle(gpu);
         }
 
 
@@ -856,39 +856,39 @@ public:
     int clean() {
         std::cout << "VulkanApp clean"<< std::endl;
 
-        vkFreeCommandBuffers(logicalGPU, cmdPool, static_cast<uint32_t>(cmdBuffers.size()), cmdBuffers.data());
-        vkDestroyCommandPool(logicalGPU, cmdPool, nullptr);
+        vkFreeCommandBuffers(gpu, cmdPool, static_cast<uint32_t>(cmdBuffers.size()), cmdBuffers.data());
+        vkDestroyCommandPool(gpu, cmdPool, nullptr);
         
         for (auto framebuffer : frameBuffers) {
-            vkDestroyFramebuffer(logicalGPU, framebuffer, nullptr);
+            vkDestroyFramebuffer(gpu, framebuffer, nullptr);
         }
 
-        vkDestroyDescriptorSetLayout(logicalGPU, descriptorSetLayout, nullptr);
+        vkDestroyDescriptorSetLayout(gpu, descriptorSetLayout, nullptr);
 
-        vkDestroyPipeline(logicalGPU, graphicsPipeline, nullptr);
-        vkDestroyPipelineLayout(logicalGPU, pipelineLayout, nullptr);
+        vkDestroyPipeline(gpu, graphicsPipeline, nullptr);
+        vkDestroyPipelineLayout(gpu, pipelineLayout, nullptr);
 
-        vkDestroyRenderPass(logicalGPU, renderPass, nullptr);
+        vkDestroyRenderPass(gpu, renderPass, nullptr);
 
         for (auto& fence : waitFences) {
-            vkDestroyFence(logicalGPU, fence, nullptr);
+            vkDestroyFence(gpu, fence, nullptr);
         }
 
-        vkDestroySemaphore(logicalGPU, presentCompleteSemaphore, nullptr);
-        vkDestroySemaphore(logicalGPU, renderCompleteSemaphore, nullptr);
+        vkDestroySemaphore(gpu, presentCompleteSemaphore, nullptr);
+        vkDestroySemaphore(gpu, renderCompleteSemaphore, nullptr);
 
-        vkDestroyShaderModule(logicalGPU, fragShader, nullptr);
-        vkDestroyShaderModule(logicalGPU, vertShader, nullptr);
+        vkDestroyShaderModule(gpu, fragShader, nullptr);
+        vkDestroyShaderModule(gpu, vertShader, nullptr);
 
         for (auto view : swapChainImageViews) {
-            vkDestroyImageView(logicalGPU, view, nullptr);
+            vkDestroyImageView(gpu, view, nullptr);
         }
 
-        vkDestroySwapchainKHR(logicalGPU, swapChain, nullptr);
+        vkDestroySwapchainKHR(gpu, swapChain, nullptr);
 
         vkDestroySurfaceKHR(instance, surface, nullptr);
 
-        vkDestroyDevice(logicalGPU, nullptr);
+        vkDestroyDevice(gpu, nullptr);
 
         vkDestroyDebugUtilsMessengerEXT(instance, debugUtilsMessenger, nullptr);
 
@@ -929,7 +929,7 @@ public:
             moduleCreateInfo.pCode = (uint32_t*)shaderCode;
 
             VkShaderModule shaderModule;
-            if (vkCreateShaderModule(logicalGPU, &moduleCreateInfo, NULL, &shaderModule)) {
+            if (vkCreateShaderModule(gpu, &moduleCreateInfo, NULL, &shaderModule)) {
                 throw std::runtime_error("vkCreateShaderModule fail");
             }
 
@@ -964,8 +964,8 @@ public:
 
     GLFWwindow* window;
     VkInstance instance;
-    VkPhysicalDevice gpu;
-    VkDevice logicalGPU;
+    VkPhysicalDevice physicalGPU;
+    VkDevice gpu;
     VkQueue graphicsQueue;
     VkQueue presentQueue;
 
