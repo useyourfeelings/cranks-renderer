@@ -1,21 +1,21 @@
 #include"vulkan_swapchain.h"
 
-VulkanSwapchain::VulkanSwapchain(std::shared_ptr<VulkanDevice> new_device, VkInstance new_instance, GLFWwindow* window) {
-
-    this->device = new_device;
-    this->instance = new_instance;
+VulkanSwapchain::VulkanSwapchain(std::shared_ptr<VulkanDevice> device, VkInstance instance, GLFWwindow* window):
+    device(device),
+    instance(instance),
+    window(window){
 
     VkResult err;
 
     // wsi
-        // 
-        // surface
+    // 
+    // surface
 
-        /*VkWin32SurfaceCreateInfoKHR surfaceCreateInfo = {};
-        surfaceCreateInfo.sType = VK_STRUCTURE_TYPE_WIN32_SURFACE_CREATE_INFO_KHR;
-        surfaceCreateInfo.hinstance = (HINSTANCE)platformHandle;
-        surfaceCreateInfo.hwnd = (HWND)platformWindow;
-        err = vkCreateWin32SurfaceKHR(instance, &surfaceCreateInfo, nullptr, &surface);*/
+    /*VkWin32SurfaceCreateInfoKHR surfaceCreateInfo = {};
+    surfaceCreateInfo.sType = VK_STRUCTURE_TYPE_WIN32_SURFACE_CREATE_INFO_KHR;
+    surfaceCreateInfo.hinstance = (HINSTANCE)platformHandle;
+    surfaceCreateInfo.hwnd = (HWND)platformWindow;
+    err = vkCreateWin32SurfaceKHR(instance, &surfaceCreateInfo, nullptr, &surface);*/
     {
 
         auto res = glfwCreateWindowSurface(instance, window, nullptr, &surface);
@@ -34,19 +34,16 @@ VulkanSwapchain::VulkanSwapchain(std::shared_ptr<VulkanDevice> new_device, VkIns
             throw std::runtime_error("Error no WSI support on physical device");
         }
 
-        
+
     }
 
     // surface cap/format/mode
 
-    
-
     {
-
-        err = vkGetPhysicalDeviceSurfaceCapabilitiesKHR(device->physicalDevice, surface, &cap);
+        /*err = vkGetPhysicalDeviceSurfaceCapabilitiesKHR(device->physicalDevice, surface, &cap);
         if (err != VK_SUCCESS) {
             throw std::runtime_error("vkGetPhysicalDeviceSurfaceCapabilitiesKHR fail");
-        }
+        }*/
 
         uint32_t formatCount;
         vkGetPhysicalDeviceSurfaceFormatsKHR(device->physicalDevice, surface, &formatCount, nullptr);
@@ -88,8 +85,22 @@ VulkanSwapchain::VulkanSwapchain(std::shared_ptr<VulkanDevice> new_device, VkIns
         }
     }
 
+}
+
+void VulkanSwapchain::Create() {
+    VkResult err;
+
     // swapchain
     glfwGetFramebufferSize(window, &width, &height);
+
+    // https://www.khronos.org/registry/vulkan/specs/1.3-extensions/man/html/VkResult.html
+    // resize时重建swapchain。必须调一下这个。否则永远报VK_ERROR_OUT_OF_DATE_KHR。
+    {
+        err = vkGetPhysicalDeviceSurfaceCapabilitiesKHR(device->physicalDevice, surface, &cap);
+        if (err != VK_SUCCESS) {
+            throw std::runtime_error("vkGetPhysicalDeviceSurfaceCapabilitiesKHR fail");
+        }
+    }
 
     imageCount = std::min(cap.minImageCount + 1, cap.maxImageCount);
 
@@ -121,23 +132,27 @@ VulkanSwapchain::VulkanSwapchain(std::shared_ptr<VulkanDevice> new_device, VkIns
             info.imageExtent.width = width = cap.currentExtent.width;
             info.imageExtent.height = height = cap.currentExtent.height;
         }
-        err = vkCreateSwapchainKHR(device->device, &info, nullptr, &swapChain);
-        if (err != VK_SUCCESS) {
-            throw std::runtime_error("vkCreateSwapchainKHR fail");
+
+        VK_CHECK_RESULT(vkCreateSwapchainKHR(device->device, &info, nullptr, &swapChain));
+
+        std::cout << "old swapChain = " << oldSwapchain << " new swapChain = "<< swapChain << std::endl;
+
+        // delete old 
+
+        if (oldSwapchain != VK_NULL_HANDLE)
+        {
+            for (auto view : imageViews) {
+                vkDestroyImageView(device->device, view, nullptr);
+            }
+            vkDestroySwapchainKHR(device->device, oldSwapchain, nullptr);
         }
 
-        err = vkGetSwapchainImagesKHR(device->device, swapChain, &imageCount, NULL);
-        if (err != VK_SUCCESS) {
-            throw std::runtime_error("vkGetSwapchainImagesKHR fail");
-        }
+        VK_CHECK_RESULT(vkGetSwapchainImagesKHR(device->device, swapChain, &imageCount, NULL));
 
         std::cout << "imageCount = " << imageCount << std::endl;
 
         images.resize(imageCount);
-        err = vkGetSwapchainImagesKHR(device->device, swapChain, &imageCount, images.data());
-        if (err != VK_SUCCESS) {
-            throw std::runtime_error("vkGetSwapchainImagesKHR fail");
-        }
+        VK_CHECK_RESULT(vkGetSwapchainImagesKHR(device->device, swapChain, &imageCount, images.data()));
 
     }
 
@@ -169,16 +184,12 @@ VulkanSwapchain::VulkanSwapchain(std::shared_ptr<VulkanDevice> new_device, VkIns
 
             createInfo.image = images[i];
 
-            err = vkCreateImageView(device->device, &createInfo, nullptr, &imageViews[i]);
-            if (err != VK_SUCCESS) {
-                throw std::runtime_error("vkCreateImageView fail");
-            }
+            VK_CHECK_RESULT(vkCreateImageView(device->device, &createInfo, nullptr, &imageViews[i]));
         }
     }
-
 }
 
-void VulkanSwapchain::clean() {
+void VulkanSwapchain::Clean() {
     std::cout << "VulkanSwapchain.clean()" << std::endl;
     for (auto view : imageViews) {
         vkDestroyImageView(device->device, view, nullptr);

@@ -41,6 +41,13 @@ public:
 		return 0;
 	}
 
+	int Resize(uint32_t width, uint32_t height) {
+		ImGuiIO& io = ImGui::GetIO();
+		io.DisplaySize = ImVec2((float)(width), (float)(height));
+
+		return 0;
+	}
+
 	int InitResource() {
 
 		std::cout << "VulkanUI.InitResource()" << std::endl;
@@ -302,7 +309,7 @@ public:
 	}
 
 	/** Update vertex and index buffer containing the imGui elements when required */
-	bool Update()
+	bool UpdateBuffer()
 	{
 		// imgui的drawdata是否有改变。
 
@@ -365,13 +372,20 @@ public:
 
 	void draw(const VkCommandBuffer commandBuffer)
 	{
+		vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline);
+		vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0, 1, &descriptorSet, 0, NULL);
 
-		const VkViewport viewport = vktool::viewport((float)width, (float)height, 0.0f, 1.0f);
-		const VkRect2D scissor = vktool::rect2D(width, height, 0, 0);
+		ImGuiIO& io = ImGui::GetIO();
+
+		const VkViewport viewport = vktool::viewport(io.DisplaySize.x, io.DisplaySize.y, 0.0f, 1.0f);
 		vkCmdSetViewport(commandBuffer, 0, 1, &viewport);
-		vkCmdSetScissor(commandBuffer, 0, 1, &scissor);
 
+		//const VkRect2D scissor = vktool::rect2D(width, height, 0, 0);
+		//vkCmdSetScissor(commandBuffer, 0, 1, &scissor);
 
+		pushConstBlock.scale = vec2(2.0f / io.DisplaySize.x, 2.0f / io.DisplaySize.y);
+		pushConstBlock.translate = vec2(-1.0f, -1.0f);
+		vkCmdPushConstants(commandBuffer, pipelineLayout, VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(PushConstBlock), &pushConstBlock);
 
 		ImDrawData* imDrawData = ImGui::GetDrawData();
 		int32_t vertexOffset = 0;
@@ -380,15 +394,6 @@ public:
 		if ((!imDrawData) || (imDrawData->CmdListsCount == 0)) {
 			return;
 		}
-
-		ImGuiIO& io = ImGui::GetIO();
-
-		vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline);
-		vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0, 1, &descriptorSet, 0, NULL);
-
-		pushConstBlock.scale = vec2(2.0f / io.DisplaySize.x, 2.0f / io.DisplaySize.y);
-		pushConstBlock.translate = vec2(-1.0f, -1.0f);
-		vkCmdPushConstants(commandBuffer, pipelineLayout, VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(PushConstBlock), &pushConstBlock);
 
 		VkDeviceSize offsets[1] = { 0 };
 		vkCmdBindVertexBuffers(commandBuffer, 0, 1, &vertexBuffer.buffer, offsets);

@@ -10,9 +10,10 @@
 
 class VulkanSwapchain {
 public:
-	explicit VulkanSwapchain(std::shared_ptr<VulkanDevice> device, VkInstance new_instance, GLFWwindow* window);
+	explicit VulkanSwapchain(std::shared_ptr<VulkanDevice> device, VkInstance instance, GLFWwindow* window);
 
-	void clean();
+	void Create();
+	void Clean();
 
 	//VkPhysicalDevice physicalDevice;
 
@@ -25,6 +26,8 @@ public:
 	int width, height;
 
 	uint32_t imageCount = 0;
+
+	GLFWwindow* window;
 
 	std::shared_ptr<VulkanDevice> device = nullptr;
 

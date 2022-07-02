@@ -149,7 +149,7 @@ public:
         gpu = device->device;
 
         swapChain = std::make_shared<VulkanSwapchain>(device, instance, window);
-
+        swapChain->Create();
 
         vkGetDeviceQueue(gpu, device->queueFamily, 0, &presentQueue);
 
@@ -395,30 +395,7 @@ public:
             }
         }
 
-        // framebuffer
-        {
-            VkImageView attachment[1];
-            VkFramebufferCreateInfo info = {};
-            info.sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
-            info.renderPass = renderPass;
-            info.attachmentCount = 1;
-            info.pAttachments = attachment;
-            info.width = swapChain->width;
-            info.height = swapChain->height;
-            info.layers = 1;
-
-            frameBuffers.resize(swapChain->imageCount);
-
-            for (uint32_t i = 0; i < swapChain->imageCount; i++)
-            {
-                attachment[0] = swapChain->imageViews[i];
-
-                err = vkCreateFramebuffer(gpu, &info, nullptr, &frameBuffers[i]);
-                if (err != VK_SUCCESS) {
-                    throw std::runtime_error("vkCreateFramebuffer fail");
-                }
-            }
-        }
+        SetupFrameBuffer();
 
         // command pool
         {
@@ -432,34 +409,50 @@ public:
             }
         }
 
-        // command buffer
-        {
-            cmdBuffers.resize(swapChain->imageCount);
+        // The submit info structure specifies a command buffer queue submission batch
+        submitInfo = {};
+        submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
+        submitInfo.pWaitDstStageMask = &waitStageMask;               // Pointer to the list of pipeline stages that the semaphore waits will occur at
+        submitInfo.pWaitSemaphores = &presentCompleteSemaphore;      // Semaphore(s) to wait upon before the submitted command buffer starts executing
+        submitInfo.waitSemaphoreCount = 1;                           // One wait semaphore
+        submitInfo.pSignalSemaphores = &renderCompleteSemaphore;     // Semaphore(s) to be signaled when command buffers have completed
+        submitInfo.signalSemaphoreCount = 1;                         // One signal semaphore
 
-            VkCommandBufferAllocateInfo commandBufferAllocateInfo{};
-            commandBufferAllocateInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
-            commandBufferAllocateInfo.commandPool = cmdPool;
-            commandBufferAllocateInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
-            commandBufferAllocateInfo.commandBufferCount = swapChain->imageCount;
-
-            err = vkAllocateCommandBuffers(gpu, &commandBufferAllocateInfo, cmdBuffers.data());
-            if (err != VK_SUCCESS) {
-                throw std::runtime_error("vkAllocateCommandBuffers fail");
-            }
-        }
 
         ui = std::make_shared<VulkanUI>(window, device, presentQueue, width, height);
         ui->InitResource();
         ui->SetupPipeline(renderPass);
 
-        
-        buildCommandBuffers();
+        CreateCommandBuffers();
 
-        
+        std::cout << "VulkanApp.BuildCommandBuffers() 1" << std::endl;
+        //BuildCommandBuffers();
+
+        prepared = true;
         return 0;
     }
 
-    void buildCommandBuffers() {
+    int DestroyCommandBuffers() {
+        vkFreeCommandBuffers(gpu, cmdPool, static_cast<uint32_t>(cmdBuffers.size()), cmdBuffers.data());
+
+        return 0;
+    }
+
+    int CreateCommandBuffers() {
+        cmdBuffers.resize(swapChain->imageCount);
+
+        VkCommandBufferAllocateInfo commandBufferAllocateInfo{};
+        commandBufferAllocateInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
+        commandBufferAllocateInfo.commandPool = cmdPool;
+        commandBufferAllocateInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
+        commandBufferAllocateInfo.commandBufferCount = swapChain->imageCount;
+
+        VK_CHECK_RESULT(vkAllocateCommandBuffers(gpu, &commandBufferAllocateInfo, cmdBuffers.data()));
+
+        return 0;
+    }
+
+    void BuildCommandBuffers() {
         // recording
         {
             VkCommandBufferBeginInfo beginInfo{};
@@ -483,11 +476,12 @@ public:
             renderPassBeginInfo.pClearValues = clearValues;
 
             for (int32_t i = 0; i < cmdBuffers.size(); ++i) {
+                if (imageIndex != i) // 源代码这里不知道他为啥要每个cmdBuffer都一样跑一遍。难道不该指定index吗。我先改成index。
+                    continue;
+
                 std::cout << "vkBeginCommandBuffer " << i << std::endl;
 
-                if (vkBeginCommandBuffer(cmdBuffers[i], &beginInfo) != VK_SUCCESS) {
-                    throw std::runtime_error("vkBeginCommandBuffer fail!");
-                }
+                VK_CHECK_RESULT(vkBeginCommandBuffer(cmdBuffers[i], &beginInfo));
 
                 renderPassBeginInfo.framebuffer = frameBuffers[i];
 
@@ -495,33 +489,42 @@ public:
                 // This will clear the color and depth attachment
                 vkCmdBeginRenderPass(cmdBuffers[i], &renderPassBeginInfo, VK_SUBPASS_CONTENTS_INLINE);
 
-                // Update dynamic viewport state
-                VkViewport viewport = {};
-                viewport.height = (float)swapChain->height;
-                viewport.width = (float)swapChain->width;
-                viewport.minDepth = (float)0.0f;
-                viewport.maxDepth = (float)1.0f;
-                vkCmdSetViewport(cmdBuffers[i], 0, 1, &viewport);
+                // 各家的draw流程
+                // 比如画三角形是一套流程，有自己的pipeline/shader/vertex buffer等等。
+                // imgui又有自己的一套配置。
 
-                // Update dynamic scissor state
-                VkRect2D scissor = {};
-                scissor.extent.width = swapChain->width;
-                scissor.extent.height = swapChain->height;
-                scissor.offset.x = 0;
-                scissor.offset.y = 0;
-                vkCmdSetScissor(cmdBuffers[i], 0, 1, &scissor);
+                {
+                    // 三角形流程
+                    // 
+                    // Update dynamic viewport state
+                    VkViewport viewport = {};
+                    viewport.height = (float)swapChain->height;
+                    viewport.width = (float)swapChain->width;
+                    viewport.minDepth = (float)0.0f;
+                    viewport.maxDepth = (float)1.0f;
+                    vkCmdSetViewport(cmdBuffers[i], 0, 1, &viewport);
 
-                vkCmdBindPipeline(cmdBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, graphicsPipeline);
+                    // Update dynamic scissor state
+                    VkRect2D scissor = {};
+                    scissor.extent.width = swapChain->width;
+                    scissor.extent.height = swapChain->height;
+                    scissor.offset.x = 0;
+                    scissor.offset.y = 0;
+                    vkCmdSetScissor(cmdBuffers[i], 0, 1, &scissor);
 
-                vkCmdDraw(cmdBuffers[i], 3, 1, 0, 0);
+                    vkCmdBindPipeline(cmdBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, graphicsPipeline);
 
-                ui->draw(cmdBuffers[i]);
+                    vkCmdDraw(cmdBuffers[i], 3, 1, 0, 0);
+                }
+
+                {
+                    // ui流程
+                    ui->draw(cmdBuffers[i]);
+                }
 
                 vkCmdEndRenderPass(cmdBuffers[i]);
 
-                if (vkEndCommandBuffer(cmdBuffers[i]) != VK_SUCCESS) {
-                    throw std::runtime_error("vkEndCommandBuffer fail");
-                }
+                VK_CHECK_RESULT(vkEndCommandBuffer(cmdBuffers[i]));
             }
         }
     }
@@ -529,39 +532,48 @@ public:
     void FrontendUI() {
         ui->FrontendDraw();
 
-        if (ui->Update()) {// || UIOverlay.updated) {
+        if (ui->UpdateBuffer()) {// || UIOverlay.updated) {
             
             //UIOverlay.updated = false;
-
-            //buildCommandBuffers(); // 按条件刷新。需要仔细实现。否则图像混乱。
+            //std::cout << "VulkanApp.BuildCommandBuffers() 2" << std::endl;
+            //BuildCommandBuffers();
         }
 
-        buildCommandBuffers(); // 总是刷新
+        //BuildCommandBuffers(); // 总是刷新
     }
 
     int draw() {
         // Get next image in the swap chain (back/front buffer)
-        VK_CHECK_RESULT(vkAcquireNextImageKHR(gpu, swapChain->swapChain, UINT64_MAX, presentCompleteSemaphore, VK_NULL_HANDLE, &currentBuffer));
+
+        // 获取当前的image index
+        VkResult res = vkAcquireNextImageKHR(gpu, swapChain->swapChain, UINT64_MAX, presentCompleteSemaphore, VK_NULL_HANDLE, &imageIndex);
+        if (res != VK_SUCCESS) {
+            if (res == VK_ERROR_OUT_OF_DATE_KHR) {
+                resized = true;
+                std::cout << "VulkanApp resized 1" << std::endl;
+                return 0;
+                //OnWindowResize();
+            }
+            else {
+                throw std::runtime_error("vkAcquireNextImageKHR fail");
+            }
+
+        }
+
+        std::cout << "VulkanApp.draw() imageIndex = "<< imageIndex << std::endl;
+
+        BuildCommandBuffers();
 
         // Use a fence to wait until the command buffer has finished execution before using it again
-        VK_CHECK_RESULT(vkWaitForFences(gpu, 1, &waitFences[currentBuffer], VK_TRUE, UINT64_MAX));
-        VK_CHECK_RESULT(vkResetFences(gpu, 1, &waitFences[currentBuffer]));
+        VK_CHECK_RESULT(vkWaitForFences(gpu, 1, &waitFences[imageIndex], VK_TRUE, UINT64_MAX));
+        VK_CHECK_RESULT(vkResetFences(gpu, 1, &waitFences[imageIndex]));
 
-        // Pipeline stage at which the queue submission will wait (via pWaitSemaphores)
-        VkPipelineStageFlags waitStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
-        // The submit info structure specifies a command buffer queue submission batch
-        VkSubmitInfo submitInfo = {};
-        submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
-        submitInfo.pWaitDstStageMask = &waitStageMask;               // Pointer to the list of pipeline stages that the semaphore waits will occur at
-        submitInfo.pWaitSemaphores = &presentCompleteSemaphore;      // Semaphore(s) to wait upon before the submitted command buffer starts executing
-        submitInfo.waitSemaphoreCount = 1;                           // One wait semaphore
-        submitInfo.pSignalSemaphores = &renderCompleteSemaphore;     // Semaphore(s) to be signaled when command buffers have completed
-        submitInfo.signalSemaphoreCount = 1;                         // One signal semaphore
-        submitInfo.pCommandBuffers = &cmdBuffers[currentBuffer]; // Command buffers(s) to execute in this batch (submission)
-        submitInfo.commandBufferCount = 1;                           // One command buffer
+        
+        submitInfo.pCommandBuffers = &cmdBuffers[imageIndex];
+        submitInfo.commandBufferCount = 1;
 
         // Submit to the graphics queue passing a wait fence
-        VK_CHECK_RESULT(vkQueueSubmit(device->graphicsQueue, 1, &submitInfo, waitFences[currentBuffer]));
+        VK_CHECK_RESULT(vkQueueSubmit(device->graphicsQueue, 1, &submitInfo, waitFences[imageIndex]));
 
         // Present the current buffer to the swap chain
         // Pass the semaphore signaled by the command buffer submission from the submit info as the wait semaphore for swap chain presentation
@@ -572,7 +584,7 @@ public:
         presentInfo.pNext = NULL;
         presentInfo.swapchainCount = 1;
         presentInfo.pSwapchains = &swapChain->swapChain;
-        presentInfo.pImageIndices = &currentBuffer;
+        presentInfo.pImageIndices = &imageIndex;
         // Check if a wait semaphore has been specified to wait for before presenting the image
         if (renderCompleteSemaphore != VK_NULL_HANDLE)
         {
@@ -582,21 +594,132 @@ public:
 
         VkResult present = vkQueuePresentKHR(device->graphicsQueue, &presentInfo);
         if (!((present == VK_SUCCESS) || (present == VK_SUBOPTIMAL_KHR))) {
-            VK_CHECK_RESULT(present);
+            if (present == VK_ERROR_OUT_OF_DATE_KHR) {
+                resized = true;
+                std::cout << "VulkanApp resized 2" << std::endl;
+                //OnWindowResize();
+            }
+            else {
+                VK_CHECK_RESULT(present);
+            }
+            
         }
 
+        VK_CHECK_RESULT(vkQueueWaitIdle(device->graphicsQueue));
+
         return 0;
+    }
+
+    void OnWindowResize()
+    {
+        if (!prepared)
+        {
+            return;
+        }
+        prepared = false;
+        //resized = true;
+
+        std::cout << "VulkanApp.OnWindowResize()" << std::endl;
+
+        // https://stackoverflow.com/questions/44719635/what-is-the-difference-between-glfwgetwindowsize-and-glfwgetframebuffersize
+        // glfwGetWindowSize vs glfwGetFramebufferSize
+
+        int width, height;
+        glfwGetFramebufferSize(window, &width, &height);  // glfwGetWindowSize(window, &width, &height);
+
+        /*while (width == 0 || height == 0) {
+            glfwGetFramebufferSize(window, &width, &height);
+            glfwWaitEvents();
+        }*/
+
+        // Ensure all operations on the device have been finished before destroying resources
+        vkDeviceWaitIdle(gpu);
+
+        // Recreate swap chain
+        swapChain->Create();
+
+        // Recreate the frame buffers
+        //vkDestroyImageView(device, depthStencil.view, nullptr);
+        //vkDestroyImage(device, depthStencil.image, nullptr);
+        //vkFreeMemory(device, depthStencil.mem, nullptr);
+        //setupDepthStencil();
+
+        DestroyFrameBuffer();
+        SetupFrameBuffer();
+
+        if ((width > 0.0f) && (height > 0.0f)) {
+            ui->Resize(width, height);
+        }
+
+        // Command buffers need to be recreated as they may store
+        // references to the recreated frame buffer
+        DestroyCommandBuffers();
+        CreateCommandBuffers();
+        imageIndex = 0;
+        //BuildCommandBuffers();
+
+        vkDeviceWaitIdle(gpu);
+
+        /*if ((width > 0.0f) && (height > 0.0f)) {
+            camera.updateAspectRatio((float)width / (float)height);
+        }*/
+
+        // Notify derived class
+        /////windowResized();
+        //viewChanged();
+
+        prepared = true;
+    }
+
+    void DestroyFrameBuffer() {
+        for (auto framebuffer : frameBuffers) {
+            vkDestroyFramebuffer(gpu, framebuffer, nullptr);
+        }
+    }
+
+    void SetupFrameBuffer() {
+        {
+            VkImageView attachment[1];
+            VkFramebufferCreateInfo info = {};
+            info.sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
+            info.renderPass = renderPass;
+            info.attachmentCount = 1;
+            info.pAttachments = attachment;
+            info.width = swapChain->width;
+            info.height = swapChain->height;
+            info.layers = 1;
+
+            frameBuffers.resize(swapChain->imageCount);
+
+            for (uint32_t i = 0; i < swapChain->imageCount; i++)
+            {
+                attachment[0] = swapChain->imageViews[i];
+
+                VK_CHECK_RESULT(vkCreateFramebuffer(gpu, &info, nullptr, &frameBuffers[i]));
+            }
+        }
     }
 
     int loop() {
         while (!glfwWindowShouldClose(window)) {
             glfwPollEvents();
 
+            int iconified = glfwGetWindowAttrib(window, GLFW_ICONIFIED);
+            while (iconified) {
+                glfwWaitEvents();
+                iconified = glfwGetWindowAttrib(window, GLFW_ICONIFIED);
+            }
+
+            if (resized) {
+                OnWindowResize();
+                resized = false;
+            }
+
             FrontendUI();
 
             draw();
 
-            vkDeviceWaitIdle(gpu);
+            //vkDeviceWaitIdle(gpu);
         }
 
         return 0;
@@ -605,7 +728,7 @@ public:
     int clean() {
         std::cout << "VulkanApp clean"<< std::endl;
 
-        vkFreeCommandBuffers(gpu, cmdPool, static_cast<uint32_t>(cmdBuffers.size()), cmdBuffers.data());
+        DestroyCommandBuffers();
         vkDestroyCommandPool(gpu, cmdPool, nullptr);
         
         for (auto framebuffer : frameBuffers) {
@@ -630,7 +753,7 @@ public:
         vkDestroyShaderModule(gpu, vertShader, nullptr);
 
         
-        swapChain->clean();
+        swapChain->Clean();
         ui->FreeResources();
         device->clean();
 
@@ -668,6 +791,8 @@ public:
     GLFWwindow* window;
     VkInstance instance;
 
+    bool prepared = false; // for OnWindowResize
+    bool resized = false;
 
     //VkPhysicalDevice physicalGPU;
     std::shared_ptr<VulkanDevice> device = nullptr;
@@ -691,9 +816,13 @@ public:
 
     VkRenderPass renderPass = VK_NULL_HANDLE;
 
+    // Pipeline stage at which the queue submission will wait (via pWaitSemaphores)
+    VkPipelineStageFlags waitStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
+    VkSubmitInfo submitInfo; // 可复用
+
     std::vector<VkFramebuffer>frameBuffers;
     // Active frame buffer index
-    uint32_t currentBuffer = 0;
+    uint32_t imageIndex = 0;
 
     VkCommandPool cmdPool;
     //VkCommandBuffer commandBuffer;
