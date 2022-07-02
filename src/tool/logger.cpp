@@ -62,6 +62,9 @@ public:
     void Draw(const char* title, bool* p_open = NULL)
     {
         std::lock_guard<std::mutex> guard(logger_mutex); // Log()可供其他线程调用。所以在所有操作共同数据的地方都应加锁。
+
+        ImGui::SetNextWindowBgAlpha(0.8f);
+
         if (!ImGui::Begin(title, p_open))
         {
             ImGui::End();

@@ -20,6 +20,7 @@
 #include <vulkan/vulkan.h>
 
 #include "pbr_app.h"
+#include<iostream>
 
 // [Win32] Our example includes a copy of glfw3.lib pre-compiled with VS2010 to maximize ease of testing and compatibility with old VS compilers.
 // To link with VS2010-era libraries, VS2015+ requires linking with legacy_stdio_definitions.lib, which we do using this pragma.
@@ -325,6 +326,8 @@ static void FrameRender(ImGui_ImplVulkanH_Window* wd, ImDrawData* draw_data)
         err = vkQueueSubmit(g_Queue, 1, &info, fd->Fence);
         check_vk_result(err);
     }
+
+    std::cout << "vkQueueSubmit over" << std::endl;
 }
 
 static void FramePresent(ImGui_ImplVulkanH_Window* wd)
@@ -340,6 +343,9 @@ static void FramePresent(ImGui_ImplVulkanH_Window* wd)
     info.pSwapchains = &wd->Swapchain;
     info.pImageIndices = &wd->FrameIndex;
     VkResult err = vkQueuePresentKHR(g_Queue, &info);
+
+    std::cout << "vkQueuePresentKHR" << std::endl;
+
     if (err == VK_ERROR_OUT_OF_DATE_KHR || err == VK_SUBOPTIMAL_KHR)
     {
         g_SwapChainRebuild = true;

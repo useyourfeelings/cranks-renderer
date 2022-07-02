@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 2.8)
+cmake_minimum_required(VERSION 3.0)
 project(cranks-renderer C CXX)
 
 set_property(GLOBAL PROPERTY USE_FOLDERS ON)
@@ -50,13 +50,22 @@ include_directories(${GLFW_DIR}/deps)
 # cranks-renderer code
 file(GLOB PBR_CODE
   src/main.cpp
+  src/renderer_ui.h
   src/renderer_ui.cpp
   src/gui_main.h
   src/gui_main.cpp
   src/vulkan_main.h
   src/vulkan_main.cpp
-  src/events.h
-  src/events.cpp
+  src/vulkan_ui.h
+  src/vulkan_ui.cpp
+  src/vulkan_tool.h
+  src/vulkan_tool.cpp
+  src/vulkan_device.h
+  src/vulkan_device.cpp
+  src/vulkan_swapchain.h
+  src/vulkan_swapchain.cpp
+  src/vulkan_buffer.h
+  src/vulkan_buffer.cpp
   src/core/*.h
   src/core/*.cpp
   src/shape/*.h

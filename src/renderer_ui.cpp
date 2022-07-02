@@ -63,6 +63,22 @@ void InitCanvas() {
     ImGui::End();
 }
 
+int SetStyle() {
+    ImGui::StyleColorsLight();
+    ImGuiStyle& style = ImGui::GetStyle();
+    style.ItemSpacing = ImVec2(8, 8);
+    style.FrameRounding = 2;
+    style.FrameBorderSize = 1;
+    style.TabBorderSize = 1;
+    style.TabRounding = 2;
+    style.WindowRounding = 1;
+    style.ScrollbarSize = 16;
+    style.WindowMenuButtonPosition = 1; // right
+    style.GrabRounding = 1;
+
+    return 0;
+}
+
 int RENDER_TASK_ID = -1;
 
 int RendererUI()
@@ -79,11 +95,6 @@ int RendererUI()
 
     const ImGuiViewport* main_viewport = ImGui::GetMainViewport();
     ImGui::SetNextWindowPos(ImVec2(main_viewport->WorkPos.x + 650, main_viewport->WorkPos.y + 20), ImGuiCond_FirstUseEver);
-
-
-    
-
-    
 
     LoggerUI();
 
@@ -109,8 +120,10 @@ int RendererUI()
     }
 
     ImGui::SetNextWindowSize(ImVec2(480, 600), ImGuiCond_FirstUseEver);
+    ImGui::SetNextWindowBgAlpha(1);
+
     //ImGui::Begin("Hello, pbr!");
-    if (!ImGui::Begin("Hello Crank!"))
+    if (!ImGui::Begin("Hello Crank!Ãñ¿Æ"))
     {
         ImGui::End();
         return 0;
