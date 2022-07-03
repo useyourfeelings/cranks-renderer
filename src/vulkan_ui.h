@@ -370,7 +370,7 @@ public:
 		return updateCmdBuffers;
 	}
 
-	void draw(const VkCommandBuffer commandBuffer)
+	void VulkanDraw(const VkCommandBuffer commandBuffer)
 	{
 		vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline);
 		vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0, 1, &descriptorSet, 0, NULL);
@@ -455,15 +455,8 @@ public:
 		}
 	}
 
-	void FrontendDraw() {
+	void FrontendDraw(uint32_t lastFPS, float frameDuration) {
 		ImGuiIO& io = ImGui::GetIO();
-
-		//io.DisplaySize = ImVec2((float)width, (float)height);
-		/*io.DeltaTime = frameTimer;
-
-		io.MousePos = ImVec2(mousePos.x, mousePos.y);
-		io.MouseDown[0] = mouseButtons.left;
-		io.MouseDown[1] = mouseButtons.right;*/
 
 		// Setup display size (every frame to accommodate for window resizing)
 		int w, h;
@@ -477,6 +470,8 @@ public:
 		//const bool is_app_focused = glfwGetWindowAttrib(window, GLFW_FOCUSED) != 0;
 		UpdateMouseCursor();
 
+		// must feed to imgui to get correct fps and ui behavior
+		io.DeltaTime = frameDuration;// 1.0f / 60.0f;
 
 		ImGui::NewFrame();
 
@@ -493,11 +488,9 @@ public:
 		ImGui::SetNextWindowSize(ImVec2(300, 200), ImGuiCond_FirstUseEver);
 
 		ImGui::Begin("Vulkan Example");// , nullptr);// , ImGuiWindowFlags_AlwaysAutoResize);// | ImGuiWindowFlags_NoResize);// | ImGuiWindowFlags_NoMove);
-		ImGui::TextUnformatted("wtf");
+		ImGui::Text("lastFPS:%d", lastFPS);
 		ImGui::TextUnformatted(device->properties.deviceName);
-
-		//ImGui::Text("%.2f ms/frame (%.1d fps)", (1000.0f / lastFPS), lastFPS);
-
+		ImGui::Text("Application average %.3f ms/frame (%.1f FPS)", 1000.0f / io.Framerate, io.Framerate);
 
 		//ImGui::PushItemWidth(110.0f * scale);
 		//OnUpdateUIOverlay(&UIOverlay);

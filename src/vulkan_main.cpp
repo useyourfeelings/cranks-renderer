@@ -4,6 +4,7 @@
 #include<vector>
 #include<memory>
 #include<cassert>
+#include <chrono>
 
 // https://www.glfw.org/docs/latest/vulkan_guide.html
 //#define GLFW_INCLUDE_NONE
@@ -425,7 +426,7 @@ public:
 
         CreateCommandBuffers();
 
-        std::cout << "VulkanApp.BuildCommandBuffers() 1" << std::endl;
+        //std::cout << "VulkanApp.BuildCommandBuffers() 1" << std::endl;
         //BuildCommandBuffers();
 
         prepared = true;
@@ -457,7 +458,7 @@ public:
         {
             VkCommandBufferBeginInfo beginInfo{};
             beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
-            beginInfo.flags = 0; // Optional
+            beginInfo.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;// 0; // Optional
             beginInfo.pInheritanceInfo = nullptr; // Optional
 
             VkClearValue clearValues[2];
@@ -493,6 +494,7 @@ public:
                 // 比如画三角形是一套流程，有自己的pipeline/shader/vertex buffer等等。
                 // imgui又有自己的一套配置。
 
+                if(1)
                 {
                     // 三角形流程
                     // 
@@ -519,7 +521,7 @@ public:
 
                 {
                     // ui流程
-                    ui->draw(cmdBuffers[i]);
+                    ui->VulkanDraw(cmdBuffers[i]);
                 }
 
                 vkCmdEndRenderPass(cmdBuffers[i]);
@@ -529,8 +531,8 @@ public:
         }
     }
 
-    void FrontendUI() {
-        ui->FrontendDraw();
+    void FrontendUI(uint32_t lastFPS, float frameDuration) {
+        ui->FrontendDraw(lastFPS, frameDuration);
 
         if (ui->UpdateBuffer()) {// || UIOverlay.updated) {
             
@@ -542,7 +544,7 @@ public:
         //BuildCommandBuffers(); // 总是刷新
     }
 
-    int draw() {
+    int VulkanDraw() {
         // Get next image in the swap chain (back/front buffer)
 
         // 获取当前的image index
@@ -562,12 +564,11 @@ public:
 
         std::cout << "VulkanApp.draw() imageIndex = "<< imageIndex << std::endl;
 
-        BuildCommandBuffers();
-
         // Use a fence to wait until the command buffer has finished execution before using it again
         VK_CHECK_RESULT(vkWaitForFences(gpu, 1, &waitFences[imageIndex], VK_TRUE, UINT64_MAX));
         VK_CHECK_RESULT(vkResetFences(gpu, 1, &waitFences[imageIndex]));
 
+        BuildCommandBuffers();
         
         submitInfo.pCommandBuffers = &cmdBuffers[imageIndex];
         submitInfo.commandBufferCount = 1;
@@ -701,23 +702,50 @@ public:
     }
 
     int loop() {
+        auto lastTimestamp = std::chrono::high_resolution_clock::now();
+        auto lastFrameTime = std::chrono::high_resolution_clock::now();
+        uint32_t frameCounter = 0;
+        uint32_t lastFPS = 0;
+        
         while (!glfwWindowShouldClose(window)) {
+            frameCounter++;
+            auto nowTime = std::chrono::high_resolution_clock::now();
+            float frameDuration = (float)(std::chrono::duration<double, std::milli>(nowTime - lastFrameTime).count());
+            lastFrameTime = nowTime;
+
             glfwPollEvents();
 
+            // minimized
             int iconified = glfwGetWindowAttrib(window, GLFW_ICONIFIED);
             while (iconified) {
                 glfwWaitEvents();
                 iconified = glfwGetWindowAttrib(window, GLFW_ICONIFIED);
             }
 
+            //auto tStart = std::chrono::high_resolution_clock::now();
+
+            //UpdateFPS();
+
             if (resized) {
                 OnWindowResize();
                 resized = false;
             }
 
-            FrontendUI();
+            // lastFPS是我们自己算的fps。把frameDuration喂给imgui，它也会自己算一个fps。
+            FrontendUI(lastFPS, frameDuration / 1000);
 
-            draw();
+            VulkanDraw();
+
+            // fps
+            float duration = (float)(std::chrono::duration<double, std::milli>(nowTime - lastTimestamp).count());
+            if (duration > 1000.0f)
+            {
+                lastFPS = static_cast<uint32_t>((float)frameCounter * (1000.0f / duration));
+
+                frameCounter = 0;
+                lastTimestamp = nowTime;
+            }
+            std::cout << "lastFPS = " << lastFPS << std::endl;
 
             //vkDeviceWaitIdle(gpu);
         }
