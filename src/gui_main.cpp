@@ -327,7 +327,7 @@ static void FrameRender(ImGui_ImplVulkanH_Window* wd, ImDrawData* draw_data)
         check_vk_result(err);
     }
 
-    std::cout << "vkQueueSubmit over" << std::endl;
+    //std::cout << "vkQueueSubmit over" << std::endl;
 }
 
 static void FramePresent(ImGui_ImplVulkanH_Window* wd)
@@ -344,7 +344,7 @@ static void FramePresent(ImGui_ImplVulkanH_Window* wd)
     info.pImageIndices = &wd->FrameIndex;
     VkResult err = vkQueuePresentKHR(g_Queue, &info);
 
-    std::cout << "vkQueuePresentKHR" << std::endl;
+    //std::cout << "vkQueuePresentKHR" << std::endl;
 
     if (err == VK_ERROR_OUT_OF_DATE_KHR || err == VK_SUBOPTIMAL_KHR)
     {

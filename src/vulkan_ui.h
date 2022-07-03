@@ -5,6 +5,8 @@
 #include <vector>
 #include <GLFW/glfw3.h>
 #include"imgui.h"
+#include "imgui_impl_glfw.h"
+
 #include <vulkan/vulkan.h>
 #include"vulkan_device.h"
 #include"vulkan_buffer.h"
@@ -197,6 +199,8 @@ public:
 		vkUpdateDescriptorSets(device->device, static_cast<uint32_t>(writeDescriptorSets.size()), writeDescriptorSets.data(), 0, nullptr);
 
 		SetStyle();
+
+		ImGui_ImplGlfw_InitForVulkan(window, true);
 
 		return 0;
 	}
@@ -437,22 +441,6 @@ public:
 		} else if(state == GLFW_RELEASE) {
 			io.AddMouseButtonEvent(0, false);
 		}
-
-		return;
-
-		ImGuiMouseCursor imgui_cursor = ImGui::GetMouseCursor();
-		if (imgui_cursor == ImGuiMouseCursor_None || io.MouseDrawCursor)
-		{
-			// Hide OS mouse cursor if imgui is drawing it or if it wants no cursor
-			glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_HIDDEN);
-		}
-		else
-		{
-			// Show OS mouse cursor
-			// FIXME-PLATFORM: Unfocused windows seems to fail changing the mouse cursor with GLFW 3.2, but 3.3 works here.
-			//glfwSetCursor(window, bd->MouseCursors[imgui_cursor] ? bd->MouseCursors[imgui_cursor] : bd->MouseCursors[ImGuiMouseCursor_Arrow]);
-			glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
-		}
 	}
 
 	void FrontendDraw(uint32_t lastFPS, float frameDuration) {
@@ -468,7 +456,7 @@ public:
 			io.DisplayFramebufferScale = ImVec2((float)display_w / (float)w, (float)display_h / (float)h);
 
 		//const bool is_app_focused = glfwGetWindowAttrib(window, GLFW_FOCUSED) != 0;
-		UpdateMouseCursor();
+		//UpdateMouseCursor();
 
 		// must feed to imgui to get correct fps and ui behavior
 		io.DeltaTime = frameDuration;// 1.0f / 60.0f;

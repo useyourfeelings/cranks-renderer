@@ -480,7 +480,7 @@ public:
                 if (imageIndex != i) // 源代码这里不知道他为啥要每个cmdBuffer都一样跑一遍。难道不该指定index吗。我先改成index。
                     continue;
 
-                std::cout << "vkBeginCommandBuffer " << i << std::endl;
+                //std::cout << "vkBeginCommandBuffer " << i << std::endl;
 
                 VK_CHECK_RESULT(vkBeginCommandBuffer(cmdBuffers[i], &beginInfo));
 
@@ -562,7 +562,7 @@ public:
 
         }
 
-        std::cout << "VulkanApp.draw() imageIndex = "<< imageIndex << std::endl;
+        //std::cout << "VulkanApp.draw() imageIndex = "<< imageIndex << std::endl;
 
         // Use a fence to wait until the command buffer has finished execution before using it again
         VK_CHECK_RESULT(vkWaitForFences(gpu, 1, &waitFences[imageIndex], VK_TRUE, UINT64_MAX));
@@ -745,7 +745,7 @@ public:
                 frameCounter = 0;
                 lastTimestamp = nowTime;
             }
-            std::cout << "lastFPS = " << lastFPS << std::endl;
+            //std::cout << "lastFPS = " << lastFPS << std::endl;
 
             //vkDeviceWaitIdle(gpu);
         }
