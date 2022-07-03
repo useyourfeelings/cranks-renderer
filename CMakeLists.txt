@@ -54,18 +54,8 @@ file(GLOB PBR_CODE
   src/renderer_ui.cpp
   src/gui_main.h
   src/gui_main.cpp
-  src/vulkan_main.h
-  src/vulkan_main.cpp
-  src/vulkan_ui.h
-  src/vulkan_ui.cpp
-  src/vulkan_tool.h
-  src/vulkan_tool.cpp
-  src/vulkan_device.h
-  src/vulkan_device.cpp
-  src/vulkan_swapchain.h
-  src/vulkan_swapchain.cpp
-  src/vulkan_buffer.h
-  src/vulkan_buffer.cpp
+  src/vulkan/*.h
+  src/vulkan/*.cpp
   src/core/*.h
   src/core/*.cpp
   src/shape/*.h
@@ -88,6 +78,7 @@ source_group(shape src/shape)
 source_group(tool src/tool)
 source_group(light src/light)
 source_group(integrator src/integrator)
+source_group(vulkan src/vulkan)
 
 source_group(imgui ${IMGUI_DIR})
 
