@@ -2,7 +2,6 @@
 #include "core/api.h"
 #include "tool/logger.h"
 #include "base/events.h"
-#include<format>
 
 void InitCanvas() {
     ImGuiWindowFlags window_flags = 0;
@@ -81,7 +80,7 @@ int SetStyle() {
 
 int RENDER_TASK_ID = -1;
 
-int RendererUI()
+int RendererUI(void* renderImageID)
 {
     static int registered = 0;
 
@@ -250,6 +249,14 @@ int RendererUI()
 
         SendEvent(RENDER_TASK_ID);
     }
+
+    //ImGui::Image((ImTextureID)app.renderImage.descriptorSet);
+    //ImGui::Image((ImTextureID)renderImageID, ImVec2(80, 80), ImVec2(0.0f, 0.0f), ImVec2(1.0f, 1.0f));
+    //Log("renderImageID %d", (ImTextureID)renderImageID);
+
+    //std::cout << "renderImageID = " << renderImageID << std::endl;
+    ImGui::Image((ImTextureID)renderImageID, ImVec2(256, 256), ImVec2(0.0f, 0.0f), ImVec2(1.0f, 1.0f));
+    ImGui::Button("Render", ImVec2(120, 120));
 
     ImGui::End();
 

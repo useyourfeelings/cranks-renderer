@@ -430,6 +430,10 @@ public:
         //BuildCommandBuffers();
 
         prepared = true;
+
+        this->renderImage.BuildImage(device, 256, 256);
+
+
         return 0;
     }
 
@@ -532,7 +536,7 @@ public:
     }
 
     void FrontendUI(uint32_t lastFPS, float frameDuration) {
-        ui->FrontendDraw(lastFPS, frameDuration);
+        ui->FrontendDraw(lastFPS, frameDuration, (void *)renderImage.descriptorSet);
 
         if (ui->UpdateBuffer()) {// || UIOverlay.updated) {
             
@@ -754,7 +758,7 @@ public:
     }
 
     int clean() {
-        std::cout << "VulkanApp clean"<< std::endl;
+        std::cout << "VulkanApp.clean()"<< std::endl;
 
         DestroyCommandBuffers();
         vkDestroyCommandPool(gpu, cmdPool, nullptr);
@@ -781,6 +785,7 @@ public:
         vkDestroyShaderModule(gpu, vertShader, nullptr);
 
         
+        renderImage.Clean();
         swapChain->Clean();
         ui->FreeResources();
         device->clean();
@@ -868,14 +873,14 @@ public:
     // Stores all available memory (type) properties for the physical device
     VkPhysicalDeviceMemoryProperties gpuMemoryProperties;
 
-    
+    VulkanImage renderImage;
 };
+
+inline VulkanApp app;
 
 int vulkan_main()
 {
     std::cout<<"vulkan_main start"<<std::endl;
-
-    VulkanApp app;
 
     app.init();
     app.loop();
@@ -884,3 +889,4 @@ int vulkan_main()
     std::cout << "vulkan_main over" << std::endl;
     return 0;
 }
+

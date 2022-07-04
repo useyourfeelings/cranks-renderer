@@ -2,7 +2,7 @@
 #define RENDERER_UI_H
 
 
-int RendererUI();
+int RendererUI(void*);
 int SetStyle();
 
 #endif

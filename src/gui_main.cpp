@@ -18,9 +18,7 @@
 #define GLFW_INCLUDE_VULKAN
 #include <GLFW/glfw3.h>
 #include <vulkan/vulkan.h>
-
-#include "pbr_app.h"
-#include<iostream>
+#include "renderer_ui.h"
 
 // [Win32] Our example includes a copy of glfw3.lib pre-compiled with VS2010 to maximize ease of testing and compatibility with old VS compilers.
 // To link with VS2010-era libraries, VS2015+ requires linking with legacy_stdio_definitions.lib, which we do using this pragma.
@@ -541,7 +539,7 @@ int gui_main() //int main(int, char**)
             ImGui::End();
         }
 
-        RendererUI();
+        //RendererUI(nullptr);
 
         // 3. Show another simple window.
         if (show_another_window)

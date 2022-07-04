@@ -377,7 +377,7 @@ public:
 	void VulkanDraw(const VkCommandBuffer commandBuffer)
 	{
 		vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline);
-		vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0, 1, &descriptorSet, 0, NULL);
+		//vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0, 1, &descriptorSet, 0, NULL);
 
 		ImGuiIO& io = ImGui::GetIO();
 
@@ -415,6 +415,18 @@ public:
 				scissorRect.extent.width = (uint32_t)(pcmd->ClipRect.z - pcmd->ClipRect.x);
 				scissorRect.extent.height = (uint32_t)(pcmd->ClipRect.w - pcmd->ClipRect.y);
 
+				// 默认的descriptorSet创建的是font。额外创建的图片存在pcmd->TextureId。如果pcmd带着有效的TextureId，就要用。
+				// Bind DescriptorSet with font or user texture
+				VkDescriptorSet desc_set[1] = { (VkDescriptorSet)pcmd->TextureId };
+				if (pcmd->TextureId == 0 || sizeof(ImTextureID) < sizeof(ImU64))
+				{
+					// We don't support texture switches if ImTextureID hasn't been redefined to be 64-bit. Do a flaky check that other textures haven't been used.
+					//IM_ASSERT(pcmd->TextureId == (ImTextureID)bd->FontDescriptorSet);
+					desc_set[0] = descriptorSet;// bd->FontDescriptorSet;
+				}
+				vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0, 1, desc_set, 0, nullptr);
+				//vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0, 1, &descriptorSet, 0, NULL);
+
 				// vkCmdSetScissor设置一个矩形。外部的点全部丢弃。
 				vkCmdSetScissor(commandBuffer, 0, 1, &scissorRect);
 				vkCmdDrawIndexed(commandBuffer, pcmd->ElemCount, 1, indexOffset, vertexOffset, 0);
@@ -443,7 +455,7 @@ public:
 		}
 	}
 
-	void FrontendDraw(uint32_t lastFPS, float frameDuration) {
+	void FrontendDraw(uint32_t lastFPS, float frameDuration, void* renderImageID) {
 		ImGuiIO& io = ImGui::GetIO();
 
 		// Setup display size (every frame to accommodate for window resizing)
@@ -464,7 +476,7 @@ public:
 		ImGui::NewFrame();
 
 		ImGui::ShowDemoWindow();
-		RendererUI();
+		RendererUI(renderImageID);
 
 		ImGui::PushStyleVar(ImGuiStyleVar_WindowRounding, 0);
 		/*ImGui::SetNextWindowPos(ImVec2(10, 10));

@@ -2,6 +2,8 @@
 
 VulkanDevice::VulkanDevice(VkInstance instance) {
 
+    std::cout << "VulkanDevice.VulkanDevice()" << std::endl;
+
     VkResult err;
 
     // physical device
@@ -45,6 +47,11 @@ VulkanDevice::VulkanDevice(VkInstance instance) {
         vkGetPhysicalDeviceFeatures(physicalDevice, &features);
         // Memory properties are used regularly for creating all kinds of buffers
         vkGetPhysicalDeviceMemoryProperties(physicalDevice, &memoryProperties);
+
+        std::cout << "memoryProperties:" << std::endl;
+        for (int i = 0; i < memoryProperties.memoryTypeCount; ++i) {
+            std::cout << memoryProperties.memoryTypes[i].propertyFlags << std::endl;
+        }
     }
     
 
@@ -171,6 +178,8 @@ VkCommandPool VulkanDevice::createCommandPool(uint32_t queueFamilyIndex, VkComma
 
 VkResult VulkanDevice::createBuffer(VkBufferUsageFlags usageFlags, VkMemoryPropertyFlags memoryPropertyFlags, VulkanBuffer* buffer, VkDeviceSize size, void* data)
 {
+    //std::cout << "VulkanDevice.createBuffer()" << std::endl;
+
     buffer->device = this->device;
 
     // Create the buffer handle

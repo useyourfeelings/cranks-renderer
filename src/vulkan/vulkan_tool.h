@@ -3,8 +3,12 @@
 
 #include<iostream>
 #include<vector>
+#include<memory>
 #include<cassert>
 #include <vulkan/vulkan.h>
+
+class VulkanApp;
+class VulkanDevice;
 
 #define VK_CHECK_RESULT(f)																				\
 {																										\
@@ -87,6 +91,7 @@ namespace vktool {
 		bufCreateInfo.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
 		bufCreateInfo.usage = usage;
 		bufCreateInfo.size = size;
+		// bufCreateInfo.VkSharingMode = VK_SHARING_MODE_EXCLUSIVE;
 		return bufCreateInfo;
 	}
 
@@ -210,6 +215,7 @@ namespace vktool {
 		descriptorPoolInfo.poolSizeCount = poolSizeCount;
 		descriptorPoolInfo.pPoolSizes = pPoolSizes;
 		descriptorPoolInfo.maxSets = maxSets;
+		descriptorPoolInfo.flags = VK_DESCRIPTOR_POOL_CREATE_FREE_DESCRIPTOR_SET_BIT;
 		return descriptorPoolInfo;
 	}
 
@@ -527,6 +533,28 @@ namespace vktool {
 		VkPipelineStageFlags srcStageMask,
 		VkPipelineStageFlags dstStageMask);
 }
+
+
+
+class VulkanImage {
+public:
+	uint32_t width, height;
+
+	std::shared_ptr<VulkanDevice> device;
+
+	VkImage image;
+	VkImageView view;
+	VkSampler sampler;
+	VkDeviceMemory memory;
+	VkDescriptorSet descriptorSet;
+	VkDescriptorPool descriptorPool = VK_NULL_HANDLE;
+	VkDescriptorSetLayout descriptorSetLayout;
+
+	VulkanImage();
+	~VulkanImage();
+	int BuildImage(std::shared_ptr<VulkanDevice> device, uint32_t width, uint32_t height);
+	int Clean();
+};
 
 
 
