@@ -35,14 +35,18 @@ void PbrApp::PrintScene() {
 	scene->PrintScene();
 }
 
-void PbrApp::GetRenderProgress(int* now, int* total) {
+void PbrApp::GetRenderProgress(int* status, int* now, int* total, int * has_new_photo) {
 	if (this->integrator != nullptr) {
+		*status = this->integrator->render_status;
 		*now = this->integrator->render_progress_now;
 		*total = this->integrator->render_progress_total;
+		*has_new_photo = this->integrator->has_new_photo;
 	}
 	else {
+		*status = 0;
 		*now = 0;
 		*total = 0;
+		*has_new_photo = 0;
 	}
 	
 }
@@ -151,4 +155,18 @@ void PbrApp::SetWhittedIntegrator() {
 
 void PbrApp::SaveSetting() {
 	setting.SaveFile();
+}
+
+int PbrApp::SendNewImage(char* dst) {
+	std::lock_guard<std::mutex> lock(image_mutex);
+
+	if (!this->integrator->has_new_photo) {
+		return 1;
+	}
+
+	this->integrator->has_new_photo = 0;
+
+	this->camera->film->WriteVector(dst);
+
+	return 0;
 }

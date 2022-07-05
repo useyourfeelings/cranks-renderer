@@ -205,6 +205,9 @@ VulkanImage::~VulkanImage() {
 
 int VulkanImage::Clean() {
 	std::cout << "VulkanImage.Clean()" << std::endl;
+	if (device == nullptr)
+		return 0;
+	
 	vkFreeMemory(device->device, memory, nullptr);
 	vkDestroyImage(device->device, image, nullptr);
 	vkDestroyImageView(device->device, view, nullptr);
@@ -215,7 +218,7 @@ int VulkanImage::Clean() {
 	return 0;
 }
 
-int VulkanImage::BuildImage(std::shared_ptr<VulkanDevice> device, uint32_t width, uint32_t height) {
+int VulkanImage::BuildImage(std::shared_ptr<VulkanDevice> device, uint32_t width, uint32_t height, char * pixels) {
 	std::cout << "VulkanImage.BuildImage()" << std::endl;
 
 	this->device = device;
@@ -224,15 +227,21 @@ int VulkanImage::BuildImage(std::shared_ptr<VulkanDevice> device, uint32_t width
 
 	size_t uploadSize = width * height * 4 * sizeof(char);
 
-	std::vector<char> pixels(width * height * 4);
+	/*std::vector<char> pixels(width * height * 4);
+	for (int i = 0; i < width * height * 4; ++i) {
+		pixels[i] = 
+	}*/
 
-	std::random_device rd;
-	std::mt19937 gen(rd());
-	std::uniform_int_distribution<> distrib(0, 255);
+	//if(0) // random image
+	//{
+	//	std::random_device rd;
+	//	std::mt19937 gen(rd());
+	//	std::uniform_int_distribution<> distrib(0, 255);
 
-	for (auto i = 0; i < pixels.size(); ++ i) {
-		pixels[i] = distrib(gen);
-	}
+	//	for (auto i = 0; i < pixels.size(); ++i) {
+	//		pixels[i] = distrib(gen);
+	//	}
+	//}
 
 	VkResult err;
 
@@ -402,7 +411,7 @@ int VulkanImage::BuildImage(std::shared_ptr<VulkanDevice> device, uint32_t width
 	// Upload to Buffer:
 
 	stagingBuffer.map(uploadSize, 0);
-	stagingBuffer.copyTo(pixels.data(), uploadSize);
+	stagingBuffer.copyTo(pixels, uploadSize);
 	stagingBuffer.flush(uploadSize, 0);
 	stagingBuffer.unmap();
 

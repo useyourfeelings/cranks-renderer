@@ -110,7 +110,12 @@ int PBR_API_render() {
 	return 0;
 }
 
-int PBR_API_get_render_progress(int *now, int *total) {
-	app.GetRenderProgress(now, total);
+int PBR_API_get_render_progress(int* status, int *now, int *total, int * has_new_photo) {
+	app.GetRenderProgress(status, now, total, has_new_photo);
+	return 0;
+}
+
+int PBR_API_get_new_image(char* dst) {
+	app.SendNewImage(dst);
 	return 0;
 }

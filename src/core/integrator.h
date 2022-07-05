@@ -10,11 +10,16 @@
 class Integrator {
 public:
     // Integrator Interface
-    Integrator() :render_progress_now(0), render_progress_total(0) {};
+    Integrator() :
+        render_progress_now(0), 
+        render_progress_total(0), 
+        render_status(0),
+        has_new_photo(0) {};
     virtual ~Integrator() {};
     virtual void Render(const Scene& scene) = 0;
 
-    int render_progress_now, render_progress_total;
+    int render_status, render_progress_now, render_progress_total;
+    int has_new_photo;
 };
 
 class SamplerIntegrator : public Integrator {

@@ -2,6 +2,7 @@
 #include "core/api.h"
 #include "tool/logger.h"
 #include "base/events.h"
+#include "vulkan/vulkan_main.h"
 
 void InitCanvas() {
     ImGuiWindowFlags window_flags = 0;
@@ -80,7 +81,7 @@ int SetStyle() {
 
 int RENDER_TASK_ID = -1;
 
-int RendererUI(void* renderImageID)
+int RendererUI(VulkanApp* app)
 {
     static int registered = 0;
 
@@ -88,18 +89,6 @@ int RendererUI(void* renderImageID)
         RENDER_TASK_ID = RegisterEvent(PBR_API_render);
         registered = 1;
     }
-
-    static float f = 0.0f;
-    static int counter = 0;
-
-    const ImGuiViewport* main_viewport = ImGui::GetMainViewport();
-    ImGui::SetNextWindowPos(ImVec2(main_viewport->WorkPos.x + 650, main_viewport->WorkPos.y + 20), ImGuiCond_FirstUseEver);
-
-    LoggerUI();
-
-    //InitCanvas();
-
-    //Log("wtf1");
 
     static int init_status = 0;
 
@@ -118,14 +107,32 @@ int RendererUI(void* renderImageID)
         init_status = 1;
     }
 
+    int progress_now, progress_total, render_status, has_new_photo;
+    PBR_API_get_render_progress(&render_status, &progress_now, &progress_total, &has_new_photo);
+
+    if (has_new_photo) {
+        //app->BuildImage();
+        //PBR_API_get_new_image
+    }
+
+    // ui
+
+    const ImGuiViewport* main_viewport = ImGui::GetMainViewport();
+    ImGui::SetNextWindowPos(ImVec2(main_viewport->WorkPos.x + 650, main_viewport->WorkPos.y + 20), ImGuiCond_FirstUseEver);
+
+    LoggerUI();
+
     ImGui::SetNextWindowSize(ImVec2(480, 600), ImGuiCond_FirstUseEver);
     ImGui::SetNextWindowBgAlpha(1);
 
     //ImGui::Begin("Hello, pbr!");
-    if (!ImGui::Begin("Hello Crank!民科"))
-    {
+    if (!ImGui::Begin("Hello Crank!民科", nullptr, ImGuiWindowFlags_AlwaysAutoResize)){
         ImGui::End();
         return 0;
+    }
+
+    if (render_status == 1) {
+        ImGui::BeginDisabled();
     }
 
     ImGui::Text("camera setting");
@@ -213,25 +220,16 @@ int RendererUI(void* renderImageID)
     //ImGui::Text("counter = %d", counter);
 
     //ImGui::Text("Application average %.3f ms/frame (%.1f FPS)", 1000.0f / ImGui::GetIO().Framerate, ImGui::GetIO().Framerate);
-    ImGui::Dummy(ImVec2(60, 30));
-    if (ImGui::Button("print scene", ImVec2(100, 30))) {
-        
-        counter++;
-
-        PBR_API_print_scene();
-    }
 
     //ImGui::Dummy(ImVec2(30, 30));
 
 
-    int progress_now, progress_total;
+    
     char buf[32];
-
-    PBR_API_get_render_progress(&progress_now, &progress_total);
     sprintf(buf, "%d/%d", progress_now, progress_total);
     ImGui::ProgressBar(float(progress_now) / progress_total, ImVec2(0.f, 0.f), buf);
 
-    if (ImGui::Button("Render", ImVec2(400, 120))) {
+    if (ImGui::Button("Render", ImVec2(200, 120))) {
 
         static int set_default_scene = 0;
         if (set_default_scene == 0) {
@@ -250,13 +248,39 @@ int RendererUI(void* renderImageID)
         SendEvent(RENDER_TASK_ID);
     }
 
+    if (render_status == 1) {
+        ImGui::EndDisabled();
+    }
+
+    if (render_status == 0) {
+        ImGui::BeginDisabled();
+    }
+
+    ImGui::SameLine();
+    if (ImGui::Button("Stop", ImVec2(200, 120))) {
+
+    }
+
+    if (render_status == 0) {
+        ImGui::EndDisabled();
+    }
+
+    ImGui::End();
+
+    //Log("resolution %d, %d", resolution[0], resolution[1]);
+    ImGui::SetNextWindowSize(ImVec2(resolution[0] + 20, resolution[1] + 20));
+    ImGui::SetNextWindowPos(ImVec2(20, 180));
+
+    ImGui::Begin("Scene");
+
     //ImGui::Image((ImTextureID)app.renderImage.descriptorSet);
     //ImGui::Image((ImTextureID)renderImageID, ImVec2(80, 80), ImVec2(0.0f, 0.0f), ImVec2(1.0f, 1.0f));
     //Log("renderImageID %d", (ImTextureID)renderImageID);
 
     //std::cout << "renderImageID = " << renderImageID << std::endl;
-    ImGui::Image((ImTextureID)renderImageID, ImVec2(256, 256), ImVec2(0.0f, 0.0f), ImVec2(1.0f, 1.0f));
-    ImGui::Button("Render", ImVec2(120, 120));
+    //ImGui::Image((ImTextureID)renderImageID, ImVec2(256, 256), ImVec2(0.0f, 0.0f), ImVec2(1.0f, 1.0f));
+
+    
 
     ImGui::End();
 

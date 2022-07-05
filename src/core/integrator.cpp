@@ -6,6 +6,8 @@
 
 void SamplerIntegrator::Render(const Scene& scene) {
     Log("Render");
+    render_status = 1;
+    has_new_photo = 0;
     //Preprocess(scene, *sampler);
     // Render image tiles in parallel
 
@@ -22,8 +24,8 @@ void SamplerIntegrator::Render(const Scene& scene) {
 
     // Loop over pixels in tile to render them
     while (i < sampleBounds.pMax.x && j < sampleBounds.pMax.y) {
-        Log("Render %d %d", i, j);
-        std::cout << "Render " << i << " " << j << std::endl;
+        //Log("Render %d %d", i, j);
+        //std::cout << "Render " << i << " " << j << std::endl;
         Point2i pixel(i, j);
 
         this->sampler->StartPixel(pixel);
@@ -100,6 +102,8 @@ void SamplerIntegrator::Render(const Scene& scene) {
 
     // Save final image after rendering
     camera->film->WriteImage();
+    render_status = 0;
+    has_new_photo = 1;
 }
 
 Spectrum SamplerIntegrator::SpecularReflect(

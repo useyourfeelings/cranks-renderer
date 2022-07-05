@@ -26,6 +26,22 @@ void Film::WritePPMImage() {
 	f.close();
 }
 
+void Film::WriteVector(char *dst) {
+	Log("WriteVector");
+	
+	int index, dst_index;
+	for (int j = 0; j < fullResolution.y; ++j) {
+		for (int i = 0; i < fullResolution.x; ++i) {
+			index = i + fullResolution.x * j;
+			dst_index = 4 * index;
+			dst[dst_index] = std::min(int(pixels[index].c[0] * 255), 255);
+			dst[dst_index + 1] = std::min(int(pixels[index].c[1] * 255), 255);
+			dst[dst_index + 2] = std::min(int(pixels[index].c[2] * 255), 255);
+			dst[dst_index + 3] = 255;
+		}
+	}
+}
+
 void Film::WriteImage() {
 	WritePPMImage();
 }

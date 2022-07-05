@@ -5,6 +5,7 @@
 
 #include <iostream>
 #include <vector>
+#include <mutex>
 #include "scene.h"
 #include "camera.h"
 #include "film.h"
@@ -44,7 +45,7 @@ public:
 	//
 
 	void RenderScene();
-	void GetRenderProgress(int* now, int* total);
+	void GetRenderProgress(int* status, int* now, int* total, int* has_new_photo);
 
 	//
 	
@@ -67,7 +68,9 @@ public:
 	std::unique_ptr<Integrator> integrator;
 	std::vector<std::shared_ptr<Film>> film_list;
 
-	
+	std::mutex image_mutex;
+
+	int SendNewImage(char* dst);
 };
 
 inline PbrApp app;

@@ -540,7 +540,7 @@ class VulkanImage {
 public:
 	uint32_t width, height;
 
-	std::shared_ptr<VulkanDevice> device;
+	std::shared_ptr<VulkanDevice> device = nullptr;
 
 	VkImage image;
 	VkImageView view;
@@ -552,7 +552,7 @@ public:
 
 	VulkanImage();
 	~VulkanImage();
-	int BuildImage(std::shared_ptr<VulkanDevice> device, uint32_t width, uint32_t height);
+	int BuildImage(std::shared_ptr<VulkanDevice> device, uint32_t width, uint32_t height, char* pixels);
 	int Clean();
 };
 
