@@ -44,8 +44,8 @@ public:
 		std::cout << "Setting.LoadDefaultSetting()" << std::endl;
 
 		j = json();
-		j["camera_resX"] = 120;
-		j["camera_resY"] = 120;
+		j["camera_resX"] = 384;
+		j["camera_resY"] = 384;
 		j["camera_fov"] = 90.0;
 		j["camera_asp"] = 1.0;
 		j["camera_near"] = 0.1;

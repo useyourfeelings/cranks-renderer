@@ -51,6 +51,10 @@ void PbrApp::GetRenderProgress(int* status, int* now, int* total, int * has_new_
 	
 }
 
+void PbrApp::StopRendering() {
+	integrator->render_status = 0;
+}
+
 void PbrApp::RenderScene() {
 	//std::string str = GetCurrentWorkingDir();
 
@@ -75,8 +79,7 @@ void PbrApp::RenderScene() {
 	}
 
 	SetFilm(camera->resolutionX, camera->resolutionY);
-	
-	SetSampler();
+
 	SetIntegrator();
 
 	integrator->Render(*scene);
@@ -99,6 +102,8 @@ void PbrApp::SetPerspectiveCamera(Point3f pos, Point3f look, Vector3f up,
 	float fov, float aspect_ratio, float near, float far, 
 	int resX, int resY, int ray_sample_no) {
 	Log("SetPerspectiveCamera");
+
+	sampler->SetSamplesPerPixel(ray_sample_no);
 
 	if (camera != nullptr) {
 		camera->SetPerspectiveData(pos, look, up, fov, aspect_ratio, near, far, resX, resY);
@@ -132,7 +137,7 @@ void PbrApp::SetSampler() {
 }
 
 void PbrApp::SetRandomSampler() {
-	Log("SetRandomSampler");
+	//Log("SetRandomSampler");
 
 	this->sampler = std::shared_ptr<Sampler>(new RandomSampler(setting.Get("ray_sample_no"))); // 8 better than 4. 4 better than 1.
 }

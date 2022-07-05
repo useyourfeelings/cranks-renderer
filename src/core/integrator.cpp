@@ -24,7 +24,10 @@ void SamplerIntegrator::Render(const Scene& scene) {
 
     // Loop over pixels in tile to render them
     while (i < sampleBounds.pMax.x && j < sampleBounds.pMax.y) {
-        //Log("Render %d %d", i, j);
+        if (render_status == 0)
+            break;
+
+        Log("Render %d %d", i, j);
         //std::cout << "Render " << i << " " << j << std::endl;
         Point2i pixel(i, j);
 

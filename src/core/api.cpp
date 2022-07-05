@@ -115,6 +115,11 @@ int PBR_API_get_render_progress(int* status, int *now, int *total, int * has_new
 	return 0;
 }
 
+int PBR_API_stop_rendering() {
+	app.StopRendering();
+	return 0;
+}
+
 int PBR_API_get_new_image(char* dst) {
 	app.SendNewImage(dst);
 	return 0;

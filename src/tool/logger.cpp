@@ -24,10 +24,13 @@ public:
     ImVector<int>       LineOffsets; // Index to lines offset. We maintain this with AddLog() calls.
     bool                AutoScroll;  // Keep scrolling if already at the bottom.
 
+    bool status;
+
     std::mutex logger_mutex;
 
     ExampleAppLog()
     {
+        status = 0;
         AutoScroll = true;
         Clear();
     }
@@ -79,6 +82,9 @@ public:
         }
 
         // Main window
+        ImGui::Checkbox("On/Off", &status);
+        ImGui::SameLine();
+
         if (ImGui::Button("Options"))
             ImGui::OpenPopup("Options");
         ImGui::SameLine();
@@ -197,6 +203,9 @@ void Log(const char* fmt, ...) {
 
     std::lock_guard<std::mutex> guard(renderer_log.logger_mutex);
 
+    if (renderer_log.status == 0)
+        return;
+
     int old_size = renderer_log.Buf.size();
     va_list args;
     va_start(args, fmt);
@@ -209,3 +218,4 @@ void Log(const char* fmt, ...) {
         if (renderer_log.Buf[old_size] == '\n')
             renderer_log.LineOffsets.push_back(old_size + 1);
 }
+

@@ -27,6 +27,7 @@ public:
 
 		scene = std::make_unique<Scene>();
 
+		SetSampler();
 	}
 
 	void SayHi() {
@@ -46,7 +47,7 @@ public:
 
 	void RenderScene();
 	void GetRenderProgress(int* status, int* now, int* total, int* has_new_photo);
-
+	void StopRendering();
 	//
 	
 	void SetFilm(int width, int height);

@@ -547,9 +547,9 @@ public:
 		static float fov = 90;
 		static float aspect_ratio = 1.2f;
 		static float near_far[2] = { 2, 200 };
-		static int resolution[2] = { 100, 100 };
 		static int ray_sample_no = 1;
-		static int image_scale = 2;
+		static int image_scale = 3;
+		static int resolution[2] = { image_scale * 128, image_scale * 128 };
 
 		if (init_status == 0) {
 			PBR_API_get_camera_setting(pos, look, up, fov, aspect_ratio, near_far[0], near_far[1], resolution[0], resolution[1], ray_sample_no);
@@ -656,8 +656,8 @@ public:
 		}
 
 		if (ImGui::SliderInt("scale", &image_scale, 1, 16)) {
-			resolution[0] = image_scale * 64;
-			resolution[1] = image_scale * 64;
+			resolution[0] = image_scale * 128;
+			resolution[1] = image_scale * 128;
 			cameraChanged = true;
 		}
 
@@ -714,7 +714,7 @@ public:
 
 		ImGui::SameLine();
 		if (ImGui::Button("Stop", ImVec2(200, 120))) {
-
+			PBR_API_stop_rendering();
 		}
 
 		if (render_status == 0) {
