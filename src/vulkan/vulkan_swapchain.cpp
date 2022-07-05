@@ -71,7 +71,9 @@ VulkanSwapchain::VulkanSwapchain(std::shared_ptr<VulkanDevice> device, VkInstanc
         std::cout << "formatCount " << formatCount << std::endl;
         for (auto format : formats) {
             std::cout << "format " << format.format << " color space  " << format.colorSpace << std::endl;
-            if (format.colorSpace == VK_COLOR_SPACE_SRGB_NONLINEAR_KHR && format.format == VK_FORMAT_B8G8R8A8_SRGB) {
+
+            // VK_FORMAT_B8G8R8A8_SRGB ÑÕÉ«»á±äÇ³
+            if (format.colorSpace == VK_COLOR_SPACE_SRGB_NONLINEAR_KHR && format.format == VK_FORMAT_R8G8B8A8_UNORM) { // VK_FORMAT_R8G8B8A8_UNORM VK_FORMAT_B8G8R8A8_SRGB
                 surfaceFormat = format;
             }
         }
