@@ -15,6 +15,15 @@ public:
         for (int i = 0; i < nSpectrumSamples; ++i) c[i] = v;
     }
 
+    CoefficientSpectrum(int nSpectrumSamples, float r, float g, float b) :
+        nSpectrumSamples(nSpectrumSamples),
+        c(nSpectrumSamples) {
+
+        c[0] = r;
+        c[1] = g;
+        c[2] = b;
+    }
+
     bool IsBlack() const {
         for (int i = 0; i < nSpectrumSamples; ++i)
             if (c[i] != 0.) return false;
@@ -59,6 +68,7 @@ class RGBSpectrum : public CoefficientSpectrum {
 public:
     // RGBSpectrum Public Methods
     RGBSpectrum(float v = 0.f) : CoefficientSpectrum(3, v) {}
+    RGBSpectrum(float r, float g, float b) : CoefficientSpectrum(3, r, g, b) {}
     RGBSpectrum(const CoefficientSpectrum& v) : CoefficientSpectrum(v) {}
 };
 

@@ -508,14 +508,13 @@ public:
 
 		const ImGuiViewport* main_viewport = ImGui::GetMainViewport();
 		ImGui::SetNextWindowPos(ImVec2(main_viewport->WorkPos.x + 20, main_viewport->WorkPos.y + 20), ImGuiCond_FirstUseEver);
-
 		ImGui::SetNextWindowSize(ImVec2(300, 200), ImGuiCond_FirstUseEver);
 
 		{
-			ImGui::Begin("Vulkan Example", nullptr, ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove);
-			ImGui::Text("lastFPS:%d", lastFPS);
+			ImGui::Begin("Cranks Renderer", nullptr, ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove);
+			ImGui::Text("FPS:%d", lastFPS);
 			ImGui::TextUnformatted(device->properties.deviceName);
-			ImGui::Text("Application average %.3f ms/frame (%.1f FPS)", 1000.0f / io.Framerate, io.Framerate);
+			//ImGui::Text("Application average %.3f ms/frame (%.1f FPS)", 1000.0f / io.Framerate, io.Framerate);
 
 			//ImGui::PushItemWidth(110.0f * scale);
 			//OnUpdateUIOverlay(&UIOverlay);
@@ -541,19 +540,11 @@ public:
 
 		static int init_status = 0;
 
-		static float pos[3] = { 0, 0, 0 };
-		static float look[3] = { 0, 0, 10 };
-		static float up[3] = { 0, 1, 0 };
-		static float fov = 90;
-		static float aspect_ratio = 1.2f;
-		static float near_far[2] = { 2, 200 };
-		static int ray_sample_no = 1;
-		static int image_scale = 3;
-		static int resolution[2] = { image_scale * 128, image_scale * 128 };
+		static CameraSetting cs;
 
 		if (init_status == 0) {
-			PBR_API_get_camera_setting(pos, look, up, fov, aspect_ratio, near_far[0], near_far[1], resolution[0], resolution[1], ray_sample_no);
-			PBR_API_set_perspective_camera(pos, look, up, fov, aspect_ratio, near_far[0], near_far[1], resolution[0], resolution[1], ray_sample_no);
+			PBR_API_get_camera_setting(cs);
+			PBR_API_set_perspective_camera(cs);
 			init_status = 1;
 		}
 
@@ -561,9 +552,9 @@ public:
 		PBR_API_get_render_progress(&render_status, &progress_now, &progress_total, &has_new_photo);
 
 		if (has_new_photo) {
-			std::vector<char> image_data(resolution[0] * resolution[1] * 4);
+			std::vector<char> image_data(cs.resolution[0] * cs.resolution[1] * 4);
 			PBR_API_get_new_image(image_data.data());
-			app->BuildImage(resolution[0], resolution[1], image_data.data());
+			app->BuildImage(cs.resolution[0], cs.resolution[1], image_data.data());
 		}
 
 		// ui
@@ -576,7 +567,6 @@ public:
 		ImGui::SetNextWindowSize(ImVec2(480, 600), ImGuiCond_FirstUseEver);
 		ImGui::SetNextWindowBgAlpha(1);
 
-		//ImGui::Begin("Hello, pbr!");
 		if (!ImGui::Begin("Hello Crank!Ãñ¿Æ", nullptr, ImGuiWindowFlags_AlwaysAutoResize)) {
 			ImGui::End();
 			return;
@@ -589,31 +579,29 @@ public:
 		ImGui::Text("camera setting");
 		ImGui::SameLine();
 		if (ImGui::Button("load default")) {
-			PBR_API_get_defualt_camera_setting(pos, look, up, fov, aspect_ratio, near_far[0], near_far[1], resolution[0], resolution[1], ray_sample_no);
-			PBR_API_set_perspective_camera(pos, look, up, fov, aspect_ratio, near_far[0], near_far[1], resolution[0], resolution[1], ray_sample_no);
+			PBR_API_get_defualt_camera_setting(cs);
+			PBR_API_set_perspective_camera(cs);
 		}
 
 		ImGui::SameLine();
 		if (ImGui::Button("save setting")) {
 			PBR_API_save_setting();
 		}
-		//ImGui::Text("pos");
-		//ImGui::SameLine();
 
 		ImGui::PushItemWidth(400);
 
 		bool cameraChanged = false;
-		ImGui::SliderFloat3("pos", pos, -100, 100);
+		ImGui::SliderFloat3("pos", cs.pos, -100, 100);
 		if (ImGui::IsItemDeactivatedAfterEdit()) {
 			cameraChanged = true;
 		}
 
-		ImGui::SliderFloat3("look", look, -100, 100);
+		ImGui::SliderFloat3("look", cs.look, -100, 100);
 		if (ImGui::IsItemDeactivatedAfterEdit()) {
 			cameraChanged = true;
 		}
 
-		ImGui::SliderFloat3("up", up, -100, 100);
+		ImGui::SliderFloat3("up", cs.up, -100, 100);
 		if (ImGui::IsItemDeactivatedAfterEdit()) {
 			cameraChanged = true;
 		}
@@ -622,14 +610,14 @@ public:
 
 		ImGui::PushItemWidth(160);
 
-		ImGui::SliderFloat("fov", &fov, 0, 180);
+		ImGui::SliderFloat("fov", &cs.fov, 0, 180);
 		if (ImGui::IsItemDeactivatedAfterEdit()) {
 			cameraChanged = true;
 		}
 
 		ImGui::SameLine();
 
-		ImGui::SliderFloat("aspect_ratio", &aspect_ratio, 0.5f, 2, "%.1f");
+		ImGui::SliderFloat("aspect_ratio", &cs.asp, 0.5f, 2, "%.1f");
 		if (ImGui::IsItemDeactivatedAfterEdit()) {
 			cameraChanged = true;
 		}
@@ -638,32 +626,37 @@ public:
 
 		ImGui::PushItemWidth(400);
 
-		ImGui::SliderFloat2("near_far", near_far, 0.001f, 1000);
+		ImGui::SliderFloat2("near_far", cs.near_far, 0.001f, 1000);
 		if (ImGui::IsItemDeactivatedAfterEdit()) {
 			cameraChanged = true;
 		}
 
-		ImGui::SliderInt2("resolution", resolution, 0, 1000);
+		ImGui::SliderInt2("resolution", cs.resolution, 0, 1000);
 		if (ImGui::IsItemDeactivatedAfterEdit()) {
 			cameraChanged = true;
 		}
 
 		ImGui::PopItemWidth();
 
-		ImGui::SliderInt("ray_sample_no", &ray_sample_no, 1, 8);
+		ImGui::SliderInt("ray_sample_no", &cs.ray_sample_no, 1, 8);
 		if (ImGui::IsItemDeactivatedAfterEdit()) {
 			cameraChanged = true;
 		}
 
-		if (ImGui::SliderInt("scale", &image_scale, 1, 16)) {
-			resolution[0] = image_scale * 128;
-			resolution[1] = image_scale * 128;
+		ImGui::SliderInt("ray_bounce_no", &cs.ray_bounce_no, 1, 10);
+		if (ImGui::IsItemDeactivatedAfterEdit()) {
+			cameraChanged = true;
+		}
+
+		if (ImGui::SliderInt("scale", &cs.image_scale, 1, 16)) {
+			cs.resolution[0] = cs.image_scale * 128;
+			cs.resolution[1] = cs.image_scale * 128;
 			cameraChanged = true;
 		}
 
 		if (cameraChanged) {
 			Log("cameraChanged");
-			PBR_API_set_perspective_camera(pos, look, up, fov, aspect_ratio, near_far[0], near_far[1], resolution[0], resolution[1], ray_sample_no);
+			PBR_API_set_perspective_camera(cs);
 		}
 
 		//ImGui::Checkbox("Demo Window", &show_demo_window);      // Edit bools storing our window open/close state
@@ -724,8 +717,8 @@ public:
 		ImGui::End();
 
 		//Log("resolution %d, %d", resolution[0], resolution[1]);
-		ImGui::SetNextWindowSize(ImVec2(resolution[0] + 20, resolution[1] + 50));
-		ImGui::SetNextWindowPos(ImVec2(20, 180));
+		ImGui::SetNextWindowSize(ImVec2(cs.resolution[0] + 20, cs.resolution[1] + 50));
+		ImGui::SetNextWindowPos(ImVec2(20, 140));
 
 		ImGui::Begin("Scene");
 
@@ -734,7 +727,7 @@ public:
 		//Log("renderImageID %d", (ImTextureID)renderImageID);
 
 		//std::cout << "renderImageID = " << renderImageID << std::endl;
-		ImGui::Image((ImTextureID)app->renderImage.descriptorSet, ImVec2(resolution[0], resolution[1]), ImVec2(0.0f, 0.0f), ImVec2(1.0f, 1.0f));
+		ImGui::Image((ImTextureID)app->renderImage.descriptorSet, ImVec2(cs.resolution[0], cs.resolution[1]), ImVec2(0.0f, 0.0f), ImVec2(1.0f, 1.0f));
 
 
 
@@ -754,13 +747,10 @@ public:
 
 	int width, height;
 
-
-
 	GLFWwindow* window;
 
 	VkSampleCountFlagBits rasterizationSamples = VK_SAMPLE_COUNT_1_BIT;
 
-	//std::shared_ptr<VulkanApp> app;
 	VulkanApp* app;
 
 	//VkDevice device;

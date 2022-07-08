@@ -29,6 +29,10 @@ public:
 	BxDF(BxDFType type) : type(type) {}
 	virtual ~BxDF() {}
 
+    bool MatchesFlags(BxDFType t) const { 
+        return (type & t) == type; 
+    }
+
 	virtual Spectrum f(const Vector3f& wo, const Vector3f& wi) const = 0;
 	virtual float Pdf(const Vector3f& wo, const Vector3f& wi) const;
 
@@ -38,8 +42,9 @@ public:
 class BSDF {
 public:
     // BSDF Public Methods
-    BSDF(const SurfaceInteraction& si, float eta = 1)
-        : eta(eta),
+    BSDF(const SurfaceInteraction& si, float eta = 1):
+        bxdfs(0),
+        eta(eta),
         ns(si.shading.n),
         ng(si.n),
         ss(Normalize(si.shading.dpdu)),
@@ -54,6 +59,7 @@ public:
 
     void Add(std::shared_ptr<BxDF> bxdf) {
         bxdfs.push_back(bxdf);
+        nBxDFs = bxdfs.size();
     }
 
     int NumComponents(BxDFType flags = BSDF_ALL) const;
@@ -95,6 +101,16 @@ private:
     std::vector<std::shared_ptr<BxDF>> bxdfs;
     friend class MixMaterial;
 };
+
+inline int BSDF::NumComponents(BxDFType flags) const {
+    int num = 0;
+    for (int i = 0; i < nBxDFs; ++i){
+        if (bxdfs[i]->MatchesFlags(flags))
+            ++num;
+    }
+        
+    return num;
+}
 
 
 class LambertianReflection : public BxDF {

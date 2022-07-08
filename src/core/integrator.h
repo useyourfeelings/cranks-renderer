@@ -14,12 +14,19 @@ public:
         render_progress_now(0), 
         render_progress_total(0), 
         render_status(0),
-        has_new_photo(0) {};
+        has_new_photo(0),
+        maxDepth(1) {};
     virtual ~Integrator() {};
     virtual void Render(const Scene& scene) = 0;
 
+    void SetRayBounceNo(int n) {
+        maxDepth = n;
+    }
+
+
     int render_status, render_progress_now, render_progress_total;
     int has_new_photo;
+    int maxDepth;
 };
 
 class SamplerIntegrator : public Integrator {

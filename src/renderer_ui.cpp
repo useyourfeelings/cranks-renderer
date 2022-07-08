@@ -83,6 +83,7 @@ int RENDER_TASK_ID = -1;
 
 int RendererUI(VulkanApp* app)
 {
+#if 0
     static int registered = 0;
 
     if (registered == 0) {
@@ -283,6 +284,8 @@ int RendererUI(VulkanApp* app)
     
 
     ImGui::End();
+
+#endif
 
     return 0;
 }

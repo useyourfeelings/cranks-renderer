@@ -42,6 +42,7 @@ public:
     // PerspectiveCamera Public Methods
     //PerspectiveCamera(const Transform &CameraToWorld, const BBox2f& screenWindow, float fov, float asp, std::shared_ptr<Film> film, float near, float far);
 
+    PerspectiveCamera() {};
     PerspectiveCamera(Point3f pos, Point3f look, Vector3f up, float fov, float asp, float near, float far, int resX, int resY);
     //float GenerateRay(const CameraSample& sample, Ray*) const;
     

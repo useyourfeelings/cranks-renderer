@@ -84,7 +84,8 @@ Spectrum WhittedIntegrator::Li(const RayDifferential& ray, const Scene& scene, S
         //VisibilityTester visibility;
 
         // 光源的基本值
-        Spectrum Li = light->Sample_Li(isect, &wi, &pdf);
+        Spectrum Li = light->Sample_Li(isect, &wi, &pdf); // for point light
+
 
         Log("base Li %f %f %f pdf = %f", Li.c[0], Li.c[1], Li.c[2], pdf);
 
@@ -97,7 +98,7 @@ Spectrum WhittedIntegrator::Li(const RayDifferential& ray, const Scene& scene, S
         if (Li.IsBlack() || pdf == 0)
             continue;
 
-        // 算bsdf里的每个bxdf
+        // 算bsdf里的每个bxdf的f
         Spectrum f = isect.bsdf->f(wo, wi);
 
         Log("bsdf f = %f %f %f", f.c[0], f.c[1], f.c[2]);
@@ -143,7 +144,11 @@ Spectrum WhittedIntegrator::Li(const RayDifferential& ray, const Scene& scene, S
     }
     if (depth + 1 < maxDepth) {
         // Trace rays for specular reflection and refraction
-        L += SpecularReflect(ray, isect, scene, sampler, depth);
+
+        // WhittedIntegrator 只能处理 BxDFType(BSDF_REFLECTION | BSDF_SPECULAR)
+        L += SpecularReflect(ray, isect, scene, sampler, depth); 
+
+
         //L += SpecularTransmit(ray, isect, scene, sampler, depth);
     }
     return L;

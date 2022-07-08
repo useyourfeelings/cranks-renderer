@@ -116,7 +116,8 @@ Spectrum SamplerIntegrator::SpecularReflect(
     Log("SpecularReflect");
 
     // Compute specular reflection direction _wi_ and BSDF value
-    Vector3f wo = isect.wo, wi;
+    Vector3f wo = isect.wo;
+    Vector3f wi;
     float pdf;
     BxDFType type = BxDFType(BSDF_REFLECTION | BSDF_SPECULAR);
     Spectrum f = isect.bsdf->Sample_f(wo, &wi, sampler.Get2D(), &pdf, type);

@@ -28,7 +28,7 @@ void PbrApp::AddSphere(const std::string &name, float radius, Point3f pos) {
 void PbrApp::AddPointLight(const std::string& name, Point3f pos) {
 	auto t = Translate(Vector3f(pos.x, pos.y, pos.z));
 
-	this->scene->AddLight(std::make_shared<PointLight>(t, Spectrum(1.0)), name);
+	this->scene->AddLight(std::make_shared<PointLight>(t, Spectrum(1, 1, 1)), name);
 }
 
 void PbrApp::PrintScene() {
@@ -75,7 +75,7 @@ void PbrApp::RenderScene() {
 			Point3f(setting.Get("camera_look")[0], setting.Get("camera_look")[1], setting.Get("camera_look")[2]),
 			Vector3f(setting.Get("camera_up")[0], setting.Get("camera_up")[1], setting.Get("camera_up")[2]),
 			setting.Get("camera_fov"), setting.Get("camera_asp"), setting.Get("camera_near"), 
-			setting.Get("camera_far"), setting.Get("camera_resX"), setting.Get("camera_resY"), setting.Get("ray_sample_no"));
+			setting.Get("camera_far"), setting.Get("camera_resX"), setting.Get("camera_resY"), setting.Get("ray_sample_no"), setting.Get("ray_bounce_no"));
 	}
 
 	SetFilm(camera->resolutionX, camera->resolutionY);
@@ -100,10 +100,11 @@ void PbrApp::SetCamera(Point3f pos, Point3f look, Vector3f up) {
 
 void PbrApp::SetPerspectiveCamera(Point3f pos, Point3f look, Vector3f up, 
 	float fov, float aspect_ratio, float near, float far, 
-	int resX, int resY, int ray_sample_no) {
+	int resX, int resY, int ray_sample_no, int ray_bounce_no) {
 	Log("SetPerspectiveCamera");
 
 	sampler->SetSamplesPerPixel(ray_sample_no);
+	integrator->SetRayBounceNo(ray_bounce_no);
 
 	if (camera != nullptr) {
 		camera->SetPerspectiveData(pos, look, up, fov, aspect_ratio, near, far, resX, resY);
@@ -117,16 +118,8 @@ void PbrApp::SetPerspectiveCamera(Point3f pos, Point3f look, Vector3f up,
 	auto film = film_list.back();*/
 
 
-	// LookAtÊÇworld to camera
-	//Transform camera2World = Inverse(LookAt(pos, look, up));
+	//this->camera = std::shared_ptr<Camera>(new PerspectiveCamera(pos, look, up, fov, aspect_ratio, near, far, resX, resY));
 
-	//this->camera = std::shared_ptr<Camera>(new PerspectiveCamera(camera2World, BBox2f(screenMin, screenMax), fov, aspect_ratio, film, near, far));
-
-	this->camera = std::shared_ptr<Camera>(new PerspectiveCamera(pos, look, up, fov, aspect_ratio, near, far, resX, resY));
-
-	//this->sampler->SetSamplesPerPixel(ray_sample_no);
-
-	//SetFilm(100, 100);
 }
 
 void PbrApp::SetSampler() {
@@ -150,7 +143,7 @@ void PbrApp::SetIntegrator() {
 }
 
 void PbrApp::SetWhittedIntegrator() {
-	Log("SetWhittedIntegrator");
+	//Log("SetWhittedIntegrator");
 
 	int maxDepth = 1;
 	BBox2i bounds(Point2i(0, 0), Point2i(camera->resolutionX, camera->resolutionY));
