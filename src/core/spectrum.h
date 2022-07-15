@@ -2,6 +2,7 @@
 #define CORE_SPECTRUM_H
 
 #include <vector>
+#include <algorithm>
 //#include "interaction.h"
 #include "transform.h"
 
@@ -22,6 +23,14 @@ public:
         c[0] = r;
         c[1] = g;
         c[2] = b;
+    }
+
+    CoefficientSpectrum Clamp(float low = 0, float high = Infinity) const {
+        CoefficientSpectrum ret(3);
+        for (int i = 0; i < nSpectrumSamples; ++i)
+            ret.c[i] = std::clamp(c[i], low, high);
+        //DCHECK(!ret.HasNaNs());
+        return ret;
     }
 
     bool IsBlack() const {
@@ -47,6 +56,12 @@ public:
         return ret;
     }
 
+    CoefficientSpectrum& operator*=(float a) {
+        for (int i = 0; i < nSpectrumSamples; ++i) c[i] *= a;
+        //DCHECK(!HasNaNs());
+        return *this;
+    }
+
     CoefficientSpectrum operator/(float a) const {
         CoefficientSpectrum ret = *this;
         for (int i = 0; i < nSpectrumSamples; ++i) ret.c[i] /= a;
@@ -57,6 +72,13 @@ public:
         //DCHECK(!sp.HasNaNs());
         CoefficientSpectrum ret = *this;
         for (int i = 0; i < nSpectrumSamples; ++i) ret.c[i] *= sp.c[i];
+        return ret;
+    }
+
+    CoefficientSpectrum operator-(const CoefficientSpectrum& s2) const {
+        //DCHECK(!s2.HasNaNs());
+        CoefficientSpectrum ret = *this;
+        for (int i = 0; i < nSpectrumSamples; ++i) ret.c[i] -= s2.c[i];
         return ret;
     }
 

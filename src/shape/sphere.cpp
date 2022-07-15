@@ -1,13 +1,12 @@
 #include "sphere.h"
+#include "../base/efloat.h"
 
 bool Sphere::Intersect(const Ray& ray, float* tHit, SurfaceInteraction* isect) const {
 	ray.LogSelf();
 	WorldToObject.LogSelf();
 
-	// ray到模型空间。球在原点。
-	Ray r = WorldToObject(ray);
-
-	r.LogSelf();
+	Ray r;
+	Point3f hitPoint;
 
 	// https://en.wikipedia.org/wiki/Line%E2%80%93sphere_intersection
 
@@ -24,37 +23,96 @@ bool Sphere::Intersect(const Ray& ray, float* tHit, SurfaceInteraction* isect) c
 	// c = oo - rr
 	// att + bt + c = 0
 
-	float t1, t2, t;
+	int user_error = 1;
 
-	float a = Dot(r.d, r.d);
+	if (user_error == 0) {
+		// ray到模型空间。球在原点。
+		r = WorldToObject(ray);
+		r.LogSelf();
 
-	float b = 2 * Dot(Vector3f(r.o.x, r.o.y, r.o.z), r.d);
+		float t1, t2, t;
 
-	float c = Dot(Vector3f(r.o.x, r.o.y, r.o.z), Vector3f(r.o.x, r.o.y, r.o.z)) - radius * radius;
+		float a = Dot(r.d, r.d);
 
-	Log("Sphere wtf1 %f %f %f", a, b, c);
+		float b = 2 * Dot(Vector3f(r.o.x, r.o.y, r.o.z), r.d);
 
-	if (Quadratic(a, b, c, &t1, &t2) == 0)
-		return false; // no root
+		float c = Dot(Vector3f(r.o.x, r.o.y, r.o.z), Vector3f(r.o.x, r.o.y, r.o.z)) - radius * radius;
 
-	Log("Sphere wtf2 %f %f", t1, t2);
+		Log("Sphere wtf1 %f %f %f", a, b, c);
 
-	if (t1 > r.tMax || t2 <= 0) // out of range
-		return false;
+		if (Quadratic(a, b, c, &t1, &t2) == 0)
+			return false; // no root
 
-	Log("Sphere wtf3");
+		Log("Sphere wtf2 %f %f", t1, t2);
 
-	// find nearest t and check
-	t = t1;
-	if (t <= 0) {
-		t = t2;
-		if (t > r.tMax)
+		if (t1 > r.tMax || t2 <= 0) // out of range
 			return false;
+
+		Log("Sphere wtf3");
+
+		// find nearest t and check
+		t = t1;
+		if (t <= 0) {
+			t = t2;
+			if (t > r.tMax)
+				return false;
+		}
+
+		Log("Sphere wtf4 %f", t);
+
+		hitPoint = r(float(t)); // get hit position
+
+		*tHit = t;
+	}
+	else {
+		Vector3f oErr, dErr;
+
+		// ray到模型空间。球在原点。
+		r = WorldToObject(ray, &oErr, &dErr);
+		//r.LogSelf();
+
+		EFloat t1, t2, t;
+
+		EFloat dx(r.d.x, dErr.x), dy(r.d.y, dErr.y), dz(r.d.z, dErr.z);
+		EFloat ox(r.o.x, oErr.x), oy(r.o.y, oErr.y), oz(r.o.z, oErr.z);
+
+		//float a = Dot(r.d, r.d);
+		EFloat a = dx * dx + dy * dy + dz * dz;
+
+		//float b = 2 * Dot(Vector3f(r.o.x, r.o.y, r.o.z), r.d);
+		EFloat b = 2.f * (ox * dx + oy * dy + oz * dz);
+
+		//float c = Dot(Vector3f(r.o.x, r.o.y, r.o.z), Vector3f(r.o.x, r.o.y, r.o.z)) - radius * radius;
+		EFloat c = ox * ox + oy * oy + oz * oz - EFloat(radius) * EFloat(radius);
+
+		//Log("Sphere wtf1 %f %f %f", a, b, c);
+
+		if (Quadratic(a, b, c, &t1, &t2) == 0)
+			return false; // no root
+
+		//Log("Sphere wtf2 %f %f", t1, t2);
+
+		if (t1.UpperBound() > r.tMax || t2.LowerBound() <= 0) // out of range
+			return false;
+
+		//Log("Sphere wtf3");
+
+		// find nearest t and check
+		t = t1;
+		if (t.LowerBound() <= 0) {
+			t = t2;
+			if (t.UpperBound() > r.tMax)
+				return false;
+		}
+
+		//Log("Sphere wtf4 %f", t);
+
+		hitPoint = r(float(t)); // get hit position
+
+		*tHit = t;
 	}
 
-	Log("Sphere wtf4 %f", t);
-
-	Point3f hitPoint = r(t); // get hit position
+	
 	Log("hitPoint");
 	hitPoint.LogSelf();
 
@@ -78,19 +136,19 @@ bool Sphere::Intersect(const Ray& ray, float* tHit, SurfaceInteraction* isect) c
 	if (phi < 0)
 		phi += 2 * Pi;
 
-	float u = phi / phiMax; // φ百分比
 	float theta = std::acos(Clamp(hitPoint.z / radius, -1, 1));
+
+	float u = phi / phiMax; // φ百分比
 	float v = (theta - thetaMin) / (thetaMax - thetaMin); // θ从-1开始的百分比。总量2。
 
-	// ？？
+	// 横切面的半径
 	float zRadius = std::sqrt(hitPoint.x * hitPoint.x + hitPoint.y * hitPoint.y);
-	zRadius = hitPoint.z;
 
 	float cosPhi = hitPoint.x / zRadius;
 	float sinPhi = hitPoint.y / zRadius;
 
 	// 偏微分
-	// 以u，也就是φ的百分比变化，作为微小变化，对球体方程求导。及dpdu。
+	// 以u，也就是φ的百分比变化，作为微小变量，对球体方程求导。及dpdu。
 
 	// 他为什么用百分比作为微小量而不是直接用φ？
 
@@ -109,7 +167,7 @@ bool Sphere::Intersect(const Ray& ray, float* tHit, SurfaceInteraction* isect) c
 
 	dy / du
 	= d(r sin(θ) sin(φ)) / du
-	= rsin(θ)d(u * phiMax) / du
+	= rsin(θ) d sin(u*phiMax) / du
 	= rsin(θ)cos(φ)phiMax
 	= x * phiMax
 
@@ -132,6 +190,7 @@ bool Sphere::Intersect(const Ray& ray, float* tHit, SurfaceInteraction* isect) c
 	
 	dx / dv
 	= d(r sin(θ) cos(φ)) / dv
+	= rcos(φ) cos(θ) d((thetaMax - thetaMin) v + thetaMin) / dv
 	= rcos(φ) cos(θ) (thetaMax - thetaMin)
 	= z * cos(φ) * (thetaMax - thetaMin)
 
@@ -156,16 +215,21 @@ bool Sphere::Intersect(const Ray& ray, float* tHit, SurfaceInteraction* isect) c
 	dpdv.LogSelf();
 
 
-	// 最后生成信息并转回world
-	//*isect = (ObjectToWorld)(SurfaceInteraction(hitPoint, Normalize(Cross(dpdu, dpdv)), Point2f(u, v), -r.d, r.time, this));
-	*isect = (ObjectToWorld)(SurfaceInteraction(
+
+
+
+	Vector3f pError = gamma(5) * Abs((Vector3f)hitPoint);
+
+	// 最后生成信息并转回world	
+	*isect = ObjectToWorld(SurfaceInteraction(
 		hitPoint, 
+		pError,
 		hitPoint - Point3f(0, 0, 0), 
 		Point2f(u, v), -r.d, 
 		dpdu, dpdv,
 		r.time, this));
 
-	*tHit = t;
+	
 
 	return true;
 }

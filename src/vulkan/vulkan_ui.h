@@ -17,6 +17,7 @@
 #include "../core/api.h"
 #include "../base/events.h"
 #include "../tool/logger.h"
+#include"../../third_party/json/json.hpp"
 
 class VulkanUI {
 public:
@@ -643,7 +644,7 @@ public:
 			cameraChanged = true;
 		}
 
-		ImGui::SliderInt("ray_bounce_no", &cs.ray_bounce_no, 1, 10);
+		ImGui::SliderInt("ray_bounce_no", &cs.ray_bounce_no, 0, 10);
 		if (ImGui::IsItemDeactivatedAfterEdit()) {
 			cameraChanged = true;
 		}
@@ -684,14 +685,57 @@ public:
 			if (set_default_scene == 0) {
 				set_default_scene = 1;
 
-				PBR_API_add_sphere("wtfSphere 1", 6, 0, 0, 0);
-				PBR_API_add_sphere("wtfSphere 2", 10, -20, 40, 20);
-				PBR_API_add_sphere("wtfSphere 3", 20, 30, 40, 30);
-				PBR_API_add_sphere("wtfSphere 4", 200, 0, 0, -210);
-				PBR_API_add_sphere("wtfSphere 5", 2, 7.2, 0, -5);
+				PBR_API_add_sphere("wtfSphere 1", 6, 0, 0, 0, nlohmann::json(
+					{
+						{ "name", "glass" }, // glass mirror
+						{ "kr", {1.0, 1.0, 1.0} },
+						{ "kt", {1.0, 1.0, 1.0} },
+						{ "eta", 1.6},
+						{ "uroughness", 0},
+						{ "vroughness", 0},
+						{ "bumpmap", 0},
+						{ "remaproughness", false}
+					}
+				));
+				PBR_API_add_sphere("wtfSphere 2 green", 5, -10, 0, 12, nlohmann::json({ { "name", "matte" }, { "kd", {0.2, 0.7, 0.2} }, {"sigma", 0.8} }));
+				PBR_API_add_sphere("wtfSphere 3", 20, 30, 30, 30, nlohmann::json({ { "name", "matte" }, { "kd", {0.8, 0.7, 0.5} }, {"sigma", 0.8} }));
+				PBR_API_add_sphere("wtfSphere 4", 200, 0, 0, -210, nlohmann::json({ { "name", "matte" }, { "kd", {0.8, 0.7, 0.8} }, {"sigma", 0.8} }));
+				PBR_API_add_sphere("wtfSphere 5", 2, 7.2, 0, -5, nlohmann::json({ { "name", "matte" }, { "kd", {0.8, 0.0, 0.4} }, {"sigma", 0.8} }));
+
+				PBR_API_add_sphere("wtfSphere 6", 3, 14, 0, -5, nlohmann::json(
+					{
+						{ "name", "glass" },
+						{ "kr", {1.0, 1.0, 1.0} },
+						{ "kt", {1.0, 1.0, 1.0} },
+						{ "eta", 1.4},
+						{ "uroughness", 0},
+						{ "vroughness", 0},
+						{ "bumpmap", 0},
+						{ "remaproughness", false}
+					}
+				));
+
+				PBR_API_add_sphere("wtfSphere 7", 4, -10, -4, 0, nlohmann::json(
+					{
+						{ "name", "mirror" },
+						{ "kr", {1.0, 1.0, 1.0} },
+						{ "bumpmap", 0},
+					}
+				));
+
+				/*PBR_API_add_sphere("wtfSphere 8", 4, 0, 20, 0, nlohmann::json(
+					{
+						{ "name", "mirror" },
+						{ "kr", {1.0, 1.0, 1.0} },
+						{ "bumpmap", 0},
+					}
+				));*/
+
+				PBR_API_add_sphere("wtfSphere 9",  6, 0, 16, 6, nlohmann::json({ { "name", "matte" }, { "kd", {1, 0.0, 0.1} }, {"sigma", 0.8} }));
+				PBR_API_add_sphere("wtfSphere 10", 2, 0, 16, -3, nlohmann::json({ { "name", "matte" }, { "kd", {0, 1, 0.1} }, {"sigma", 0.8} }));
 
 				//PBR_API_add_point_light("wtf Light"s, 0, 30, 0);
-				PBR_API_add_point_light("wtf Light", 0, 0, 30);
+				PBR_API_add_point_light("wtf Light", 0, 0, 15);
 			}
 
 			SendEvent(RENDER_TASK_ID);

@@ -2,10 +2,10 @@
 #include "primitive.h"
 
 SurfaceInteraction::SurfaceInteraction(
-    const Point3f& p, const Vector3f& shape_n, const Point2f& uv,
+    const Point3f& p, const Vector3f& pError, const Vector3f& shape_n, const Point2f& uv,
     const Vector3f& wo, const Vector3f& dpdu, const Vector3f& dpdv,
     float time, const Shape* shape)
-    : Interaction(p, shape_n, Normalize(Cross(dpdu, dpdv)), wo, time),
+    : Interaction(p, shape_n, Normalize(Cross(dpdu, dpdv)), pError, wo, time),
     uv(uv),
     dpdu(dpdu),
     dpdv(dpdv),

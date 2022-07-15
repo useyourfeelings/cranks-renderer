@@ -3,6 +3,7 @@
 #include "pbr.h"
 #include "transform.h"
 #include "interaction.h"
+#include "../base/efloat.h"
 
 Vector3f Normalize(const Vector3f& v) {
     return v / v.Length();
@@ -116,22 +117,77 @@ inline Point3<T> Transform::operator()(const Point3<T>& p) const {
 }
 
 template <typename T>
+inline Point3<T> Transform::operator()(const Point3<T>& p, Vector3<T>* pError) const {
+    T x = p.x, y = p.y, z = p.z;
+    // Compute transformed coordinates from point _pt_
+    T xp = (m.m[0][0] * x + m.m[0][1] * y) + (m.m[0][2] * z + m.m[0][3]);
+    T yp = (m.m[1][0] * x + m.m[1][1] * y) + (m.m[1][2] * z + m.m[1][3]);
+    T zp = (m.m[2][0] * x + m.m[2][1] * y) + (m.m[2][2] * z + m.m[2][3]);
+    T wp = (m.m[3][0] * x + m.m[3][1] * y) + (m.m[3][2] * z + m.m[3][3]);
+
+    // pbrt page 228
+    // Compute absolute error for transformed point
+    T xAbsSum = (std::abs(m.m[0][0] * x) + std::abs(m.m[0][1] * y) + std::abs(m.m[0][2] * z) + std::abs(m.m[0][3]));
+    T yAbsSum = (std::abs(m.m[1][0] * x) + std::abs(m.m[1][1] * y) + std::abs(m.m[1][2] * z) + std::abs(m.m[1][3]));
+    T zAbsSum = (std::abs(m.m[2][0] * x) + std::abs(m.m[2][1] * y) + std::abs(m.m[2][2] * z) + std::abs(m.m[2][3]));
+    *pError = gamma(3) * Vector3<T>(xAbsSum, yAbsSum, zAbsSum);
+    //CHECK_NE(wp, 0);
+    if (wp == 1)
+        return Point3<T>(xp, yp, zp);
+    else
+        return Point3<T>(xp, yp, zp) / wp;
+}
+
+template <typename T>
 inline Vector3<T> Transform::operator()(const Vector3<T>& v) const {
     float x = v.x, y = v.y, z = v.z;
 
     return Vector3<T>(m.m[0][0] * x + m.m[0][1] * y + m.m[0][2] * z,
-        m.m[1][0] * x + m.m[1][1] * y + m.m[1][2] * z,
-        m.m[2][0] * x + m.m[2][1] * y + m.m[2][2] * z);
+                      m.m[1][0] * x + m.m[1][1] * y + m.m[1][2] * z,
+                      m.m[2][0] * x + m.m[2][1] * y + m.m[2][2] * z);
+}
+
+template <typename T>
+inline Vector3<T> Transform::operator()(const Vector3<T>& v, Vector3<T>* absError) const {
+    float x = v.x, y = v.y, z = v.z;
+
+    absError->x = gamma(3) * (std::abs(m.m[0][0] * x) + std::abs(m.m[0][1] * y) + std::abs(m.m[0][2] * z));
+    absError->y = gamma(3) * (std::abs(m.m[1][0] * x) + std::abs(m.m[1][1] * y) + std::abs(m.m[1][2] * z));
+    absError->z = gamma(3) * (std::abs(m.m[2][0] * x) + std::abs(m.m[2][1] * y) + std::abs(m.m[2][2] * z));
+
+    return Vector3<T>(m.m[0][0] * x + m.m[0][1] * y + m.m[0][2] * z,
+                      m.m[1][0] * x + m.m[1][1] * y + m.m[1][2] * z,
+                      m.m[2][0] * x + m.m[2][1] * y + m.m[2][2] * z);
 }
 
 
-Ray Transform::operator()(const Ray& r) const {
+inline Ray Transform::operator()(const Ray& r) const {
     Point3f o = (*this)(r.o);
     Vector3f d = (*this)(r.d);
 
     //o.LogSelf();
 
     return Ray(o, d, r.tMax, r.time);
+}
+
+ Ray Transform::operator()(const Ray& r, Vector3f* oError, Vector3f* dError) const {
+    Point3f o = (*this)(r.o, oError);
+    Vector3f d = (*this)(r.d, dError);
+
+    // pbrt 232
+    float tMax = r.tMax;
+    float lengthSquared = d.LengthSquared();
+    if (lengthSquared > 0) {
+        float dt = Dot(Abs(d), *oError) / lengthSquared; // Dot(Abs(d), *oError) 计算oError在d方向的长度
+
+        // 算dt不又产生误差了吗？
+        // 为什么是/lengthSquared？而不是/length
+        // /lengthSquared让百分比更小。。
+
+        o += d * dt; // 延伸出去
+        //        tMax -= dt;
+    }
+    return Ray(o, d, tMax, r.time);
 }
 
 SurfaceInteraction Transform::operator()(const SurfaceInteraction& si) const {

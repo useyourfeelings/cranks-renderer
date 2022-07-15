@@ -31,6 +31,13 @@ void SamplerIntegrator::Render(const Scene& scene) {
         //std::cout << "Render " << i << " " << j << std::endl;
         Point2i pixel(i, j);
 
+        if (i == 384 && j == 40) {
+            static int gg = 0;
+            gg ++;
+
+            //break;
+        }
+
         this->sampler->StartPixel(pixel);
 
         this->render_progress_now++;
@@ -120,6 +127,8 @@ Spectrum SamplerIntegrator::SpecularReflect(
     Vector3f wi;
     float pdf;
     BxDFType type = BxDFType(BSDF_REFLECTION | BSDF_SPECULAR);
+
+    // 计算交点上的bsdf
     Spectrum f = isect.bsdf->Sample_f(wo, &wi, sampler.Get2D(), &pdf, type);
 
     // Return contribution of specular reflection
@@ -151,4 +160,87 @@ Spectrum SamplerIntegrator::SpecularReflect(
     }
     else
         return Spectrum(0.f);
+}
+
+Spectrum SamplerIntegrator::SpecularTransmit(
+    const RayDifferential& ray, const SurfaceInteraction& isect,
+    const Scene& scene, Sampler& sampler, int depth) const {
+    Vector3f wo = isect.wo, wi;
+    float pdf;
+    const Point3f& p = isect.p;
+    const BSDF& bsdf = *isect.bsdf;
+    Spectrum f = bsdf.Sample_f(wo, &wi, sampler.Get2D(), &pdf,
+        BxDFType(BSDF_TRANSMISSION | BSDF_SPECULAR));
+    Spectrum L = Spectrum(0.f);
+    Vector3f ns = isect.shading.n;
+    if (pdf > 0.f && !f.IsBlack() && AbsDot(wi, ns) != 0.f) {
+        // Compute ray differential _rd_ for specular transmission
+        RayDifferential rd = isect.SpawnRay(wi);
+
+#if 0
+        if (ray.hasDifferentials) {
+            rd.hasDifferentials = true;
+            rd.rxOrigin = p + isect.dpdx;
+            rd.ryOrigin = p + isect.dpdy;
+
+            Normal3f dndx = isect.shading.dndu * isect.dudx +
+                isect.shading.dndv * isect.dvdx;
+            Normal3f dndy = isect.shading.dndu * isect.dudy +
+                isect.shading.dndv * isect.dvdy;
+
+            // The BSDF stores the IOR of the interior of the object being
+            // intersected.  Compute the relative IOR by first out by
+            // assuming that the ray is entering the object.
+            Float eta = 1 / bsdf.eta;
+            if (Dot(wo, ns) < 0) {
+                // If the ray isn't entering, then we need to invert the
+                // relative IOR and negate the normal and its derivatives.
+                eta = 1 / eta;
+                ns = -ns;
+                dndx = -dndx;
+                dndy = -dndy;
+            }
+
+            /*
+              Notes on the derivation:
+              - pbrt computes the refracted ray as: \wi = -\eta \omega_o + [ \eta (\wo \cdot \N) - \cos \theta_t ] \N
+                It flips the normal to lie in the same hemisphere as \wo, and then \eta is the relative IOR from
+                \wo's medium to \wi's medium.
+              - If we denote the term in brackets by \mu, then we have: \wi = -\eta \omega_o + \mu \N
+              - Now let's take the partial derivative. (We'll use "d" for \partial in the following for brevity.)
+                We get: -\eta d\omega_o / dx + \mu dN/dx + d\mu/dx N.
+              - We have the values of all of these except for d\mu/dx (using bits from the derivation of specularly
+                reflected ray deifferentials).
+              - The first term of d\mu/dx is easy: \eta d(\wo \cdot N)/dx. We already have d(\wo \cdot N)/dx.
+              - The second term takes a little more work. We have:
+                 \cos \theta_i = \sqrt{1 - \eta^2 (1 - (\wo \cdot N)^2)}.
+                 Starting from (\wo \cdot N)^2 and reading outward, we have \cos^2 \theta_o, then \sin^2 \theta_o,
+                 then \sin^2 \theta_i (via Snell's law), then \cos^2 \theta_i and then \cos \theta_i.
+              - Let's take the partial derivative of the sqrt expression. We get:
+                1 / 2 * 1 / \cos \theta_i * d/dx (1 - \eta^2 (1 - (\wo \cdot N)^2)).
+              - That partial derivatve is equal to:
+                d/dx \eta^2 (\wo \cdot N)^2 = 2 \eta^2 (\wo \cdot N) d/dx (\wo \cdot N).
+              - Plugging it in, we have d\mu/dx =
+                \eta d(\wo \cdot N)/dx - (\eta^2 (\wo \cdot N) d/dx (\wo \cdot N))/(-\wi \cdot N).
+             */
+            Vector3f dwodx = -ray.rxDirection - wo,
+                dwody = -ray.ryDirection - wo;
+            Float dDNdx = Dot(dwodx, ns) + Dot(wo, dndx);
+            Float dDNdy = Dot(dwody, ns) + Dot(wo, dndy);
+
+            Float mu = eta * Dot(wo, ns) - AbsDot(wi, ns);
+            Float dmudx =
+                (eta - (eta * eta * Dot(wo, ns)) / AbsDot(wi, ns)) * dDNdx;
+            Float dmudy =
+                (eta - (eta * eta * Dot(wo, ns)) / AbsDot(wi, ns)) * dDNdy;
+
+            rd.rxDirection =
+                wi - eta * dwodx + Vector3f(mu * dndx + dmudx * ns);
+            rd.ryDirection =
+                wi - eta * dwody + Vector3f(mu * dndy + dmudy * ns);
+        }
+#endif
+        L = f * Li(rd, scene, sampler, depth + 1) * AbsDot(wi, ns) / pdf;
+    }
+    return L;
 }

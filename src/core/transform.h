@@ -40,14 +40,22 @@ public:
     Transform(const Matrix4x4& m) : m(m), mInv(Inverse(m)) {}
     Transform(const Matrix4x4& m, const Matrix4x4& mInv) : m(m), mInv(mInv) {}
 
-    Ray operator()(const Ray& r) const;
+    inline Ray operator()(const Ray& r) const;
+    Ray operator()(const Ray& r, Vector3f* oError, Vector3f* dError) const;
+
     RayDifferential operator()(const RayDifferential& r) const;
 
     template <typename T>
     inline Point3<T> operator()(const Point3<T>& pt) const;
 
     template <typename T>
+    inline Point3<T> operator()(const Point3<T>& pt, Vector3<T>* absError) const;
+
+    template <typename T>
     inline Vector3<T> operator()(const Vector3<T>& v) const;
+
+    template <typename T>
+    inline Vector3<T> operator()(const Vector3<T>& v, Vector3<T>* absError) const;
 
     Transform operator*(const Transform& t2) const;
 

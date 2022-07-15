@@ -38,8 +38,10 @@ public:
 	void PrintScene();
 
 	//
+	std::shared_ptr<Material> GenMaterial(const json& material_config);
 
-	void AddSphere(const std::string& name, float radius, Point3f position);
+
+	void AddSphere(const std::string& name, float radius, Point3f position, const json& material_config);
 	
 	void AddPointLight(const std::string& name, Point3f position);
 

@@ -3,6 +3,7 @@
 
 #include "pbr.h"
 #include <string>
+#include "../base/efloat.h"
 
 template <typename T>
 class Point3;
@@ -52,6 +53,14 @@ public:
 	template <typename U>
 	Vector3<T> operator/(U s) const {
 		return Vector3<T>(x / s, y / s, z / s);
+	}
+
+	Vector3<T>& operator=(const Vector3<T>& v) {
+		//DCHECK(!v.HasNaNs());
+		x = v.x;
+		y = v.y;
+		z = v.z;
+		return *this;
 	}
 
 	float Length() const {
@@ -108,6 +117,14 @@ public:
 
 	Point3<T> operator+(const Vector3<T>& v) const {
 		return Point3<T>(x + v.x, y + v.y, z + v.z);
+	}
+
+	Point3<T>& operator+=(const Vector3<T>& v) {
+		//DCHECK(!v.HasNaNs());
+		x += v.x;
+		y += v.y;
+		z += v.z;
+		return *this;
 	}
 
 	Point3<T> operator-(const Vector3<T>& v) const {
@@ -198,8 +215,19 @@ inline Vector3<T> Cross(const Vector3<T>& v1, const Vector3<T>& v2) {
 }
 
 template <typename T>
+Vector3<T> Abs(const Vector3<T>& v) {
+	return Vector3<T>(std::abs(v.x), std::abs(v.y), std::abs(v.z));
+}
+
+template <typename T>
 inline float Dot(const Vector3<T>& v1, const Vector3<T>& v2) {
 	return v1.x * v2.x + v1.y * v2.y + v1.z * v2.z;
+}
+
+template <typename T>
+inline T AbsDot(const Vector3<T>& v1, const Vector3<T>& n2) {
+	//DCHECK(!v1.HasNaNs() && !n2.HasNaNs());
+	return std::abs(v1.x * n2.x + v1.y * n2.y + v1.z * n2.z);
 }
 
 template <typename T>
@@ -207,6 +235,15 @@ inline float DistanceSquared(const Point3<T>& p1, const Point3<T>& p2) {
 	return (p1 - p2).LengthSquared();
 }
 
+template <typename T, typename U>
+inline Vector3<T> operator*(U s, const Vector3<T>& v) {
+	return v * s;
+}
+
+template <typename T>
+inline Vector3<T> Faceforward(const Vector3<T>& v, const Vector3<T>& v2) {
+	return (Dot(v, v2) < 0.f) ? -v : v;
+}
 
 class Ray {
 public:
@@ -257,7 +294,37 @@ public:
 };
 
 
+inline Point3f OffsetRayOrigin(const Point3f& p, const Vector3f& pError, const Vector3f& n, const Vector3f& w) {
+	float d = Dot(Abs(n), pError);
+	Vector3f offset = d * Vector3f(n);
+	if (Dot(w, n) < 0) offset = -offset;
+	Point3f po = p + offset;
+	// Round offset point _po_ away from _p_
+	/*for (int i = 0; i < 3; ++i) {
+		if (offset[i] > 0)
+			po[i] = NextFloatUp(po[i]);
+		else if (offset[i] < 0)
+			po[i] = NextFloatDown(po[i]);
+	}*/
 
+	if (offset.x > 0)
+		po.x = NextFloatUp(po.x);
+	else if (offset.x < 0)
+		po.x = NextFloatDown(po.x);
+
+	if (offset.y > 0)
+		po.y = NextFloatUp(po.y);
+	else if (offset.y < 0)
+		po.y = NextFloatDown(po.y);
+
+	if (offset.z > 0)
+		po.z = NextFloatUp(po.z);
+	else if (offset.z < 0)
+		po.z = NextFloatDown(po.z);
+
+
+	return po;
+}
 
 
 #endif // !CORE_GEOMETRY_H

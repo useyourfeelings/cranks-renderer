@@ -20,7 +20,7 @@ public:
     virtual void Render(const Scene& scene) = 0;
 
     void SetRayBounceNo(int n) {
-        maxDepth = n;
+        maxDepth = n + 1;
     }
 
 
@@ -45,9 +45,9 @@ public:
         const SurfaceInteraction& isect,
         const Scene& scene, Sampler& sampler, int depth) const;
 
-    /*Spectrum SpecularTransmit(const RayDifferential& ray,
+    Spectrum SpecularTransmit(const RayDifferential& ray,
         const SurfaceInteraction& isect,
-        const Scene& scene, Sampler& sampler, int depth) const;*/
+        const Scene& scene, Sampler& sampler, int depth) const;
 
 protected:
     // SamplerIntegrator Protected Data

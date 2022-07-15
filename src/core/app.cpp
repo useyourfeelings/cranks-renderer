@@ -5,10 +5,52 @@
 #include "../light/point.h"
 #include "../shape/sphere.h"
 #include "../integrator/whitted.h"
+#include "texture.h"
 #include "../tool/logger.h"
 #include "setting.h"
 
-void PbrApp::AddSphere(const std::string &name, float radius, Point3f pos) {
+std::shared_ptr<Material> PbrApp::GenMaterial(const json& material_config) {
+	std::cout << "PbrApp::GenMaterial()" << material_config.dump() << std::endl;
+
+	std::shared_ptr<Material> material = nullptr;
+
+	auto material_name = material_config["name"];
+
+	if (material_name == "matte") {
+		auto kd = material_config["kd"];
+		std::shared_ptr<Texture<Spectrum>> kd_tex = std::make_shared<ConstantTexture<Spectrum>>(Spectrum(kd[0], kd[1], kd[2]));
+
+		std::shared_ptr<Texture<float>> sigma_tex = std::make_shared<ConstantTexture<float>>(material_config["sigma"]);
+
+		material = std::make_shared<MatteMaterial>(kd_tex, sigma_tex, nullptr);
+	} else if (material_name == "glass") {
+		auto kr = material_config["kr"];
+		auto kt = material_config["kt"];
+		auto remaproughness = material_config["remaproughness"];
+		std::shared_ptr<Texture<Spectrum>> kr_tex = std::make_shared<ConstantTexture<Spectrum>>(Spectrum(kr[0], kr[1], kr[2]));
+		std::shared_ptr<Texture<Spectrum>> kt_tex = std::make_shared<ConstantTexture<Spectrum>>(Spectrum(kt[0], kt[1], kt[2]));
+
+		std::shared_ptr<Texture<float>> eta = std::make_shared<ConstantTexture<float>>(material_config["eta"]);
+		std::shared_ptr<Texture<float>> uroughness = std::make_shared<ConstantTexture<float>>(material_config["uroughness"]);
+		std::shared_ptr<Texture<float>> vroughness = std::make_shared<ConstantTexture<float>>(material_config["vroughness"]);
+		std::shared_ptr<Texture<float>> bumpmap = std::make_shared<ConstantTexture<float>>(material_config["bumpmap"]);
+
+		material = std::make_shared<GlassMaterial>(kr_tex, kt_tex, uroughness, vroughness, eta, bumpmap, remaproughness);
+	}
+	else if (material_name == "mirror") {
+		auto kr = material_config["kr"];
+		std::shared_ptr<Texture<Spectrum>> kr_tex = std::make_shared<ConstantTexture<Spectrum>>(Spectrum(kr[0], kr[1], kr[2]));
+
+		std::shared_ptr<Texture<float>> bumpmap = std::make_shared<ConstantTexture<float>>(material_config["bumpmap"]);
+
+		material = std::make_shared<MirrorMaterial>(kr_tex, bumpmap);
+	}
+
+
+	return material;
+}
+
+void PbrApp::AddSphere(const std::string &name, float radius, Point3f pos, const json& material_config) {
 	Log("AddSphere %s", name.c_str());
 
 	auto t = Translate(Vector3f(pos.x, pos.y, pos.z));
@@ -20,9 +62,11 @@ void PbrApp::AddSphere(const std::string &name, float radius, Point3f pos) {
 
 	std::shared_ptr<Shape> shape = std::make_shared<Sphere>(t, Inverse(t), radius, zmin, zmax, phimax);
 
-	auto material = std::make_shared<MatteMaterial>();
+	//Log("material ")
 
-	scene->AddPrimitive(std::make_shared<GeometricPrimitive>(shape, material), name);
+	//std::shared_ptr<Material> material = 
+
+	scene->AddPrimitive(std::make_shared<GeometricPrimitive>(shape, GenMaterial(material_config)), name);
 }
 
 void PbrApp::AddPointLight(const std::string& name, Point3f pos) {

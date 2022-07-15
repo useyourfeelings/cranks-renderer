@@ -18,8 +18,8 @@ int PBR_API_print_scene() {
 	return 0;
 }
 
-int PBR_API_add_sphere(const std::string& name, float radius, float x, float y, float z) {
-	app.AddSphere(name, radius, Point3f(x, y, z));
+int PBR_API_add_sphere(const std::string& name, float radius, float x, float y, float z, const nlohmann::json& material_config) {
+	app.AddSphere(name, radius, Point3f(x, y, z), material_config);
 	return 0;
 }
 

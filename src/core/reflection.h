@@ -18,11 +18,32 @@ enum BxDFType {
 	BSDF_TRANSMISSION,
 };
 
+// pbrt page 510
+inline float CosTheta(const Vector3f& w) { return w.z; }
 inline float AbsCosTheta(const Vector3f& w) { return std::abs(w.z); }
+
+// 已知入射方向，normal和eta比。求折射方向。
+inline bool Refract(const Vector3f& wi, const Vector3f& n, float eta, Vector3f* wt) {
+    // Compute $\cos \theta_\roman{t}$ using Snell's law
+    float cosThetaI = Dot(n, wi);
+    float sin2ThetaI = std::max(float(0), float(1 - cosThetaI * cosThetaI));
+    float sin2ThetaT = eta * eta * sin2ThetaI;
+
+    // Handle total internal reflection for transmission
+    if (sin2ThetaT >= 1)
+        return false;
+
+    float cosThetaT = std::sqrt(1 - sin2ThetaT);
+
+    *wt = eta * -wi + (eta * cosThetaI - cosThetaT) * n;
+    return true;
+}
 
 inline bool SameHemisphere(const Vector3f& w, const Vector3f& wp) {
     return w.z * wp.z > 0;
 }
+
+float FrDielectric(float cosThetaI, float etaI, float etaT);
 
 class BxDF {
 public:
@@ -34,6 +55,7 @@ public:
     }
 
 	virtual Spectrum f(const Vector3f& wo, const Vector3f& wi) const = 0;
+    virtual Spectrum Sample_f(const Vector3f& wo, Vector3f* wi, const Point2f& sample, float* pdf, BxDFType* sampledType = nullptr) const;
 	virtual float Pdf(const Vector3f& wo, const Vector3f& wi) const;
 
 	const BxDFType type;
@@ -146,6 +168,90 @@ private:
 };
 
 
+
+class Fresnel {
+public:
+    // Fresnel Interface
+    virtual ~Fresnel() {};
+    virtual Spectrum Evaluate(float cosI) const = 0;
+    //virtual std::string ToString() const = 0;
+};
+
+// 两个绝缘体交界处的Fresnel
+class FresnelDielectric : public Fresnel {
+public:
+    // FresnelDielectric Public Methods
+    FresnelDielectric(float etaI, float etaT) : etaI(etaI), etaT(etaT) {}
+
+    Spectrum Evaluate(float cosThetaI) const;
+    //std::string ToString() const;
+
+private:
+    float etaI; // 材质1 eta
+    float etaT; // 材质2 eta
+};
+
+class FresnelNoOp : public Fresnel {
+public:
+    Spectrum Evaluate(float) const { return Spectrum(1.); }
+    
+    //std::string ToString() const { return "[ FresnelNoOp ]"; }
+};
+
+
+//////////////////////////////////////////
+
+class SpecularReflection : public BxDF {
+public:
+    // SpecularReflection Public Methods
+    SpecularReflection(const Spectrum& R, std::shared_ptr<Fresnel> fresnel)
+        : BxDF(BxDFType(BSDF_REFLECTION | BSDF_SPECULAR)),
+        R(R),
+        fresnel(fresnel) {}
+    Spectrum f(const Vector3f& wo, const Vector3f& wi) const {
+        // see pbrt page 524
+        // 对于镜面反射始终返回0
+        return Spectrum(0.f);
+    }
+    Spectrum Sample_f(const Vector3f& wo, Vector3f* wi, const Point2f& sample,
+        float* pdf, BxDFType* sampledType) const;
+    float Pdf(const Vector3f& wo, const Vector3f& wi) const { return 0; }
+    //std::string ToString() const;
+
+private:
+    // SpecularReflection Private Data
+    const Spectrum R;
+    //const Fresnel* fresnel;
+    std::shared_ptr<Fresnel> fresnel;
+};
+
+class SpecularTransmission : public BxDF {
+public:
+    // SpecularTransmission Public Methods
+    SpecularTransmission(const Spectrum& T, float etaA, float etaB, TransportMode mode)
+        : BxDF(BxDFType(BSDF_TRANSMISSION | BSDF_SPECULAR)),
+        T(T),
+        etaA(etaA),
+        etaB(etaB),
+        fresnel(etaA, etaB),
+        mode(mode) {}
+    Spectrum f(const Vector3f& wo, const Vector3f& wi) const {
+        return Spectrum(0.f);
+    }
+    Spectrum Sample_f(const Vector3f& wo, Vector3f* wi, const Point2f& sample,
+        float* pdf, BxDFType* sampledType) const;
+
+    float Pdf(const Vector3f& wo, const Vector3f& wi) const { return 0; }
+
+    //std::string ToString() const;
+
+private:
+    // SpecularTransmission Private Data
+    const Spectrum T;
+    const float etaA, etaB;
+    const FresnelDielectric fresnel;
+    const TransportMode mode;
+};
 
 
 
