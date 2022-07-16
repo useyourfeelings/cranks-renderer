@@ -699,7 +699,22 @@ public:
 				));
 				PBR_API_add_sphere("wtfSphere 2 green", 5, -10, 0, 12, nlohmann::json({ { "name", "matte" }, { "kd", {0.2, 0.7, 0.2} }, {"sigma", 0.8} }));
 				PBR_API_add_sphere("wtfSphere 3", 20, 30, 30, 30, nlohmann::json({ { "name", "matte" }, { "kd", {0.8, 0.7, 0.5} }, {"sigma", 0.8} }));
-				PBR_API_add_sphere("wtfSphere 4", 200, 0, 0, -210, nlohmann::json({ { "name", "matte" }, { "kd", {0.8, 0.7, 0.8} }, {"sigma", 0.8} }));
+				PBR_API_add_sphere("wtfSphere 4", 200, 0, 0, -210, 
+					nlohmann::json({
+						{ "name", "matte" },
+						{ "kd", {0.8, 0.6, 0.6} },
+						{"sigma", 0.8}
+
+						//{ "name", "glass" }, // glass mirror
+						//{ "kr", {1.0, 1.0, 1.0} },
+						//{ "kt", {1.0, 1.0, 1.0} },
+						//{ "eta", 1.6},
+						//{ "uroughness", 0},
+						//{ "vroughness", 0},
+						//{ "bumpmap", 0},
+						//{ "remaproughness", false}
+					})
+				);
 				PBR_API_add_sphere("wtfSphere 5", 2, 7.2, 0, -5, nlohmann::json({ { "name", "matte" }, { "kd", {0.8, 0.0, 0.4} }, {"sigma", 0.8} }));
 
 				PBR_API_add_sphere("wtfSphere 6", 3, 14, 0, -5, nlohmann::json(
@@ -735,7 +750,7 @@ public:
 				PBR_API_add_sphere("wtfSphere 10", 2, 0, 16, -3, nlohmann::json({ { "name", "matte" }, { "kd", {0, 1, 0.1} }, {"sigma", 0.8} }));
 
 				//PBR_API_add_point_light("wtf Light"s, 0, 30, 0);
-				PBR_API_add_point_light("wtf Light", 0, 0, 15);
+				PBR_API_add_point_light("wtf Light", 0, 0, 20);
 			}
 
 			SendEvent(RENDER_TASK_ID);

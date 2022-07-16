@@ -8,6 +8,8 @@ bool Sphere::Intersect(const Ray& ray, float* tHit, SurfaceInteraction* isect) c
 	Ray r;
 	Point3f hitPoint;
 
+	Vector3f pError;
+
 	// https://en.wikipedia.org/wiki/Line%E2%80%93sphere_intersection
 
 	// 设s为球面上的交点
@@ -110,6 +112,17 @@ bool Sphere::Intersect(const Ray& ray, float* tHit, SurfaceInteraction* isect) c
 		hitPoint = r(float(t)); // get hit position
 
 		*tHit = t;
+
+		// pbrt page 225
+		// 可显著去除noise。
+		// 
+		// Refine sphere intersection point
+		hitPoint *= radius / Distance(hitPoint, Point3f(0, 0, 0));
+
+		//if (hitPoint.x == 0 && hitPoint.y == 0)
+		//	hitPoint.x = 1e-5f * radius;
+
+		pError = gamma(5) * Abs((Vector3f)hitPoint);
 	}
 
 	
@@ -215,10 +228,6 @@ bool Sphere::Intersect(const Ray& ray, float* tHit, SurfaceInteraction* isect) c
 	dpdv.LogSelf();
 
 
-
-
-
-	Vector3f pError = gamma(5) * Abs((Vector3f)hitPoint);
 
 	// 最后生成信息并转回world	
 	*isect = ObjectToWorld(SurfaceInteraction(

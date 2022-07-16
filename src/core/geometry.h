@@ -127,6 +127,14 @@ public:
 		return *this;
 	}
 
+	template <typename U>
+	Point3<T>& operator*=(U f) {
+		x *= f;
+		y *= f;
+		z *= f;
+		return *this;
+	}
+
 	Point3<T> operator-(const Vector3<T>& v) const {
 		return Point3<T>(x + v.x, y + v.y, z + v.z);
 	}
@@ -233,6 +241,11 @@ inline T AbsDot(const Vector3<T>& v1, const Vector3<T>& n2) {
 template <typename T>
 inline float DistanceSquared(const Point3<T>& p1, const Point3<T>& p2) {
 	return (p1 - p2).LengthSquared();
+}
+
+template <typename T>
+inline float Distance(const Point3<T>& p1, const Point3<T>& p2) {
+	return (p1 - p2).Length();
 }
 
 template <typename T, typename U>

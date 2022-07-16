@@ -11,5 +11,5 @@ Spectrum PointLight::Sample_Li(const Interaction& ref, Vector3f* wi, float* pdf)
 
     // Ö¸ÊýË¥¼õ
     // return I;
-    return I / DistanceSquared(pLight, ref.p) * 5000;
+    return I / DistanceSquared(pLight, ref.p) * 4000;
 }
