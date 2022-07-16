@@ -2,7 +2,7 @@
 #define CORE_API_H
 
 #include <string>
-#include"../../third_party/json/json.hpp"
+#include"../base/json.h"
 // api for client
 
 struct CameraSetting {
@@ -20,9 +20,10 @@ struct CameraSetting {
 
 int PBR_API_hi();
 int PBR_API_print_scene();
-int PBR_API_render();
+//int PBR_API_render();
+void PBR_API_render(const json&);
 int PBR_API_stop_rendering();
-int PBR_API_add_sphere(const std::string &name, float radius, float x, float y, float z, const nlohmann::json& material_config);
+int PBR_API_add_sphere(const std::string &name, float radius, float x, float y, float z, const json& material_config);
 int PBR_API_add_point_light(const std::string& name, float x, float y, float z);
 int PBR_API_set_perspective_camera(const CameraSetting &s);
 int PBR_API_get_camera_setting(CameraSetting &s);

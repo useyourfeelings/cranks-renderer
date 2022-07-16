@@ -5,8 +5,8 @@
 #include <condition_variable>
 #include <mutex>
 #include <chrono>
-
 #include"thread.h"
+
 
 /*
 * 
@@ -26,11 +26,11 @@
 
 static bool got_events = 0;
 std::vector<int> events;
-std::vector<int (*)()> events_map;
+std::vector<std::function<void(const json&)>> events_map;
 std::mutex events_mutex, test_mutex;
 std::condition_variable events_cv;
 
-int RegisterEvent(int (*f)()) {
+int RegisterEvent(std::function<void(const json&)> f) {
     std::lock_guard<std::mutex> lk(events_mutex);
 
     std::cout << "register_event" << std::endl;
@@ -50,7 +50,7 @@ int SendEvent(int id) {
     return 0;
 }
 
-int EventLoop(int (*init_func)()) {
+int EventLoop(std::function<void(const json&)> init_func) {
     std::lock_guard<std::mutex> guard(test_mutex);
     
     std::cout << "event_loop" << std::endl << "core number: " << std::thread::hardware_concurrency() << std::endl;
@@ -115,3 +115,32 @@ int EventLoop(int (*init_func)()) {
 
     return 0;
 }
+
+
+void StartMultiTask(std::function<void(const json&)> thread_func,
+    std::function<json(int, const json&)> manager_func,
+    const json& args) {
+
+    std::vector<Thread> threads;
+
+    std::cout << "StartMultiTask" << std::endl;
+    std::cout << args << std::endl;
+
+    for (int i = 0; i < args["task_count"]; ++ i) {
+        threads.push_back(Thread(thread_func, manager_func(i, args)));
+
+        // https://stackoverflow.com/questions/31071761/why-only-last-thread-executing
+        // 可导致之前的thread失效，只有最后一个thread能正常执行。
+        //threads.back().Start(); 
+    }
+
+    for (auto t = threads.begin(); t != threads.end(); ++t) {
+        t->Start();
+    }
+
+    for (auto t = threads.begin(); t != threads.end(); ++ t) {
+        t->Join();
+    }
+
+}
+

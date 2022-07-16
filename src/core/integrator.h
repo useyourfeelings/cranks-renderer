@@ -1,6 +1,7 @@
 #ifndef CORE_INTEGRATOR_H
 #define CORE_INTEGRATOR_H
 
+#include<vector>
 #include "geometry.h"
 #include "interaction.h"
 #include "scene.h"
@@ -23,7 +24,16 @@ public:
         maxDepth = n + 1;
     }
 
+    int GetRenderProgress() {
+        int progress = 0;
+        for (auto p : render_progress) {
+            progress += p;
+        }
 
+        return progress;
+    }
+
+    std::vector<int> render_progress;
     int render_status, render_progress_now, render_progress_total;
     int has_new_photo;
     int maxDepth;

@@ -23,6 +23,7 @@ public:
     const Point2f* Get2DArray(int n);
     virtual bool StartNextSample();
     //virtual std::unique_ptr<Sampler> Clone(int seed) = 0;
+    virtual std::unique_ptr<Sampler> Clone() = 0;
     virtual bool SetSampleNumber(int sampleNum);
     /*std::string StateString() const {
         return StringPrintf("(%d,%d), sample %" PRId64, currentPixel.x,
@@ -59,6 +60,7 @@ public:
     float Get1D();
     Point2f Get2D();
     //std::unique_ptr<Sampler> Clone(int seed);
+    std::unique_ptr<Sampler> Clone();
 
 private:
     RNG rng;

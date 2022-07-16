@@ -82,7 +82,7 @@ void PbrApp::PrintScene() {
 void PbrApp::GetRenderProgress(int* status, int* now, int* total, int * has_new_photo) {
 	if (this->integrator != nullptr) {
 		*status = this->integrator->render_status;
-		*now = this->integrator->render_progress_now;
+		*now = this->integrator->GetRenderProgress();
 		*total = this->integrator->render_progress_total;
 		*has_new_photo = this->integrator->has_new_photo;
 	}

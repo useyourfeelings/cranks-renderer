@@ -94,11 +94,10 @@ int PBR_API_get_defualt_camera_setting(CameraSetting& s) {
 		return 0;
 }
 
-int PBR_API_render() {
+void PBR_API_render(const nlohmann::json& args) {
 	Log("PBR_API_render");
 	app.RenderScene();
 	Log("PBR_API_render over");
-	return 0;
 }
 
 int PBR_API_get_render_progress(int* status, int *now, int *total, int * has_new_photo) {

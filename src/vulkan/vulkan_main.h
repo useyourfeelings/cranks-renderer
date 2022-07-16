@@ -8,8 +8,8 @@
 #include <vulkan/vulkan.h>
 #include"vulkan_device.h"
 #include"vulkan_swapchain.h"
-//#include"vulkan_ui.h"
 #include"vulkan_tool.h"
+#include"../base/json.h"
 
 class VulkanUI;
 
@@ -101,6 +101,6 @@ public:
 
 inline VulkanApp vulkan_app;
 
-int vulkan_main();
+void vulkan_main(const json& args);
 
 #endif

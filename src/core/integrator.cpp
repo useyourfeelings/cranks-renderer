@@ -1,8 +1,10 @@
+#include <iostream>
 #include "integrator.h"
-#include "../core/reflection.h"
+#include "reflection.h"
 #include "film.h"
 #include "../tool/logger.h"
-#include <iostream>
+#include "../base/json.h"
+#include "../base/events.h"
 
 void SamplerIntegrator::Render(const Scene& scene) {
     Log("Render");
@@ -16,99 +18,142 @@ void SamplerIntegrator::Render(const Scene& scene) {
     BBox2i sampleBounds = BBox2i(Point2i(0, 0), Point2i(camera->resolutionX, camera->resolutionY));
     // sampleBounds ÀàËÆ600 400
 
+    int task_count = 2;
+
     this->render_progress_total = camera->resolutionX * camera->resolutionY;
     this->render_progress_now = 0;
-
-    int i = sampleBounds.pMin.x;
-    int j = sampleBounds.pMin.y;
-
-    // Loop over pixels in tile to render them
-    while (i < sampleBounds.pMax.x && j < sampleBounds.pMax.y) {
-        if (render_status == 0)
-            break;
-
-        Log("Render %d %d", i, j);
-        //std::cout << "Render " << i << " " << j << std::endl;
-        Point2i pixel(i, j);
-
-        if (i == 384 && j == 40) {
-            static int gg = 0;
-            gg ++;
-
-            //break;
-        }
-
-        this->sampler->StartPixel(pixel);
-
-        this->render_progress_now++;
-
-        // Do this check after the StartPixel() call; this keeps
-        // the usage of RNG values from (most) Samplers that use
-        // RNGs consistent, which improves reproducability /
-        // debugging.
-        //if (!InsideExclusive(pixel, pixelBounds))
-        //    continue;
-
-        do {
-            // Initialize _CameraSample_ for current sample
-            CameraSample cameraSample = this->sampler->GetCameraSample(pixel);
-
-            // Generate camera ray for current sample
-            RayDifferential ray;
-            float rayWeight = camera->GenerateRayDifferential(cameraSample, &ray);
-            ray.ScaleDifferentials(1 / std::sqrt((float)sampler->samplesPerPixel));
-
-            //++nCameraRays;
-
-            // Evaluate radiance along camera ray
-            Spectrum L(0.f);
-            if (rayWeight > 0)
-                L = Li(ray, scene, *sampler);
-
-            // Issue warning if unexpected radiance value returned
-            /* if (L.HasNaNs()) {
-                LOG(ERROR) << StringPrintf(
-                    "Not-a-number radiance value returned "
-                    "for pixel (%d, %d), sample %d. Setting to black.",
-                    pixel.x, pixel.y,
-                    (int)tileSampler->CurrentSampleNumber());
-                L = Spectrum(0.f);
-            }
-            else if (L.y() < -1e-5) {
-                LOG(ERROR) << StringPrintf(
-                    "Negative luminance value, %f, returned "
-                    "for pixel (%d, %d), sample %d. Setting to black.",
-                    L.y(), pixel.x, pixel.y,
-                    (int)tileSampler->CurrentSampleNumber());
-                L = Spectrum(0.f);
-            }
-            else if (std::isinf(L.y())) {
-                LOG(ERROR) << StringPrintf(
-                    "Infinite luminance value returned "
-                    "for pixel (%d, %d), sample %d. Setting to black.",
-                    pixel.x, pixel.y,
-                    (int)tileSampler->CurrentSampleNumber());
-                L = Spectrum(0.f);
-            }
-            VLOG(1) << "Camera sample: " << cameraSample << " -> ray: " <<
-                ray << " -> L = " << L;
-            */
-
-            // Add camera ray's contribution to image
-            //filmTile->AddSample(cameraSample.pFilm, L, rayWeight);
-
-            camera->AddSample(Point2f(pixel.x, pixel.y), L, rayWeight, sampler->samplesPerPixel);
-
-            // Free _MemoryArena_ memory from computing image sample
-            // value
-            //arena.Reset();
-        } while (sampler->StartNextSample());
-
-        if (++i >= sampleBounds.pMax.x) {
-            i = 0;
-            ++j;
-        }
+    this->render_progress.resize(task_count);
+    for (int i = 0; i < task_count; ++ i) {
+        render_progress[i] = 0;
     }
+
+    json tast_args({ { "task_count", task_count },
+        { "x_start",sampleBounds.pMin.x },
+        { "y_start",sampleBounds.pMin.y },
+        { "x_end",sampleBounds.pMax.x - 1 },
+        { "y_end",sampleBounds.pMax.y - 1 } });
+
+    //json manager_func(int task_index, const json & args) {
+
+    // https://stackoverflow.com/questions/4324763/can-we-have-functions-inside-functions-in-c
+    // https://en.cppreference.com/w/cpp/language/lambda
+
+    auto manager_func = [&](int task_index, const json& args) {
+        int interval = (int(args["y_end"]) - args["y_start"] + 1) / args["task_count"];
+        if((int(args["y_end"]) - args["y_start"] + 1) % args["task_count"] != 0)
+            interval++;
+
+        int y_start = args["y_start"] + interval * task_index;
+        int y_end = std::min(int(args["y_end"]), int(y_start + interval - 1));
+
+        return json({ 
+            { "task_index", task_index },
+            { "x_start", args["x_start"]},
+            { "y_start", y_start },
+            { "x_end", args["x_end"] },
+            { "y_end", y_end} });
+    };
+
+    auto render_task = [&](const json& args) {
+        int i = args["x_start"];
+        int j = args["y_start"];
+        int task_index = args["task_index"];
+
+        std::cout << "--- render_task "<< args["task_index"] << " " << i << " " << j << std::endl;
+        std::cout << args << std::endl;
+
+        std::unique_ptr<Sampler> local_sampler = sampler->Clone();
+
+        // Loop over pixels in tile to render them
+        //while (i < sampleBounds.pMax.x && j < sampleBounds.pMax.y) {
+        for (int j = args["y_start"]; j <= args["y_end"]; ++j) {
+            for (int i = args["x_start"]; i <= args["x_end"]; ++i) {
+
+                if (render_status == 0)
+                    break;
+
+                Log("Render %d %d", i, j);
+                //std::cout << "Render " << i << " " << j << std::endl;
+                Point2i pixel(i, j);
+
+                if (i == 384 && j == 40) {
+                    static int gg = 0;
+                    gg++;
+
+                    //break;
+                }
+
+                //this->sampler->StartPixel(pixel);
+                local_sampler->StartPixel(pixel);
+
+                this->render_progress[task_index]++;
+
+                // Do this check after the StartPixel() call; this keeps
+                // the usage of RNG values from (most) Samplers that use
+                // RNGs consistent, which improves reproducability /
+                // debugging.
+                //if (!InsideExclusive(pixel, pixelBounds))
+                //    continue;
+
+                do {
+                    // Initialize _CameraSample_ for current sample
+                    CameraSample cameraSample = local_sampler->GetCameraSample(pixel);
+
+                    // Generate camera ray for current sample
+                    RayDifferential ray;
+                    float rayWeight = camera->GenerateRayDifferential(cameraSample, &ray);
+                    ray.ScaleDifferentials(1 / std::sqrt((float)local_sampler->samplesPerPixel));
+
+                    //++nCameraRays;
+
+                    // Evaluate radiance along camera ray
+                    Spectrum L(0.f);
+                    if (rayWeight > 0)
+                        L = Li(ray, scene, *local_sampler);
+
+                    // Issue warning if unexpected radiance value returned
+                    /* if (L.HasNaNs()) {
+                        LOG(ERROR) << StringPrintf(
+                            "Not-a-number radiance value returned "
+                            "for pixel (%d, %d), sample %d. Setting to black.",
+                            pixel.x, pixel.y,
+                            (int)tileSampler->CurrentSampleNumber());
+                        L = Spectrum(0.f);
+                    }
+                    else if (L.y() < -1e-5) {
+                        LOG(ERROR) << StringPrintf(
+                            "Negative luminance value, %f, returned "
+                            "for pixel (%d, %d), sample %d. Setting to black.",
+                            L.y(), pixel.x, pixel.y,
+                            (int)tileSampler->CurrentSampleNumber());
+                        L = Spectrum(0.f);
+                    }
+                    else if (std::isinf(L.y())) {
+                        LOG(ERROR) << StringPrintf(
+                            "Infinite luminance value returned "
+                            "for pixel (%d, %d), sample %d. Setting to black.",
+                            pixel.x, pixel.y,
+                            (int)tileSampler->CurrentSampleNumber());
+                        L = Spectrum(0.f);
+                    }
+                    VLOG(1) << "Camera sample: " << cameraSample << " -> ray: " <<
+                        ray << " -> L = " << L;
+                    */
+
+                    // Add camera ray's contribution to image
+                    //filmTile->AddSample(cameraSample.pFilm, L, rayWeight);
+
+                    camera->AddSample(Point2f(pixel.x, pixel.y), L, rayWeight, local_sampler->samplesPerPixel);
+
+                    // Free _MemoryArena_ memory from computing image sample
+                    // value
+                    //arena.Reset();
+                } while (local_sampler->StartNextSample());
+            }
+        }
+    };
+
+    StartMultiTask(render_task, manager_func, tast_args);
 
     // Save final image after rendering
     camera->film->WriteImage();

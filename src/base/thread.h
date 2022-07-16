@@ -1,6 +1,8 @@
 #include<iostream>
 #include<thread>
+#include <functional>
 #include"events.h"
+#include"json.h"
 
 enum ThreadStatus {
     THREAD_NEW = 0,
@@ -10,7 +12,10 @@ enum ThreadStatus {
 
 class Thread {
 public:
-    Thread(int (*f)()) :thread_function(f), status(THREAD_NEW) {
+    Thread(std::function<void(const json&)> f, json args = json()) :
+        thread_function(f),
+        args(args),
+        status(THREAD_NEW) {
     }
 
     bool IsDone() {
@@ -38,10 +43,10 @@ private:
         //std::lock_guard<std::mutex> lock(thread_mutex);
         status = THREAD_RUNNING;
 
-        std::cout << "Thread start " << system_thread.get_id() << std::endl;
+        std::cout << "Thread start " << system_thread.get_id() << " " << &thread_function << std::endl;
 
         try {
-            thread_function();
+            thread_function(args);
         }
         catch (const std::exception& e) {
             std::cout << "Thread catch exception " << e.what();
@@ -59,7 +64,10 @@ private:
         return 0;
     }
 
-    int (*thread_function)();
+    //int (*thread_function)();
+    std::function<void(const json&)> thread_function;
+
+    json args;
     //std::mutex thread_mutex;
 
     ThreadStatus status;

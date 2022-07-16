@@ -818,7 +818,7 @@ VKAPI_ATTR VkBool32 VKAPI_CALL VulkanApp::debugCallback(
 }
 
 
-int vulkan_main()
+void vulkan_main(const json& args)
 {
     std::cout<<"vulkan_main start"<<std::endl;
 
@@ -827,6 +827,5 @@ int vulkan_main()
     vulkan_app.clean();
 
     std::cout << "vulkan_main over" << std::endl;
-    return 0;
 }
 
