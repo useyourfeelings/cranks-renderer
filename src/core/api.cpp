@@ -33,7 +33,8 @@ int PBR_API_set_perspective_camera(const CameraSetting& s) {
 	app.SetPerspectiveCamera(Point3f(s.pos[0], s.pos[1], s.pos[2]),
 		Point3f(s.look[0], s.look[1], s.look[2]),
 		Vector3f(s.up[0], s.up[1], s.up[2]),
-		s.fov, s.asp, s.near_far[0], s.near_far[1], s.resolution[0], s.resolution[1], s.ray_sample_no, s.ray_bounce_no);
+		s.fov, s.asp, s.near_far[0], s.near_far[1], s.resolution[0], s.resolution[1], s.ray_sample_no, s.ray_bounce_no,
+		s.render_threads_count);
 
 	//auto a = { pos[0], pos[1], pos[2] };
 	setting.Set("camera_pos", std::initializer_list({ s.pos[0], s.pos[1], s.pos[2] }));
@@ -46,7 +47,9 @@ int PBR_API_set_perspective_camera(const CameraSetting& s) {
 	setting.Set("camera_resX", s.resolution[0]);
 	setting.Set("camera_resY", s.resolution[1]);
 	setting.Set("ray_sample_no", s.ray_sample_no);
-	setting.Set("ray_bounce_no", s.ray_bounce_no);
+	setting.Set("ray_bounce_no", s.ray_bounce_no); 
+	setting.Set("render_threads_count", s.render_threads_count);
+
 	Log(setting.Dump().c_str());
 	return 0;
 }
@@ -80,6 +83,8 @@ int PBR_API_get_camera_setting(CameraSetting& s) {
 	s.ray_sample_no = setting.Get("ray_sample_no");
 	s.ray_bounce_no = setting.Get("ray_bounce_no");
 
+	s.render_threads_count = setting.Get("render_threads_count");
+
 	return 0;
 }
 
@@ -94,13 +99,13 @@ int PBR_API_get_defualt_camera_setting(CameraSetting& s) {
 		return 0;
 }
 
-void PBR_API_render(const nlohmann::json& args) {
+void PBR_API_render(const json& args) {
 	Log("PBR_API_render");
 	app.RenderScene();
 	Log("PBR_API_render over");
 }
 
-int PBR_API_get_render_progress(int* status, int *now, int *total, int * has_new_photo) {
+int PBR_API_get_render_progress(int* status, std::vector<int>& now, std::vector<int>& total, int * has_new_photo) {
 	app.GetRenderProgress(status, now, total, has_new_photo);
 	return 0;
 }

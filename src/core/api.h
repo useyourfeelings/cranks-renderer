@@ -16,6 +16,8 @@ struct CameraSetting {
 	int ray_bounce_no = 1;
 	int image_scale = 6;
 	int resolution[2] = { image_scale * 128, image_scale * 128 };
+
+	int render_threads_count = 3;
 };
 
 int PBR_API_hi();
@@ -29,7 +31,7 @@ int PBR_API_set_perspective_camera(const CameraSetting &s);
 int PBR_API_get_camera_setting(CameraSetting &s);
 int PBR_API_get_defualt_camera_setting(CameraSetting& s);
 int PBR_API_save_setting();
-int PBR_API_get_render_progress(int * status, int* now, int* total, int* has_new_photo);
+int PBR_API_get_render_progress(int * status, std::vector<int>& now, std::vector<int>& total, int* has_new_photo);
 int PBR_API_get_new_image(char* dst);
 
 #endif

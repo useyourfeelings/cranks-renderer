@@ -7,13 +7,15 @@
 #include "scene.h"
 #include "sampler.h"
 #include "camera.h"
+#include "../base/json.h"
 
 class Integrator {
 public:
     // Integrator Interface
     Integrator() :
-        render_progress_now(0), 
-        render_progress_total(0), 
+        render_threads_count(3),
+        render_progress_now(render_threads_count),
+        render_progress_total(render_threads_count),
         render_status(0),
         has_new_photo(0),
         maxDepth(1) {};
@@ -24,19 +26,30 @@ public:
         maxDepth = n + 1;
     }
 
+    void SetRenderThreadsCount(int c) {
+        render_threads_count = c;
+
+        render_progress_now.resize(c);
+        render_progress_total.resize(c);
+    }
+
     int GetRenderProgress() {
         int progress = 0;
-        for (auto p : render_progress) {
+        for (auto p : render_progress_now) {
             progress += p;
         }
 
         return progress;
     }
 
-    std::vector<int> render_progress;
-    int render_status, render_progress_now, render_progress_total;
+    std::vector<int> render_progress_now, render_progress_total;
+    int render_status;// , render_progress_now, render_progress_total;
     int has_new_photo;
     int maxDepth;
+
+    int render_threads_count;
+
+
 };
 
 class SamplerIntegrator : public Integrator {

@@ -48,7 +48,7 @@ public:
 	//
 
 	void RenderScene();
-	void GetRenderProgress(int* status, int* now, int* total, int* has_new_photo);
+	void GetRenderProgress(int* status, std::vector<int>& now, std::vector<int>& total, int* has_new_photo);
 	void StopRendering();
 	//
 	
@@ -57,7 +57,7 @@ public:
 	void SetCamera(Point3f pos, Point3f look, Vector3f up);
 	void SetPerspectiveCamera(Point3f pos, Point3f look, Vector3f up, 
 		float fov, float aspect_ratio, float near, float far, 
-		int resX, int resY, int ray_sample_no, int ray_bounce_no);
+		int resX, int resY, int ray_sample_no, int ray_bounce_no, int render_threads_count);
 
 	void SetSampler();
 	void SetRandomSampler();

@@ -549,8 +549,10 @@ public:
 			init_status = 1;
 		}
 
-		int progress_now, progress_total, render_status, has_new_photo;
-		PBR_API_get_render_progress(&render_status, &progress_now, &progress_total, &has_new_photo);
+		//int progress_now, progress_total,
+		static int render_status, has_new_photo;
+		static std::vector<int> progress_now, progress_total;
+		PBR_API_get_render_progress(&render_status, progress_now, progress_total, &has_new_photo);
 
 		if (has_new_photo) {
 			std::vector<char> image_data(cs.resolution[0] * cs.resolution[1] * 4);
@@ -655,6 +657,11 @@ public:
 			cameraChanged = true;
 		}
 
+		ImGui::SliderInt("render_threads_count", &cs.render_threads_count, 1, 6);
+		if (ImGui::IsItemDeactivatedAfterEdit()) {
+			cameraChanged = true;
+		}
+
 		if (cameraChanged) {
 			Log("cameraChanged");
 			PBR_API_set_perspective_camera(cs);
@@ -673,11 +680,14 @@ public:
 
 		//ImGui::Dummy(ImVec2(30, 30));
 
+		
 
-
-		char buf[32];
-		sprintf(buf, "%d/%d", progress_now, progress_total);
-		ImGui::ProgressBar(float(progress_now) / progress_total, ImVec2(0.f, 0.f), buf);
+		for (int i = 0; i < progress_now.size(); ++i) {
+			char buf[32];
+			sprintf(buf, "%d/%d", progress_now[i], progress_total[i]);
+			ImGui::ProgressBar(float(progress_now[i]) / progress_total[i], ImVec2(0.f, 0.f), buf);
+		}
+		
 
 		if (ImGui::Button("Render", ImVec2(200, 120))) {
 

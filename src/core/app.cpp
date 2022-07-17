@@ -79,17 +79,31 @@ void PbrApp::PrintScene() {
 	scene->PrintScene();
 }
 
-void PbrApp::GetRenderProgress(int* status, int* now, int* total, int * has_new_photo) {
+void PbrApp::GetRenderProgress(int* status, std::vector<int>& now, std::vector<int>& total, int * has_new_photo) {
 	if (this->integrator != nullptr) {
 		*status = this->integrator->render_status;
-		*now = this->integrator->GetRenderProgress();
-		*total = this->integrator->render_progress_total;
+		//*now = this->integrator->GetRenderProgress();
+		//*total = this->integrator->render_progress_total;
 		*has_new_photo = this->integrator->has_new_photo;
+
+		if (now.size() != this->integrator->render_threads_count)
+			now.resize(this->integrator->render_threads_count);
+
+		if (total.size() != this->integrator->render_threads_count)
+			total.resize(this->integrator->render_threads_count);
+
+		for (int i = 0; i < now.size(); ++i) {
+			now[i] = this->integrator->render_progress_now[i];
+		}
+
+		for (int i = 0; i < total.size(); ++i) {
+			total[i] = this->integrator->render_progress_total[i];
+		}
 	}
 	else {
 		*status = 0;
-		*now = 0;
-		*total = 0;
+		//*now = 0;
+		//*total = 0;
 		*has_new_photo = 0;
 	}
 	
@@ -119,7 +133,8 @@ void PbrApp::RenderScene() {
 			Point3f(setting.Get("camera_look")[0], setting.Get("camera_look")[1], setting.Get("camera_look")[2]),
 			Vector3f(setting.Get("camera_up")[0], setting.Get("camera_up")[1], setting.Get("camera_up")[2]),
 			setting.Get("camera_fov"), setting.Get("camera_asp"), setting.Get("camera_near"), 
-			setting.Get("camera_far"), setting.Get("camera_resX"), setting.Get("camera_resY"), setting.Get("ray_sample_no"), setting.Get("ray_bounce_no"));
+			setting.Get("camera_far"), setting.Get("camera_resX"), setting.Get("camera_resY"), 
+			setting.Get("ray_sample_no"), setting.Get("ray_bounce_no"), setting.Get("render_threads_count"));
 	}
 
 	SetFilm(camera->resolutionX, camera->resolutionY);
@@ -144,11 +159,12 @@ void PbrApp::SetCamera(Point3f pos, Point3f look, Vector3f up) {
 
 void PbrApp::SetPerspectiveCamera(Point3f pos, Point3f look, Vector3f up, 
 	float fov, float aspect_ratio, float near, float far, 
-	int resX, int resY, int ray_sample_no, int ray_bounce_no) {
+	int resX, int resY, int ray_sample_no, int ray_bounce_no, int render_threads_count) {
 	Log("SetPerspectiveCamera");
 
 	sampler->SetSamplesPerPixel(ray_sample_no);
 	integrator->SetRayBounceNo(ray_bounce_no);
+	integrator->SetRenderThreadsCount(render_threads_count);
 
 	if (camera != nullptr) {
 		camera->SetPerspectiveData(pos, look, up, fov, aspect_ratio, near, far, resX, resY);

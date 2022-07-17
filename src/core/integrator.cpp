@@ -18,20 +18,21 @@ void SamplerIntegrator::Render(const Scene& scene) {
     BBox2i sampleBounds = BBox2i(Point2i(0, 0), Point2i(camera->resolutionX, camera->resolutionY));
     // sampleBounds ÀàËÆ600 400
 
-    int task_count = 2;
-
-    this->render_progress_total = camera->resolutionX * camera->resolutionY;
-    this->render_progress_now = 0;
-    this->render_progress.resize(task_count);
-    for (int i = 0; i < task_count; ++ i) {
-        render_progress[i] = 0;
+    //this->render_progress_total = camera->resolutionX * camera->resolutionY;
+    //this->render_progress_now = 0;
+    this->render_progress_now.resize(render_threads_count);
+    this->render_progress_total.resize(render_threads_count);
+    for (int i = 0; i < render_threads_count; ++ i) {
+        render_progress_now[i] = 0;
     }
 
-    json tast_args({ { "task_count", task_count },
+    json tast_args({ 
+        { "task_count", render_threads_count },
         { "x_start",sampleBounds.pMin.x },
         { "y_start",sampleBounds.pMin.y },
         { "x_end",sampleBounds.pMax.x - 1 },
-        { "y_end",sampleBounds.pMax.y - 1 } });
+        { "y_end",sampleBounds.pMax.y - 1 }
+    });
 
     //json manager_func(int task_index, const json & args) {
 
@@ -39,15 +40,16 @@ void SamplerIntegrator::Render(const Scene& scene) {
     // https://en.cppreference.com/w/cpp/language/lambda
 
     auto manager_func = [&](int task_index, const json& args) {
-        int interval = (int(args["y_end"]) - args["y_start"] + 1) / args["task_count"];
+        int y_interval = (int(args["y_end"]) - args["y_start"] + 1) / args["task_count"];
         if((int(args["y_end"]) - args["y_start"] + 1) % args["task_count"] != 0)
-            interval++;
+            y_interval++;
 
-        int y_start = args["y_start"] + interval * task_index;
-        int y_end = std::min(int(args["y_end"]), int(y_start + interval - 1));
+        int y_start = args["y_start"] + y_interval * task_index;
+        int y_end = std::min(int(args["y_end"]), int(y_start + y_interval - 1));
 
         return json({ 
             { "task_index", task_index },
+            { "task_progress_total", (y_end - y_start + 1) * (int(args["x_end"]) - args["x_start"] + 1)},
             { "x_start", args["x_start"]},
             { "y_start", y_start },
             { "x_end", args["x_end"] },
@@ -63,6 +65,8 @@ void SamplerIntegrator::Render(const Scene& scene) {
         std::cout << args << std::endl;
 
         std::unique_ptr<Sampler> local_sampler = sampler->Clone();
+
+        this->render_progress_total[task_index] = args["task_progress_total"];
 
         // Loop over pixels in tile to render them
         //while (i < sampleBounds.pMax.x && j < sampleBounds.pMax.y) {
@@ -86,7 +90,7 @@ void SamplerIntegrator::Render(const Scene& scene) {
                 //this->sampler->StartPixel(pixel);
                 local_sampler->StartPixel(pixel);
 
-                this->render_progress[task_index]++;
+                this->render_progress_now[task_index]++;
 
                 // Do this check after the StartPixel() call; this keeps
                 // the usage of RNG values from (most) Samplers that use

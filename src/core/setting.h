@@ -20,6 +20,7 @@ static std::set<std::string> valid_setting_key{
 	"camera_resY",
 	"ray_sample_no"
 	"ray_bounce_no"
+	"render_threads_count"
 };
 
 class Setting {
@@ -58,6 +59,8 @@ public:
 
 		j["ray_sample_no"] = 1;
 		j["ray_bounce_no"] = 1;
+
+		j["render_threads_count"] = 3;
 	}
 
 	int LoadFile() {
