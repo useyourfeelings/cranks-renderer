@@ -13,24 +13,7 @@ Spectrum WhittedIntegrator::Li(const RayDifferential& ray, const Scene& scene, S
     SurfaceInteraction isect;
     float tHit;
     if (!scene.Intersect(ray, & tHit, &isect)) {
-        Spectrum sky_spectrum;
-        /*sky_spectrum.c[0] = 0.6;
-        sky_spectrum.c[1] = 0.7;
-        sky_spectrum.c[2] = 0.9;*/
-
-        // https://raytracing.github.io/books/RayTracingInOneWeekend.html
-        // gradient sky
-
-        float t = (ray.d.z + 1) * 0.5; // map to [0, 1]
-        /*sky_spectrum.c[0] = 1 - t + t * 0.5;
-        sky_spectrum.c[1] = 1 - t + t * 0.7;
-        sky_spectrum.c[2] = 1 - t + t * 1;*/
-
-        sky_spectrum.c[0] = 1 - t * 0.5;
-        sky_spectrum.c[1] = 1 - t * 0.3;
-        sky_spectrum.c[2] = 1;
-
-        return sky_spectrum;
+        return GetSky(ray.d.z);
     }
 
     Log("scene Intersect");
@@ -82,7 +65,7 @@ Spectrum WhittedIntegrator::Li(const RayDifferential& ray, const Scene& scene, S
         //VisibilityTester visibility;
 
         // 光源的基本值
-        Spectrum Li = light->Sample_Li(isect, &wi, &pdf); // for point light
+        Spectrum Li = light->Sample_Li(isect, sampler.Get2D(), &wi, &pdf); // for point light
 
 
         Log("base Li %f %f %f pdf = %f", Li.c[0], Li.c[1], Li.c[2], pdf);
@@ -98,7 +81,7 @@ Spectrum WhittedIntegrator::Li(const RayDifferential& ray, const Scene& scene, S
 
         // 算bsdf里的每个bxdf的f
         // 即光打在点上，对wo方向的贡献。
-        Spectrum f = isect.bsdf->f(wo, wi);
+        Spectrum f = isect.bsdf-> f(wo, wi);
 
         Log("bsdf f = %f %f %f", f.c[0], f.c[1], f.c[2]);
 
@@ -123,32 +106,9 @@ Spectrum WhittedIntegrator::Li(const RayDifferential& ray, const Scene& scene, S
             if (!ires) {
                 L += f * Li * std::abs(Dot(wi, n)) / pdf;
 
-                auto add = f * Li * std::abs(Dot(wi, n)) / pdf;
-                Log("light can see. add %f %f %f", add.c[0], add.c[1], add.c[2]);
+                //auto add = f * Li * std::abs(Dot(wi, n)) / pdf;
+                //Log("light can see. add %f %f %f", add.c[0], add.c[1], add.c[2]);
             }
-
-            // todo: two sides. compare roots
-            /*if (ires && temp_isect.primitive->id == isect.primitive->id) {
-                temp_isect.LogSelf();
-
-                if (std::abs(temp_isect.p.x - isect.p.x) <= Error1 &&
-                    std::abs(temp_isect.p.y - isect.p.y) <= Error1 &&
-                    std::abs(temp_isect.p.z - isect.p.z) <= Error1){
-
-                    L += f * Li * std::abs(Dot(wi, n)) / pdf;
-
-                    auto add = f * Li * std::abs(Dot(wi, n)) / pdf;
-                    Log("light can see. add %f %f %f", add.c[0], add.c[1], add.c[2]);
-                }
-                else {
-                    Log("light can not see 1");
-                }
-                
-            }
-            else {
-                Log("light can not see 2");
-            }*/
-                
         }
             
     }
@@ -156,12 +116,14 @@ Spectrum WhittedIntegrator::Li(const RayDifferential& ray, const Scene& scene, S
         // Trace rays for specular reflection and refraction
 
         // WhittedIntegrator 只能处理 BxDFType(BSDF_REFLECTION | BSDF_SPECULAR)
-        // 计算镜面反射的光
+        // 反射光进行下一层Li
         auto reflect = SpecularReflect(ray, isect, scene, sampler, depth);
         L += reflect;
 
-
+        // 传输光进行下一层Li
         L += SpecularTransmit(ray, isect, scene, sampler, depth);
     }
+
+    // L的三个部分。直接光，反射光。传输光。
     return L;
 }

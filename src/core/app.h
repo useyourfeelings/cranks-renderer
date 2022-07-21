@@ -63,6 +63,7 @@ public:
 	void SetRandomSampler();
 	void SetIntegrator();
 	void SetWhittedIntegrator();
+	void SetPathIntegrator();
 	void SaveSetting();
 
 	std::unique_ptr<Scene> scene;

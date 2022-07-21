@@ -10,7 +10,7 @@ void SamplerIntegrator::Render(const Scene& scene) {
     Log("Render");
     render_status = 1;
     has_new_photo = 0;
-    //Preprocess(scene, *sampler);
+    Preprocess(scene, *sampler);
     // Render image tiles in parallel
 
     // Compute number of tiles, _nTiles_, to use for parallel rendering
@@ -177,7 +177,7 @@ Spectrum SamplerIntegrator::SpecularReflect(
     float pdf;
     BxDFType type = BxDFType(BSDF_REFLECTION | BSDF_SPECULAR);
 
-    // 计算交点上的bsdf
+    // 采样一束光。只取镜面反射的bxdf。对于镜面反射bxdf，最后走的就是fresnel。
     Spectrum f = isect.bsdf->Sample_f(wo, &wi, sampler.Get2D(), &pdf, type);
 
     // Return contribution of specular reflection
@@ -205,6 +205,8 @@ Spectrum SamplerIntegrator::SpecularReflect(
         //    rd.ryDirection =
         //        wi - dwody + 2.f * Vector3f(Dot(wo, ns) * dndy + dDNdy * ns);
         //}
+
+        // 下一轮Li
         return f * Li(rd, scene, sampler, depth + 1) * std::abs(Dot(wi, ns)) / pdf;
     }
     else
@@ -293,3 +295,117 @@ Spectrum SamplerIntegrator::SpecularTransmit(
     }
     return L;
 }
+
+
+////////////////////
+
+// 对全局的光源进行平均采样。选出一个光源。
+Spectrum UniformSampleOneLight(const Interaction& it, const Scene& scene,
+    Sampler& sampler,
+    bool handleMedia, const Distribution1D* lightDistrib) {
+
+    int nLights = scene.lights.size();
+
+    if (nLights == 0)
+        return Spectrum(0.f);
+
+    int lightIndex;
+    float lightPdf;
+
+    // 随机采样一个灯
+    if (lightDistrib) {
+        lightIndex = lightDistrib->SampleDiscrete(sampler.Get1D(), &lightPdf);
+        if (lightPdf == 0)
+            return Spectrum(0.f);
+    }
+    else {
+        //lightNum = std::min((int)(sampler.Get1D() * nLights), nLights - 1);
+        //lightPdf = Float(1) / nLights;
+    }
+
+    const std::shared_ptr<Light>& light = scene.lights[lightIndex];
+    Point2f uLight = sampler.Get2D();
+    Point2f uScattering = sampler.Get2D();
+    return EstimateDirect(it, uScattering, *light, uLight, scene, sampler, handleMedia) / lightPdf;
+}
+
+// 计算一个直接光源作用于交点，产生的光能。
+Spectrum EstimateDirect(const Interaction& it, const Point2f& uScattering,
+    const Light& light, const Point2f& uLight,
+    const Scene& scene, Sampler& sampler,
+    bool handleMedia, bool specular) {
+
+    BxDFType bsdfFlags = specular ? BSDF_ALL : BxDFType(BSDF_ALL & ~BSDF_SPECULAR);
+    Spectrum Ld(0.f);
+
+    // Sample light source with multiple importance sampling
+    Vector3f wi;
+    float lightPdf = 0, scatteringPdf = 0;
+    //VisibilityTester visibility;
+
+    // 先得到直接光的初始值。有可能被遮挡。后续再判断。
+    // 光打到交点，算出wi。
+    Spectrum Li = light.Sample_Li(it, uLight, &wi, &lightPdf);
+
+    const SurfaceInteraction& isect = (const SurfaceInteraction&)it;
+
+    if (lightPdf > 0 && !Li.IsBlack()) {
+
+        Spectrum f;
+        if (it.IsSurfaceInteraction()) {
+            // Evaluate BSDF for light sampling strategy
+            
+            // 计算所有bxdf在(wo, wi)方向贡献的光
+            f = isect.bsdf->f(isect.wo, wi, bsdfFlags) * AbsDot(wi, isect.shading.n);
+
+            // 所有bxdf的pdf平均值
+            scatteringPdf = isect.bsdf->Pdf(isect.wo, wi, bsdfFlags);
+            //VLOG(2) << "  surf f*dot :" << f << ", scatteringPdf: " << scatteringPdf;
+
+        }
+        else {
+        }
+
+        if (!f.IsBlack()) {
+            // Compute effect of visibility for light source sample
+            if (handleMedia) {
+                //Li *= visibility.Tr(scene, sampler);
+                //VLOG(2) << "  after Tr, Li: " << Li;
+            }
+            else {
+                // 如果遮挡
+                Ray temp_ray = isect.SpawnRayTo(light.pos);
+
+                SurfaceInteraction temp_isect;
+                float temp_t;
+                auto ires = scene.Intersect(temp_ray, &temp_t, &temp_isect);
+                if (ires) {
+                    Li = Spectrum(0.f);
+                }
+            }
+
+            // Add light's contribution to reflected radiance
+            if (!Li.IsBlack()) {
+                if (light.IsDeltaLight())
+                    Ld += f * Li / lightPdf;
+                else {
+                    throw("todo");
+                    /*float weight =
+                        PowerHeuristic(1, lightPdf, 1, scatteringPdf);
+                    Ld += f * Li * weight / lightPdf;*/
+                }
+            }
+        }
+
+
+    }
+
+    if (!light.IsDeltaLight()) {
+
+    }
+
+
+    return Ld;
+
+}
+

@@ -1,27 +1,36 @@
 #include "reflection.h"
 #include "spectrum.h"
 #include "sampler.h"
+#include "sampling.h"
 
+// BxDF基类pdf
 float BxDF::Pdf(const Vector3f& wo, const Vector3f& wi) const {
     return SameHemisphere(wo, wi) ? AbsCosTheta(wi) * InvPi : 0;
 }
 
 Spectrum BxDF::Sample_f(const Vector3f& wo, Vector3f* wi, const Point2f& u, float* pdf, BxDFType* sampledType) const {
-    //// Cosine-sample the hemisphere, flipping the direction if necessary
-    //*wi = CosineSampleHemisphere(u);
-    //if (wo.z < 0) wi->z *= -1;
-    //*pdf = Pdf(wo, *wi);
-    //return f(wo, *wi);
+    //return Spectrum(0.f);
 
-    return Spectrum(0.f);
+    //pbrt 13.5 13.6设计较多数学推导
+    
+    // Cosine-sample the hemisphere, flipping the direction if necessary
+    *wi = CosineSampleHemisphere(u);
+    if (wo.z < 0) wi->z *= -1;
+    *pdf = Pdf(wo, *wi);
+    return f(wo, *wi);
 }
 
 Spectrum LambertianReflection::f(const Vector3f& wo, const Vector3f& wi) const {
+    // 为什么InvPi。待整理。
     return R * InvPi;
 }
 
 Spectrum LambertianTransmission::f(const Vector3f& wo, const Vector3f& wi) const {
     return T * InvPi;
+}
+
+float LambertianTransmission::Pdf(const Vector3f& wo, const Vector3f& wi) const {
+    return !SameHemisphere(wo, wi) ? AbsCosTheta(wi) * InvPi : 0;
 }
 
 Spectrum BSDF::f(const Vector3f& woW, const Vector3f& wiW, BxDFType flags) const {
@@ -44,6 +53,9 @@ Spectrum BSDF::f(const Vector3f& woW, const Vector3f& wiW, BxDFType flags) const
 }
 
 // pbrt page 832
+// 
+// 给定wo。随机找一个匹配类型的bxdf。bxdf进行采样。得到wi。
+// 
 Spectrum BSDF::Sample_f(const Vector3f& woWorld, Vector3f* wiWorld, const Point2f& u, float* pdf, BxDFType type, BxDFType* sampledType) const {
 
     // Choose which _BxDF_ to sample
@@ -78,11 +90,20 @@ Spectrum BSDF::Sample_f(const Vector3f& woWorld, Vector3f* wiWorld, const Point2
 
     // Sample chosen _BxDF_
     Vector3f wi;
-    Vector3f wo = WorldToLocal(woWorld); // 转到本地nts
+    Vector3f wo = WorldToLocal(woWorld); // 转到微小面本地nts
 
-    if (wo.z == 0) return 0.; // normal方向为0
+    if (wo.z == 0)
+        return 0.; // normal方向为0
+
     *pdf = 0;
-    if (sampledType) *sampledType = bxdf->type;
+    if (sampledType)
+        *sampledType = bxdf->type;
+
+    // bxdf采样。已知wo，采样一个wi，算出光能，并拿到pdf。
+    // 例如对于镜面反射，就是完美的对称的wi，pdf为1。光能根据fresnel算。
+    // 例如对于折射，就算折射方向和。光能根据fresnel算。
+    // 对于Lambertian？反射平均分布在半球。随机一个方向？
+    // 坐标必须先转到local。z轴为normal。
     Spectrum f = bxdf->Sample_f(wo, &wi, uRemapped, pdf, sampledType);
 
     //VLOG(2) << "For wo = " << wo << ", sampled f = " << f << ", pdf = " 
@@ -116,6 +137,26 @@ Spectrum BSDF::Sample_f(const Vector3f& woWorld, Vector3f* wiWorld, const Point2
 
     return f;
 }
+
+// 算所有bxdf的平均值
+float BSDF::Pdf(const Vector3f& woWorld, const Vector3f& wiWorld,
+    BxDFType flags) const {
+    //ProfilePhase pp(Prof::BSDFPdf);
+    if (nBxDFs == 0.f) return 0.f;
+    Vector3f wo = WorldToLocal(woWorld), wi = WorldToLocal(wiWorld);
+    if (wo.z == 0) return 0.;
+    float pdf = 0.f;
+    int matchingComps = 0;
+    for (int i = 0; i < nBxDFs; ++i)
+        if (bxdfs[i]->MatchesFlags(flags)) {
+            ++matchingComps;
+            pdf += bxdfs[i]->Pdf(wo, wi);
+        }
+    float v = matchingComps > 0 ? pdf / matchingComps : 0.f;
+    return v;
+}
+
+/////////////////////////////////
 
 float FrDielectric(float cosThetaI, float etaI, float etaT) {
     cosThetaI = Clamp(cosThetaI, -1, 1);
@@ -152,7 +193,7 @@ Spectrum FresnelDielectric::Evaluate(float cosThetaI) const {
 // 镜面的反射部分
 Spectrum SpecularReflection::Sample_f(const Vector3f& wo, Vector3f* wi, const Point2f& sample, float* pdf, BxDFType* sampledType) const {
     // Compute perfect specular reflection direction
-    *wi = Vector3f(-wo.x, -wo.y, wo.z); // 以原点镜面反射
+    *wi = Vector3f(-wo.x, -wo.y, wo.z); // 以原点镜面反射。此时一定是本地坐标，z轴为normal？
     *pdf = 1;
 
     // pbrt page 524

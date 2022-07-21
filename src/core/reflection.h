@@ -85,14 +85,18 @@ public:
     }
 
     int NumComponents(BxDFType flags = BSDF_ALL) const;
+
+    // 计算ss/ts/ns上的分量。即转到微小面本地nts。
     Vector3f WorldToLocal(const Vector3f& v) const {
         return Vector3f(Dot(v, ss), Dot(v, ts), Dot(v, ns));
     }
+
     Vector3f LocalToWorld(const Vector3f& v) const {
         return Vector3f(ss.x * v.x + ts.x * v.y + ns.x * v.z,
             ss.y * v.x + ts.y * v.y + ns.y * v.z,
             ss.z * v.x + ts.z * v.y + ns.z * v.z);
     }
+
     Spectrum f(const Vector3f& woW, const Vector3f& wiW,
         BxDFType flags = BSDF_ALL) const;
     Spectrum rho(int nSamples, const Point2f* samples1, const Point2f* samples2,

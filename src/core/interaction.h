@@ -22,6 +22,10 @@ public:
 	{
 	}
 
+	bool IsSurfaceInteraction() const {
+		return n != Vector3f();
+	}
+
 	Ray SpawnRay(const Vector3f& d) const {
 		// Point3f o = OffsetRayOrigin(p, pError, n, d);
 		return Ray(p, d, Infinity, time);
@@ -71,7 +75,7 @@ public:
 		const RayDifferential& ray,
 		TransportMode mode = TransportMode::Radiance);
 
-	//Spectrum Le(const Vector3f& w) const;
+	Spectrum Le(const Vector3f& w) const;
 
 	void LogSelf();
 

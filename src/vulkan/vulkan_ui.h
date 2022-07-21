@@ -641,7 +641,7 @@ public:
 
 		ImGui::PopItemWidth();
 
-		ImGui::SliderInt("ray_sample_no", &cs.ray_sample_no, 1, 8);
+		ImGui::SliderInt("ray_sample_no", &cs.ray_sample_no, 1, 256);
 		if (ImGui::IsItemDeactivatedAfterEdit()) {
 			cameraChanged = true;
 		}
@@ -697,7 +697,9 @@ public:
 
 				PBR_API_add_sphere("wtfSphere 1", 6, 0, 0, 0, json(
 					{
-						{ "name", "glass" }, // glass mirror
+						{ "name", "glass" }, // glass mirror matte
+						{ "kd", {0.9, 0.4, 0.2} },
+						{ "sigma", 0.8 },
 						{ "kr", {1.0, 1.0, 1.0} },
 						{ "kt", {1.0, 1.0, 1.0} },
 						{ "eta", 1.6},
@@ -708,8 +710,8 @@ public:
 					}
 				));
 				PBR_API_add_sphere("wtfSphere 2 green", 5, -10, 0, 12, json({ { "name", "matte" }, { "kd", {0.2, 0.7, 0.2} }, {"sigma", 0.8} }));
-				PBR_API_add_sphere("wtfSphere 3", 20, 30, 30, 30, json({ { "name", "matte" }, { "kd", {0.8, 0.7, 0.5} }, {"sigma", 0.8} }));
-				PBR_API_add_sphere("wtfSphere 4", 200, 0, 0, -210, 
+				PBR_API_add_sphere("wtfSphere 3", 20, 30, 30, 30, json({ { "name", "matte" }, { "kd", {0.9, 0.4, 0.12} }, {"sigma", 0.8} }));
+				PBR_API_add_sphere("wtfSphere 4", 500, 0, 0, -510, 
 					json({
 						{ "name", "matte" },
 						{ "kd", {0.8, 0.6, 0.6} },
@@ -725,7 +727,23 @@ public:
 						//{ "remaproughness", false}
 					})
 				);
-				PBR_API_add_sphere("wtfSphere 5", 2, 7.2, 0, -5, json({ { "name", "matte" }, { "kd", {0.8, 0.0, 0.4} }, {"sigma", 0.8} }));
+				PBR_API_add_sphere("wtfSphere 55", 2, 7.2, -2, -3, json({
+					{ "name", "matte" },
+					{ "kd", {0.8, 0.0, 0.4} },
+					{"sigma", 0.8}
+					/*{ "name", "mirror" },
+					{ "kr", {1.0, 1.0, 1.0} },
+					{ "bumpmap", 0},*/
+				}));
+
+				PBR_API_add_sphere("wtfSphere 5", 5, 10, 8, 5, json({
+					/*{ "name", "matte" },
+					{ "kd", {0.8, 0.0, 0.4} },
+					{"sigma", 0.8}*/
+					{ "name", "mirror" },
+					{ "kr", {1.0, 1.0, 1.0} },
+					{ "bumpmap", 0},
+				}));
 
 				PBR_API_add_sphere("wtfSphere 6", 3, 14, 0, -5, json(
 					{
@@ -759,6 +777,15 @@ public:
 				PBR_API_add_sphere("wtfSphere 9",  4, 0, 16, 3, json({ { "name", "matte" }, { "kd", {1, 0.0, 0.1} }, {"sigma", 0.8} }));
 				PBR_API_add_sphere("wtfSphere 10", 2, 0, 16, -6, json({ { "name", "matte" }, { "kd", {0, 1, 0.5} }, {"sigma", 0.8} }));
 
+				PBR_API_add_sphere("wtfSphere 11", 2, -5, -10, -4, json({
+					{ "name", "matte" },
+					{ "kd", {0.2, 0.3, 0.8} },
+					{"sigma", 0.8}
+					/*{ "name", "mirror" },
+					{ "kr", {1.0, 1.0, 1.0} },
+					{ "bumpmap", 0},*/
+					}));
+
 				//PBR_API_add_point_light("wtf Light"s, 0, 30, 0);
 				PBR_API_add_point_light("wtf Light", 0, 0, 20);
 				//PBR_API_add_point_light("wtf Light 2", 15, 0, 10);
@@ -786,22 +813,24 @@ public:
 
 		ImGui::End();
 
-		//Log("resolution %d, %d", resolution[0], resolution[1]);
-		ImGui::SetNextWindowSize(ImVec2(cs.resolution[0] + 20, cs.resolution[1] + 50));
-		ImGui::SetNextWindowPos(ImVec2(20, 140));
+		{
+			//Log("resolution %d, %d", resolution[0], resolution[1]);
+			ImGui::SetNextWindowSize(ImVec2(cs.resolution[0] + 20, cs.resolution[1] + 50));
+			ImGui::SetNextWindowPos(ImVec2(20, 140));
 
-		ImGui::Begin("Scene");
+			ImGui::Begin("Scene");
 
-		//ImGui::Image((ImTextureID)app.renderImage.descriptorSet);
-		//ImGui::Image((ImTextureID)renderImageID, ImVec2(80, 80), ImVec2(0.0f, 0.0f), ImVec2(1.0f, 1.0f));
-		//Log("renderImageID %d", (ImTextureID)renderImageID);
+			//ImGui::Image((ImTextureID)app.renderImage.descriptorSet);
+			//ImGui::Image((ImTextureID)renderImageID, ImVec2(80, 80), ImVec2(0.0f, 0.0f), ImVec2(1.0f, 1.0f));
+			//Log("renderImageID %d", (ImTextureID)renderImageID);
 
-		//std::cout << "renderImageID = " << renderImageID << std::endl;
-		ImGui::Image((ImTextureID)app->renderImage.descriptorSet, ImVec2(cs.resolution[0], cs.resolution[1]), ImVec2(0.0f, 0.0f), ImVec2(1.0f, 1.0f));
+			//std::cout << "renderImageID = " << renderImageID << std::endl;
+			ImGui::Image((ImTextureID)app->renderImage.descriptorSet, ImVec2(cs.resolution[0], cs.resolution[1]), ImVec2(0.0f, 0.0f), ImVec2(1.0f, 1.0f));
 
 
 
-		ImGui::End();
+			ImGui::End();
+		}
 	}
 
 	struct vec2 {

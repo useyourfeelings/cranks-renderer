@@ -12,7 +12,7 @@ public:
         I(I) {
         pos = LightToWorld(Point3f(0, 0, 0));
     }
-    Spectrum Sample_Li(const Interaction& ref, Vector3f* wi, float* pdf) const;
+    Spectrum Sample_Li(const Interaction& ref, const Point2f& u, Vector3f* wi, float* pdf) const;
     /*Spectrum Power() const;
     Float Pdf_Li(const Interaction&, const Vector3f&) const;
     Spectrum Sample_Le(const Point2f& u1, const Point2f& u2, Float time,

@@ -5,6 +5,7 @@
 #include "../light/point.h"
 #include "../shape/sphere.h"
 #include "../integrator/whitted.h"
+#include "../integrator/path.h"
 #include "texture.h"
 #include "../tool/logger.h"
 #include "setting.h"
@@ -199,7 +200,8 @@ void PbrApp::SetIntegrator() {
 	if (this->integrator != nullptr)
 		return;
 
-	SetWhittedIntegrator();
+	//SetWhittedIntegrator();
+	SetPathIntegrator();
 }
 
 void PbrApp::SetWhittedIntegrator() {
@@ -209,6 +211,16 @@ void PbrApp::SetWhittedIntegrator() {
 	BBox2i bounds(Point2i(0, 0), Point2i(camera->resolutionX, camera->resolutionY));
 
 	this->integrator = std::unique_ptr<Integrator>(new WhittedIntegrator(maxDepth, camera, sampler, bounds));
+}
+
+void PbrApp::SetPathIntegrator() {
+	//Log("SetPathIntegrator");
+
+	int maxDepth = 3;
+	BBox2i bounds(Point2i(0, 0), Point2i(camera->resolutionX, camera->resolutionY));
+	float rrThreshold = 0;
+
+	this->integrator = std::unique_ptr<Integrator>(new PathIntegrator(maxDepth, camera, sampler, bounds, rrThreshold, "uniform"));
 }
 
 void PbrApp::SaveSetting() {

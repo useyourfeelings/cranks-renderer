@@ -34,6 +34,8 @@ template <typename T> class Texture;
 //static float Error1 = 1;// 2;// 1.5;//0.001;
 static float Pi = 3.14159265358979323846;
 static float InvPi = 0.31830988618379067154;
+static float PiOver2 = 1.57079632679489661923;
+static float PiOver4 = 0.78539816339744830961;
 
 inline float Radians(float deg) { return deg * Pi / 180; }
 

@@ -6,6 +6,24 @@
 #include "../base/efloat.h"
 
 template <typename T>
+class Point2;
+
+template <typename T>
+class Vector2 {
+public:
+	// Vector2 Public Methods
+	Vector2() { x = y = 0; }
+	Vector2(T xx, T yy) : x(xx), y(yy) {
+		//DCHECK(!HasNaNs()); 
+	}
+	//bool HasNaNs() const { return isNaN(x) || isNaN(y); }
+
+	T x, y, z;
+
+};
+
+
+template <typename T>
 class Point3;
 
 template <typename T>
@@ -63,6 +81,14 @@ public:
 		return *this;
 	}
 
+	bool operator==(const Vector3<T>& n) const {
+		return x == n.x && y == n.y && z == n.z;
+	}
+
+	bool operator!=(const Vector3<T>& n) const {
+		return x != n.x || y != n.y || z != n.z;
+	}
+
 	float Length() const {
 		return sqrt(x * x + y * y + z * z);
 	}
@@ -75,7 +101,7 @@ public:
 		Log("%s Vector3 %f %f %f", msg, x, y, z);
 	}
 
-	float x, y, z;
+	T x, y, z;
 };
 
 template <typename T>
@@ -158,6 +184,16 @@ public:
 		return Point2<T>(x + p.x, y + p.y);
 	}
 
+	template <typename U>
+	Point2<T> operator*(U f) const {
+		return Point2<T>(f * x, f * y);
+	}
+
+	Point2<T> operator-(const Vector2<T>& v) const {
+		//DCHECK(!v.HasNaNs());
+		return Point2<T>(x - v.x, y - v.y);
+	}
+
 	T x, y;
 };
 
@@ -201,8 +237,8 @@ public:
 	Point3<T> pMin, pMax;
 };
 
-//typedef Vector2<float> Vector2f;
-//typedef Vector2<int> Vector2i;
+typedef Vector2<float> Vector2f;
+typedef Vector2<int> Vector2i;
 typedef Vector3<float> Vector3f;
 typedef Vector3<int> Vector3i;
 typedef Point2<float> Point2f;

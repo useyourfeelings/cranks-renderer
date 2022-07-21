@@ -4,7 +4,6 @@
 #include "error.h"
 #include "../tool/logger.h"
 #include "geometry.h"
-#include "geometry.h"
 #include "setting.h"
 
 int PBR_API_hi() {

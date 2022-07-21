@@ -42,6 +42,27 @@ public:
         return progress;
     }
 
+    Spectrum GetSky(float dz) const {
+        Spectrum sky_spectrum;
+        /*sky_spectrum.c[0] = 0.6;
+        sky_spectrum.c[1] = 0.7;
+        sky_spectrum.c[2] = 0.9;*/
+
+        // https://raytracing.github.io/books/RayTracingInOneWeekend.html
+        // gradient sky
+
+        float t = (dz + 1) * 0.5; // map to [0, 1]
+        /*sky_spectrum.c[0] = 1 - t + t * 0.5;
+        sky_spectrum.c[1] = 1 - t + t * 0.7;
+        sky_spectrum.c[2] = 1 - t + t * 1;*/
+
+        sky_spectrum.c[0] = 1 - t * 0.5;
+        sky_spectrum.c[1] = 1 - t * 0.3;
+        sky_spectrum.c[2] = 1;
+
+        return sky_spectrum;
+    }
+
     std::vector<int> render_progress_now, render_progress_total;
     int render_status;// , render_progress_now, render_progress_total;
     int has_new_photo;
@@ -81,5 +102,19 @@ private:
     std::shared_ptr<Sampler> sampler;
     const BBox2i pixelBounds;
 };
+
+
+//////////////////////////////
+
+Spectrum UniformSampleOneLight(const Interaction& it, const Scene& scene,
+    Sampler& sampler,
+    bool handleMedia = false,
+    const Distribution1D* lightDistrib = nullptr);
+
+Spectrum EstimateDirect(const Interaction& it, const Point2f& uShading,
+    const Light& light, const Point2f& uLight,
+    const Scene& scene, Sampler& sampler,
+    bool handleMedia = false,
+    bool specular = false);
 
 #endif

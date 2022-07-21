@@ -1,6 +1,6 @@
 #include "point.h"
 
-Spectrum PointLight::Sample_Li(const Interaction& ref, Vector3f* wi, float* pdf) const {
+Spectrum PointLight::Sample_Li(const Interaction& ref, const Point2f& u, Vector3f* wi, float* pdf) const {
     //ProfilePhase _(Prof::LightSample);
     //auto v = pLight - ref.p;
     //auto vn = Normalize(v);

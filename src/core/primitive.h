@@ -17,7 +17,7 @@ public:
     //virtual Bounds3f WorldBound() const = 0;
     virtual bool Intersect(const Ray& r, float* tHit, SurfaceInteraction*) const = 0;
     virtual bool Intersect(const Ray& r) const = 0;
-    //virtual const AreaLight* GetAreaLight() const = 0;
+    //virtual const AreaLight* GetAreaLight() const = 0; // pbrt page 249 如果此物体发光，会带一个AreaLight。
     //virtual const Material* GetMaterial() const = 0;
     virtual void ComputeScatteringFunctions(SurfaceInteraction* isect, TransportMode mode) const = 0;
 

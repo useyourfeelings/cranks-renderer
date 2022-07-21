@@ -2,6 +2,7 @@
 #define CORE_SCENE_H
 
 #include <list>
+#include <vector>
 #include <memory>
 #include <string>
 #include "geometry.h"
@@ -21,7 +22,7 @@ public:
 	void AddPrimitive(std::shared_ptr<Primitive>, const std::string &name);
 	void PrintScene();
 
-	std::list<std::shared_ptr<Light>> lights;
+	std::vector<std::shared_ptr<Light>> lights;
 	std::list<std::shared_ptr<Primitive>> primitives;
 
 	int current_id;

@@ -75,6 +75,12 @@ public:
         return ret;
     }
 
+    CoefficientSpectrum& operator*=(const CoefficientSpectrum& sp) {
+        //DCHECK(!sp.HasNaNs());
+        for (int i = 0; i < nSpectrumSamples; ++i) c[i] *= sp.c[i];
+        return *this;
+    }
+
     CoefficientSpectrum operator-(const CoefficientSpectrum& s2) const {
         //DCHECK(!s2.HasNaNs());
         CoefficientSpectrum ret = *this;

@@ -85,3 +85,7 @@ void SurfaceInteraction::ComputeScatteringFunctions(const RayDifferential& ray, 
     primitive->ComputeScatteringFunctions(this, mode);
 }
 
+//Spectrum SurfaceInteraction::Le(const Vector3f& w) const {
+//    const AreaLight* area = primitive->GetAreaLight();
+//    return area ? area->L(*this, w) : Spectrum(0.f);
+//}
