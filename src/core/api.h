@@ -27,11 +27,14 @@ void PBR_API_render(const json&);
 int PBR_API_stop_rendering();
 int PBR_API_add_sphere(const std::string &name, float radius, float x, float y, float z, const json& material_config);
 int PBR_API_add_point_light(const std::string& name, float x, float y, float z);
+int PBR_API_add_infinite_light(const std::string& name, float x, float y, float z, float r, float g, float b, float strength, float nSample, const std::string& texmap);
 int PBR_API_set_perspective_camera(const CameraSetting &s);
 int PBR_API_get_camera_setting(CameraSetting &s);
 int PBR_API_get_defualt_camera_setting(CameraSetting& s);
 int PBR_API_save_setting();
 int PBR_API_get_render_progress(int * status, std::vector<int>& now, std::vector<int>& total, int* has_new_photo);
-int PBR_API_get_new_image(char* dst);
+int PBR_API_get_new_image(unsigned char* dst);
+int PBR_API_make_test_mipmap(const std::string& name);
+int PBR_API_get_mipmap_image(int index, std::vector<unsigned char>& data, int& x, int& y);
 
 #endif

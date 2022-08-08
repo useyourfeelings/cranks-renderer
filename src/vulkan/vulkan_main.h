@@ -20,7 +20,8 @@ public:
     ~VulkanApp();
 
     int init();
-    int BuildImage(int width, int height, char* pixels);
+    int BuildImage(int width, int height, unsigned char* pixels);
+    int BuildTestImage(int width, int height, unsigned char* pixels, int index);
     int DestroyCommandBuffers();
     int CreateCommandBuffers();
     void BuildCommandBuffers();
@@ -97,6 +98,8 @@ public:
     VkPhysicalDeviceMemoryProperties gpuMemoryProperties;
 
     VulkanImage renderImage;
+
+    std::vector<std::shared_ptr<VulkanImage>> testImages;
 };
 
 inline VulkanApp vulkan_app;

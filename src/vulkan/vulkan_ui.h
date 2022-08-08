@@ -18,6 +18,7 @@
 #include "../base/events.h"
 #include "../tool/logger.h"
 #include"../base/json.h"
+#include "../tool/image.h"
 
 class VulkanUI {
 public:
@@ -543,10 +544,40 @@ public:
 
 		static CameraSetting cs;
 
+		std::string hdr_file = "crosswalk_1k.hdr"; // alps_field_1k.hdr crosswalk_1k.hdr tv_studio_1k delta_2_1k
+
 		if (init_status == 0) {
 			PBR_API_get_camera_setting(cs);
 			PBR_API_set_perspective_camera(cs);
 			init_status = 1;
+
+			// hdr test. mipmap test.
+			//int res_x, res_y;
+			//auto image_data = ReadHDRRaw("crosswalk_1k.hdr", &res_x, &res_y);
+
+			//app->BuildTestImage(res_x, res_y, image_data, 0);
+
+			PBR_API_make_test_mipmap(hdr_file);  // alps_field_1k.hdr crosswalk_1k.hdr
+
+			int res_x, res_y;
+			std::vector<unsigned char> image_data;
+			PBR_API_get_mipmap_image(0, image_data, res_x, res_y);
+			app->BuildTestImage(res_x, res_y, image_data.data(), 0);
+
+			PBR_API_get_mipmap_image(1, image_data, res_x, res_y);
+			app->BuildTestImage(res_x, res_y, image_data.data(), 1);
+
+			PBR_API_get_mipmap_image(2, image_data, res_x, res_y);
+			app->BuildTestImage(res_x, res_y, image_data.data(), 2);
+
+			PBR_API_get_mipmap_image(3, image_data, res_x, res_y);
+			app->BuildTestImage(res_x, res_y, image_data.data(), 3);
+
+			PBR_API_get_mipmap_image(4, image_data, res_x, res_y);
+			app->BuildTestImage(res_x, res_y, image_data.data(), 4);
+
+			PBR_API_get_mipmap_image(5, image_data, res_x, res_y);
+			app->BuildTestImage(res_x, res_y, image_data.data(), 5);
 		}
 
 		//int progress_now, progress_total,
@@ -555,7 +586,7 @@ public:
 		PBR_API_get_render_progress(&render_status, progress_now, progress_total, &has_new_photo);
 
 		if (has_new_photo) {
-			std::vector<char> image_data(cs.resolution[0] * cs.resolution[1] * 4);
+			std::vector<unsigned char> image_data(cs.resolution[0] * cs.resolution[1] * 4);
 			PBR_API_get_new_image(image_data.data());
 			app->BuildImage(cs.resolution[0], cs.resolution[1], image_data.data());
 		}
@@ -641,7 +672,7 @@ public:
 
 		ImGui::PopItemWidth();
 
-		ImGui::SliderInt("ray_sample_no", &cs.ray_sample_no, 1, 256);
+		ImGui::SliderInt("ray_sample_no", &cs.ray_sample_no, 1, 100);
 		if (ImGui::IsItemDeactivatedAfterEdit()) {
 			cameraChanged = true;
 		}
@@ -695,6 +726,7 @@ public:
 			if (set_default_scene == 0) {
 				set_default_scene = 1;
 
+#if 1
 				PBR_API_add_sphere("wtfSphere 1", 6, 0, 0, 0, json(
 					{
 						{ "name", "glass" }, // glass mirror matte
@@ -711,7 +743,7 @@ public:
 				));
 				PBR_API_add_sphere("wtfSphere 2 green", 5, -10, 0, 12, json({ { "name", "matte" }, { "kd", {0.2, 0.7, 0.2} }, {"sigma", 0.8} }));
 				PBR_API_add_sphere("wtfSphere 3", 20, 30, 30, 30, json({ { "name", "matte" }, { "kd", {0.9, 0.4, 0.12} }, {"sigma", 0.8} }));
-				PBR_API_add_sphere("wtfSphere 4", 500, 0, 0, -510, 
+				PBR_API_add_sphere("wtfSphere 4", 500, 0, 0, -518, 
 					json({
 						{ "name", "matte" },
 						{ "kd", {0.8, 0.6, 0.6} },
@@ -727,6 +759,7 @@ public:
 						//{ "remaproughness", false}
 					})
 				);
+
 				PBR_API_add_sphere("wtfSphere 55", 2, 7.2, -2, -3, json({
 					{ "name", "matte" },
 					{ "kd", {0.8, 0.0, 0.4} },
@@ -785,10 +818,11 @@ public:
 					{ "kr", {1.0, 1.0, 1.0} },
 					{ "bumpmap", 0},*/
 					}));
-
-				//PBR_API_add_point_light("wtf Light"s, 0, 30, 0);
+#endif
+				//PBR_API_add_point_light("wtf Light 2", 10, 30, 10);
 				PBR_API_add_point_light("wtf Light", 0, 0, 20);
-				//PBR_API_add_point_light("wtf Light 2", 15, 0, 10);
+
+				PBR_API_add_infinite_light("inf light", 0, 0, 100, 1, 1, 1, 1.4, 4, hdr_file); // alps_field_1k.hdr crosswalk_1k.hdr
 			}
 
 			SendEvent(RENDER_TASK_ID);
@@ -826,6 +860,27 @@ public:
 
 			//std::cout << "renderImageID = " << renderImageID << std::endl;
 			ImGui::Image((ImTextureID)app->renderImage.descriptorSet, ImVec2(cs.resolution[0], cs.resolution[1]), ImVec2(0.0f, 0.0f), ImVec2(1.0f, 1.0f));
+
+			ImGui::End();
+		}
+
+		{
+			//ImGui::SetNextWindowSize(ImVec2(1024 + 20, 1024 + 50));
+			//ImGui::SetNextWindowPos(ImVec2(512, 20));
+
+			ImGui::Begin("mipmap");
+
+			//ImGui::Image((ImTextureID)app.renderImage.descriptorSet);
+			//ImGui::Image((ImTextureID)renderImageID, ImVec2(80, 80), ImVec2(0.0f, 0.0f), ImVec2(1.0f, 1.0f));
+			//Log("renderImageID %d", (ImTextureID)renderImageID);
+
+			ImGui::Image((ImTextureID)app->testImages[0]->descriptorSet, ImVec2(app->testImages[0]->width, app->testImages[0]->height), ImVec2(0.0f, 0.0f), ImVec2(1.0f, 1.0f));
+			ImGui::Image((ImTextureID)app->testImages[1]->descriptorSet, ImVec2(app->testImages[1]->width, app->testImages[1]->height), ImVec2(0.0f, 0.0f), ImVec2(1.0f, 1.0f));
+			ImGui::Image((ImTextureID)app->testImages[2]->descriptorSet, ImVec2(app->testImages[2]->width, app->testImages[2]->height), ImVec2(0.0f, 0.0f), ImVec2(1.0f, 1.0f));
+			ImGui::Image((ImTextureID)app->testImages[3]->descriptorSet, ImVec2(app->testImages[3]->width, app->testImages[3]->height), ImVec2(0.0f, 0.0f), ImVec2(1.0f, 1.0f));
+			ImGui::Image((ImTextureID)app->testImages[4]->descriptorSet, ImVec2(app->testImages[4]->width, app->testImages[4]->height), ImVec2(0.0f, 0.0f), ImVec2(1.0f, 1.0f));
+			ImGui::Image((ImTextureID)app->testImages[5]->descriptorSet, ImVec2(app->testImages[5]->width, app->testImages[5]->height), ImVec2(0.0f, 0.0f), ImVec2(1.0f, 1.0f));
+
 
 
 

@@ -80,7 +80,7 @@ source_group(light src/light)
 source_group(integrator src/integrator)
 source_group(vulkan src/vulkan)
 
-source_group(imgui ${IMGUI_DIR})
+source_group(third_party/imgui ${IMGUI_DIR})
 
 #source_group(TREE "src" FILES ${PBR_CODE})
 #source_group(cranks-renderer  FILES ${PBR_CODE})

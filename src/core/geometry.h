@@ -375,5 +375,14 @@ inline Point3f OffsetRayOrigin(const Point3f& p, const Vector3f& pError, const V
 	return po;
 }
 
+inline float SphericalTheta(const Vector3f& v) {
+	return std::acos(Clamp(v.z, -1, 1));
+}
+
+inline float SphericalPhi(const Vector3f& v) {
+	float p = std::atan2(v.y, v.x);
+	return (p < 0) ? (p + 2 * Pi) : p;
+}
+
 
 #endif // !CORE_GEOMETRY_H

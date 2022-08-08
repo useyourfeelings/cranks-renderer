@@ -37,9 +37,19 @@ Spectrum PathIntegrator::Li(const RayDifferential& r, const Scene& scene, Sample
                 //VLOG(2) << "Added Le -> L = " << L;
             }
             else {
-                //for (const auto& light : scene.infiniteLights)
-                //    L += beta * light->Le(ray);
-                //VLOG(2) << "Added infinite area lights -> L = " << L;
+                // 对于specularBounce，上一次反射是镜面反射。
+                // 镜面反射是不加直接光的。到这里如果没碰撞，就是打到环境了。就得返回环境。否则就是全黑。
+
+                // bounces == 0
+                // 特殊情况，眼睛直接看到环境。
+
+                // 环境光
+                //L += GetFakeSky(ray.d.z);
+                for (const auto& light : scene.infiniteLights) {
+                    auto le = light->Le(ray);
+                    L += beta * le;
+                }
+                    
             }
         }
 
@@ -81,6 +91,8 @@ Spectrum PathIntegrator::Li(const RayDifferential& r, const Scene& scene, Sample
 
         // 更新beta
         beta *= f * AbsDot(wi, isect.shading.n) / pdf;
+
+        specularBounce = (flags & BSDF_SPECULAR) != 0;
 
         ray = isect.SpawnRay(wi);
     }

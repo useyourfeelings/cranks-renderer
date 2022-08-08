@@ -26,3 +26,19 @@ Vector3f CosineSampleHemisphere(const Point2f& u) {
     float z = std::sqrt(std::max((float)0, 1 - d.x * d.x - d.y * d.y));
     return Vector3f(d.x, d.y, z);
 }
+
+// pConditionalV。一组Distribution1D。
+// pMarginal。以每一组的平均值再生成一个Distribution1D。
+Distribution2D::Distribution2D(const float* data, int nu, int nv) {
+    pConditionalV.reserve(nv);
+    for (int v = 0; v < nv; ++v) {
+        // Compute conditional sampling distribution for $\tilde{v}$
+        pConditionalV.emplace_back(new Distribution1D(&data[v * nu], nu));
+    }
+    // Compute marginal sampling distribution $p[\tilde{v}]$
+    std::vector<float> marginalFunc;
+    marginalFunc.reserve(nv);
+    for (int v = 0; v < nv; ++v)
+        marginalFunc.push_back(pConditionalV[v]->funcInt);
+    pMarginal.reset(new Distribution1D(&marginalFunc[0], nv));
+}

@@ -34,10 +34,40 @@ template <typename T> class Texture;
 //static float Error1 = 1;// 2;// 1.5;//0.001;
 static float Pi = 3.14159265358979323846;
 static float InvPi = 0.31830988618379067154;
+static float Inv2Pi = 0.15915494309189533577;
 static float PiOver2 = 1.57079632679489661923;
 static float PiOver4 = 0.78539816339744830961;
 
 inline float Radians(float deg) { return deg * Pi / 180; }
+
+
+// pbrt page 1064
+template <typename T>
+inline bool IsPowerOf2(T v) {
+	return v && !(v & (v - 1));
+}
+
+// pbrt page 1064
+inline int32_t RoundUpPow2(int32_t v) {
+	v--;
+	v |= v >> 1;
+	v |= v >> 2;
+	v |= v >> 4;
+	v |= v >> 8;
+	v |= v >> 16;
+	return v + 1;
+}
+
+inline int64_t RoundUpPow2(int64_t v) {
+	v--;
+	v |= v >> 1;
+	v |= v >> 2;
+	v |= v >> 4;
+	v |= v >> 8;
+	v |= v >> 16;
+	v |= v >> 32;
+	return v + 1;
+}
 
 template <typename T, typename U, typename V>
 inline T Clamp(T val, U low, V high) {
@@ -47,6 +77,12 @@ inline T Clamp(T val, U low, V high) {
 		return high;
 	else
 		return val;
+}
+
+template <typename T>
+inline T Mod(T a, T b) {
+	T result = a - (a / b) * b;
+	return (T)((result < 0) ? result + b : result);
 }
 
 inline int Quadratic(float a, float b, float c, float *r1, float *r2) {

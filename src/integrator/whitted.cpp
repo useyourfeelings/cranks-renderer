@@ -13,7 +13,7 @@ Spectrum WhittedIntegrator::Li(const RayDifferential& ray, const Scene& scene, S
     SurfaceInteraction isect;
     float tHit;
     if (!scene.Intersect(ray, & tHit, &isect)) {
-        return GetSky(ray.d.z);
+        return GetFakeSky(ray.d.z);
     }
 
     Log("scene Intersect");

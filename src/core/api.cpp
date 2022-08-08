@@ -4,6 +4,7 @@
 #include "error.h"
 #include "../tool/logger.h"
 #include "geometry.h"
+#include "spectrum.h"
 #include "setting.h"
 
 int PBR_API_hi() {
@@ -24,6 +25,11 @@ int PBR_API_add_sphere(const std::string& name, float radius, float x, float y, 
 
 int PBR_API_add_point_light(const std::string& name, float x, float y, float z) {
 	app.AddPointLight(name, Point3f(x, y, z));
+	return 0;
+}
+
+int PBR_API_add_infinite_light(const std::string& name, float x, float y, float z, float r, float g, float b, float strength, float nSample, const std::string& texmap) {
+	app.AddInfiniteLight(name, Point3f(x, y, z), Spectrum(r, g, b), strength, nSample, texmap);
 	return 0;
 }
 
@@ -114,7 +120,17 @@ int PBR_API_stop_rendering() {
 	return 0;
 }
 
-int PBR_API_get_new_image(char* dst) {
+int PBR_API_get_new_image(unsigned char* dst) {
 	app.SendNewImage(dst);
+	return 0;
+}
+
+int PBR_API_make_test_mipmap(const std::string& name) {
+	app.MakeTestMipmap(name);
+	return 0;
+}
+
+int PBR_API_get_mipmap_image(int index, std::vector<unsigned char>& data, int &x, int &y) {
+	app.GetTestMipmapImage(index, data, x, y);
 	return 0;
 }

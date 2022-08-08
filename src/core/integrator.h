@@ -42,7 +42,7 @@ public:
         return progress;
     }
 
-    Spectrum GetSky(float dz) const {
+    Spectrum GetFakeSky(float dz) const {
         Spectrum sky_spectrum;
         /*sky_spectrum.c[0] = 0.6;
         sky_spectrum.c[1] = 0.7;

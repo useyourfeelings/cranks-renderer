@@ -3,11 +3,13 @@
 #include "app.h"
 #include "geometry.h"
 #include "../light/point.h"
+#include "../light/infinite.h"
 #include "../shape/sphere.h"
 #include "../integrator/whitted.h"
 #include "../integrator/path.h"
 #include "texture.h"
 #include "../tool/logger.h"
+#include "../tool/image.h"
 #include "setting.h"
 
 std::shared_ptr<Material> PbrApp::GenMaterial(const json& material_config) {
@@ -74,6 +76,13 @@ void PbrApp::AddPointLight(const std::string& name, Point3f pos) {
 	auto t = Translate(Vector3f(pos.x, pos.y, pos.z));
 
 	this->scene->AddLight(std::make_shared<PointLight>(t, Spectrum(1, 1, 1)), name);
+}
+
+void PbrApp::AddInfiniteLight(const std::string& name, Point3f pos, const Spectrum& power, float strength,
+	int nSamples, const std::string& texmap) {
+	auto t = Translate(Vector3f(pos.x, pos.y, pos.z));
+
+	this->scene->AddInfiniteLight(std::make_shared<InfiniteAreaLight>(t, power, strength, nSamples, texmap), name);
 }
 
 void PbrApp::PrintScene() {
@@ -227,7 +236,7 @@ void PbrApp::SaveSetting() {
 	setting.SaveFile();
 }
 
-int PbrApp::SendNewImage(char* dst) {
+int PbrApp::SendNewImage(unsigned char* dst) {
 	std::lock_guard<std::mutex> lock(image_mutex);
 
 	if (!this->integrator->has_new_photo) {
@@ -239,4 +248,23 @@ int PbrApp::SendNewImage(char* dst) {
 	this->camera->film->WriteVector(dst);
 
 	return 0;
+}
+
+void PbrApp::MakeTestMipmap(const std::string& file_name) {
+	int res_x, res_y;
+	auto image_data = ReadHDRRaw(file_name, &res_x, &res_y);
+
+	auto spectrum_data = new RGBSpectrum[res_x * res_y];
+	for (int i = 0; i < res_x * res_y; ++i) {
+		spectrum_data[i] = RGBSpectrum(image_data[i * 4] / 255.f, image_data[i * 4 + 1] / 255.f, image_data[i * 4 + 2] / 255.f);
+	}
+
+	this->test_mipmap = std::make_unique<MIPMap<RGBSpectrum>>(Point2i(res_x, res_y), spectrum_data);
+
+
+	delete[]spectrum_data;
+}
+
+void PbrApp::GetTestMipmapImage(int index, std::vector<unsigned char>& data, int& x, int& y) {
+	this->test_mipmap->getMipmapImage(index, data, x, y);
 }

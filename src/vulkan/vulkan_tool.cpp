@@ -218,8 +218,10 @@ int VulkanImage::Clean() {
 	return 0;
 }
 
-int VulkanImage::BuildImage(std::shared_ptr<VulkanDevice> device, uint32_t width, uint32_t height, char * pixels) {
+int VulkanImage::BuildImage(std::shared_ptr<VulkanDevice> device, uint32_t width, uint32_t height, unsigned char * pixels) {
 	std::cout << "VulkanImage.BuildImage()" << std::endl;
+
+	this->status = 1;
 
 	this->device = device;
 	this->width = width;

@@ -26,7 +26,7 @@ void Film::WritePPMImage() {
 	f.close();
 }
 
-void Film::WriteVector(char *dst) {
+void Film::WriteVector(unsigned char *dst) {
 	Log("WriteVector");
 	
 	int index, dst_index;

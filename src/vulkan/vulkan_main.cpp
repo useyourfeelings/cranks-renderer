@@ -8,7 +8,8 @@
 #include "vulkan_main.h"
 #include "vulkan_ui.h"
 
-VulkanApp::VulkanApp() {
+VulkanApp::VulkanApp():
+    testImages(0) {
     std::cout << "VulkanApp.VulkanApp()" << std::endl;
 }
 
@@ -434,10 +435,26 @@ int VulkanApp::init() {
     return 0;
 }
 
-int VulkanApp::BuildImage(int width, int height, char * pixels) {
+int VulkanApp::BuildImage(int width, int height, unsigned char * pixels) {
     this->renderImage.Clean();
 
     this->renderImage.BuildImage(device, width, height, pixels);
+
+    return 0;
+}
+
+int VulkanApp::BuildTestImage(int width, int height, unsigned char* pixels, int index) {
+    if (testImages.size() <= (index + 1)) {
+        testImages.resize(index + 1);
+    }
+
+    if (testImages[index] != nullptr)
+        return -1;
+
+
+    this->testImages[index] = std::make_shared<VulkanImage>();
+
+    this->testImages[index]->BuildImage(device, width, height, pixels);
 
     return 0;
 }
@@ -789,6 +806,9 @@ int VulkanApp::clean() {
     vkDestroyShaderModule(gpu, fragShader, nullptr);
     vkDestroyShaderModule(gpu, vertShader, nullptr);
 
+    for (auto i : testImages) {
+        i->Clean();
+    }
         
     renderImage.Clean();
     swapChain->Clean();

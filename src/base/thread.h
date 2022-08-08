@@ -51,9 +51,9 @@ private:
         catch (const std::exception& e) {
             std::cout << "Thread catch exception " << e.what();
         }
-        catch (...) {
+        /*catch (...) {
             std::cout << "Thread catch ..." << std::endl;
-        }
+        }*/
 
         status = THREAD_DONE;
 

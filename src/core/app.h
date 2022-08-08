@@ -15,6 +15,7 @@
 #include "geometry.h"
 #include "../tool/logger.h"
 #include "setting.h"
+#include "mipmap.h"
 
 class PbrApp {
 public:
@@ -44,7 +45,7 @@ public:
 	void AddSphere(const std::string& name, float radius, Point3f position, const json& material_config);
 	
 	void AddPointLight(const std::string& name, Point3f position);
-
+	void AddInfiniteLight(const std::string& name, Point3f pos, const Spectrum& power, float strength, int nSamples, const std::string& texmap);
 	//
 
 	void RenderScene();
@@ -66,15 +67,21 @@ public:
 	void SetPathIntegrator();
 	void SaveSetting();
 
+	//
+	void MakeTestMipmap(const std::string& file_name);
+	void GetTestMipmapImage(int index, std::vector<unsigned char>& data, int& x, int& y);
+
 	std::unique_ptr<Scene> scene;
 	std::shared_ptr<Camera> camera;
 	std::shared_ptr<Sampler> sampler;
 	std::unique_ptr<Integrator> integrator;
 	std::vector<std::shared_ptr<Film>> film_list;
 
+	std::unique_ptr<MIPMap<RGBSpectrum>> test_mipmap = nullptr;
+
 	std::mutex image_mutex;
 
-	int SendNewImage(char* dst);
+	int SendNewImage(unsigned char* dst);
 };
 
 inline PbrApp app;

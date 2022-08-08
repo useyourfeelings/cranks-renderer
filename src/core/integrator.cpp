@@ -389,10 +389,10 @@ Spectrum EstimateDirect(const Interaction& it, const Point2f& uScattering,
                 if (light.IsDeltaLight())
                     Ld += f * Li / lightPdf;
                 else {
-                    throw("todo");
-                    /*float weight =
-                        PowerHeuristic(1, lightPdf, 1, scatteringPdf);
-                    Ld += f * Li * weight / lightPdf;*/
+                    float weight = PowerHeuristic(1, lightPdf, 1, scatteringPdf); // todo??
+                    auto add = f * Li * weight / lightPdf;
+                    Ld += add ;
+                    //Ld += f * Li * weight / lightPdf;
                 }
             }
         }
@@ -401,7 +401,7 @@ Spectrum EstimateDirect(const Interaction& it, const Point2f& uScattering,
     }
 
     if (!light.IsDeltaLight()) {
-
+        // todo
     }
 
 

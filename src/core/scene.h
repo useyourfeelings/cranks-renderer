@@ -19,10 +19,12 @@ public:
 	bool Intersect(const Ray& ray, int except_id) const;
 
 	void AddLight(std::shared_ptr<Light>, const std::string& name);
+	void AddInfiniteLight(std::shared_ptr<Light> light, const std::string& name);
 	void AddPrimitive(std::shared_ptr<Primitive>, const std::string &name);
 	void PrintScene();
 
 	std::vector<std::shared_ptr<Light>> lights;
+	std::vector<std::shared_ptr<Light>> infiniteLights;
 	std::list<std::shared_ptr<Primitive>> primitives;
 
 	int current_id;

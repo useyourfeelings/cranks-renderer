@@ -13,14 +13,14 @@ Light::Light(int flags, const Transform& LightToWorld, int nSamples)
 
 
 Spectrum Light::Le(const RayDifferential& ray) const {
-    return Spectrum(0.8);
+    return Spectrum(1);
     return Spectrum(0.f); 
 }
 
 // uniform光源分布。每个灯取一样的权重。
 UniformLightDistribution::UniformLightDistribution(const Scene& scene) {
     std::vector<float> prob(scene.lights.size(), float(1));
-    distrib.reset(new Distribution1D(prob, int(prob.size())));
+    distrib.reset(new Distribution1D(prob.data(), int(prob.size())));
 }
 
 Distribution1D* UniformLightDistribution::Lookup(const Point3f& p) const {

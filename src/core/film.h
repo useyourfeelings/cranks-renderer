@@ -23,7 +23,7 @@ public:
 
     void WriteImage();
     void WritePPMImage();
-    void WriteVector(char* dst);
+    void WriteVector(unsigned char* dst);
 
     const Point2i fullResolution;
 

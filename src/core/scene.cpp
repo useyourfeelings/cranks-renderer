@@ -9,6 +9,11 @@ void Scene::AddLight(std::shared_ptr<Light> light, const std::string& name) {
 	lights.push_back(light);
 }
 
+void Scene::AddInfiniteLight(std::shared_ptr<Light> light, const std::string& name) {
+	lights.push_back(light);
+	infiniteLights.push_back(light);
+}
+
 void Scene::AddPrimitive(std::shared_ptr<Primitive> p, const std::string& name) {
 	p->SetId(++ current_id);
 	p->SetName(name);

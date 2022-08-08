@@ -539,6 +539,7 @@ namespace vktool {
 class VulkanImage {
 public:
 	uint32_t width, height;
+	int status;
 
 	std::shared_ptr<VulkanDevice> device = nullptr;
 
@@ -552,7 +553,7 @@ public:
 
 	VulkanImage();
 	~VulkanImage();
-	int BuildImage(std::shared_ptr<VulkanDevice> device, uint32_t width, uint32_t height, char* pixels);
+	int BuildImage(std::shared_ptr<VulkanDevice> device, uint32_t width, uint32_t height, unsigned char* pixels);
 	int Clean();
 };
 

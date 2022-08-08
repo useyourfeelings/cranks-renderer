@@ -30,6 +30,7 @@ void SurfaceInteraction::LogSelf() {
     dpdv.LogSelf();
 }
 
+// pbrt page 601
 void SurfaceInteraction::ComputeDifferentials( const RayDifferential& ray) const {
     //if (ray.hasDifferentials) {
     //    // Estimate screen space change in $\pt{}$ and $(u,v)$

@@ -23,4 +23,8 @@ private:
     T value;
 };
 
+//
+
+float Lanczos(float, float tau = 2);
+
 #endif

@@ -1,5 +1,6 @@
 #include "point.h"
 
+// 已知光源，交点。算出wi，能量。
 Spectrum PointLight::Sample_Li(const Interaction& ref, const Point2f& u, Vector3f* wi, float* pdf) const {
     //ProfilePhase _(Prof::LightSample);
     //auto v = pLight - ref.p;
