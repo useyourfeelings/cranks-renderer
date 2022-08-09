@@ -43,6 +43,7 @@ public:
 
 
 	void AddSphere(const std::string& name, float radius, Point3f position, const json& material_config);
+	void AddTriangleMesh(const std::string& name, Point3f pos, int tri_count, int vertex_count, int* vertex_index, float* points, const json& material_config);
 	
 	void AddPointLight(const std::string& name, Point3f position);
 	void AddInfiniteLight(const std::string& name, Point3f pos, const Spectrum& power, float strength, int nSamples, const std::string& texmap);

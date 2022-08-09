@@ -193,6 +193,7 @@ Spectrum FresnelDielectric::Evaluate(float cosThetaI) const {
 // 镜面的反射部分
 Spectrum SpecularReflection::Sample_f(const Vector3f& wo, Vector3f* wi, const Point2f& sample, float* pdf, BxDFType* sampledType) const {
     // Compute perfect specular reflection direction
+    //std::cout << "SpecularReflection::Sample_f" << std::endl;
     *wi = Vector3f(-wo.x, -wo.y, wo.z); // 以原点镜面反射。此时一定是本地坐标，z轴为normal？
     *pdf = 1;
 
@@ -204,6 +205,8 @@ Spectrum SpecularReflection::Sample_f(const Vector3f& wo, Vector3f* wi, const Po
 Spectrum SpecularTransmission::Sample_f(const Vector3f& wo, Vector3f* wi,
     const Point2f& sample, float* pdf,
     BxDFType* sampledType) const {
+    //std::cout << "SpecularTransmission::Sample_f" << std::endl;
+
     // Figure out which $\eta$ is incident and which is transmitted
     bool entering = CosTheta(wo) > 0;
     float etaI = entering ? etaA : etaB;

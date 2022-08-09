@@ -57,7 +57,7 @@ public:
 		j["camera_look"] = { 0.0, 0.0, 0.0 };
 		j["camera_up"] = { 0.0, 0.0, 1.0 };
 
-		j["ray_sample_no"] = 3;
+		j["ray_sample_no"] = 4;
 		j["ray_bounce_no"] = 4;
 
 		j["render_threads_count"] = 3;

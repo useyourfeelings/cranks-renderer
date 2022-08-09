@@ -65,17 +65,19 @@ void GlassMaterial::ComputeScatteringFunctions(SurfaceInteraction* si, Transport
 
             auto fresnel = std::make_shared<FresnelDielectric>(1.f, eta);
 
-            if (isSpecular)
+            if (isSpecular) {
                 //si->bsdf->Add(ARENA_ALLOC(arena, SpecularReflection)(R, fresnel));
                 si->bsdf->Add(std::make_shared<SpecularReflection>(R, fresnel));
+            }
             //else
             //    si->bsdf->Add(ARENA_ALLOC(arena, MicrofacetReflection)(R, distrib, fresnel));
         }
 
         if (!T.IsBlack()) {
-            if (isSpecular)
+            if (isSpecular) {
                 si->bsdf->Add(std::make_shared<SpecularTransmission>(T, 1.f, eta, mode));
-                //si->bsdf->Add(ARENA_ALLOC(arena, SpecularTransmission)(T, 1.f, eta, mode));
+            }
+                
             
             //else
             //    si->bsdf->Add(ARENA_ALLOC(arena, MicrofacetTransmission)(T, distrib, 1.f, eta, mode));

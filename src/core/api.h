@@ -26,6 +26,7 @@ int PBR_API_print_scene();
 void PBR_API_render(const json&);
 int PBR_API_stop_rendering();
 int PBR_API_add_sphere(const std::string &name, float radius, float x, float y, float z, const json& material_config);
+int PBR_API_add_triangle_mesh(const std::string& name, float x, float y, float z, int tri_count, int vertex_count, int* vertex_index, float* points, const nlohmann::json& material_config);
 int PBR_API_add_point_light(const std::string& name, float x, float y, float z);
 int PBR_API_add_infinite_light(const std::string& name, float x, float y, float z, float r, float g, float b, float strength, float nSample, const std::string& texmap);
 int PBR_API_set_perspective_camera(const CameraSetting &s);

@@ -23,6 +23,11 @@ int PBR_API_add_sphere(const std::string& name, float radius, float x, float y, 
 	return 0;
 }
 
+int PBR_API_add_triangle_mesh(const std::string& name, float x, float y, float z, int tri_count, int vertex_count, int *vertex_index, float *points, const nlohmann::json& material_config) {
+	app.AddTriangleMesh(name, Point3f(x, y, z), tri_count, vertex_count, vertex_index, points, material_config);
+	return 0;
+}
+
 int PBR_API_add_point_light(const std::string& name, float x, float y, float z) {
 	app.AddPointLight(name, Point3f(x, y, z));
 	return 0;

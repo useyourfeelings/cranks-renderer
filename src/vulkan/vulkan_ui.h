@@ -819,6 +819,26 @@ public:
 					{ "bumpmap", 0},*/
 					}));
 #endif
+				/*int tri_count = 2;
+				int vertex_count = 4;
+				int vertex_index[] = {0, 1, 2, 0, 2, 3};
+				float points[] = { 0, 0, 0, 2, -2, 0, 2, 0, 2, 0, 0, 2 };*/
+
+				int tri_count = 12;
+				int vertex_count = 8;
+				int vertex_index[] = { 0, 1, 2, 0, 2, 3, 5, 1, 2, 5, 2, 6, 0, 1, 5, 0, 4, 5, 2, 3, 6, 3, 6, 7, 0, 3, 4, 3, 4, 7, 4, 5, 6, 4, 6, 7 };
+				float points[] = { -1, 1, -1, -1, -1, -1, 1, -1, -1, 1, 1, -1,
+				-1, 1, 1, -1, -1, 1, 1, -1, 1, 1, 1, 1 };
+
+				PBR_API_add_triangle_mesh("wtf tri 1", 7, -7, 0, tri_count, vertex_count, vertex_index, points, json({
+					{ "name", "matte" },
+					{ "kd", {0.8, 0.6, 0.2} },
+					{"sigma", 0.8}
+					/*{ "name", "mirror" },
+					{ "kr", {1.0, 1.0, 1.0} },
+					{ "bumpmap", 0},*/
+					}));
+
 				//PBR_API_add_point_light("wtf Light 2", 10, 30, 10);
 				PBR_API_add_point_light("wtf Light", 0, 0, 20);
 

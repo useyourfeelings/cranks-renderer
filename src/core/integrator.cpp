@@ -80,13 +80,6 @@ void SamplerIntegrator::Render(const Scene& scene) {
                 //std::cout << "Render " << i << " " << j << std::endl;
                 Point2i pixel(i, j);
 
-                if (i == 384 && j == 40) {
-                    static int gg = 0;
-                    gg++;
-
-                    //break;
-                }
-
                 //this->sampler->StartPixel(pixel);
                 local_sampler->StartPixel(pixel);
 
