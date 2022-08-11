@@ -7,7 +7,7 @@
 #include "scene.h"
 #include "sampler.h"
 #include "camera.h"
-#include "../base/json.h"
+#include"../tool/json.h"
 
 class Integrator {
 public:

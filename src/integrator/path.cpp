@@ -30,7 +30,7 @@ Spectrum PathIntegrator::Li(const RayDifferential& r, const Scene& scene, Sample
         //std::cout << "hitScene " << hitScene << std::endl;
 
         // Possibly add emitted light at intersection
-        if (bounces == 0 || specularBounce) {
+        if (bounces == 0 || specularBounce || !hitScene) {
             // Add emitted light at path vertex or from the environment
             if (hitScene) {
                 //L += beta * isect.Le(-ray.d);
@@ -44,12 +44,16 @@ Spectrum PathIntegrator::Li(const RayDifferential& r, const Scene& scene, Sample
                 // 特殊情况，眼睛直接看到环境。
 
                 // 环境光
-                //L += GetFakeSky(ray.d.z);
-                for (const auto& light : scene.infiniteLights) {
-                    auto le = light->Le(ray);
+                if (0) {
+                    auto le = GetFakeSky(ray.d.z);
                     L += beta * le;
                 }
-                    
+                else {
+                    for (const auto& light : scene.infiniteLights) {
+                        auto le = light->Le(ray);
+                        L += beta * le;
+                    }
+                }
             }
         }
 
@@ -58,6 +62,7 @@ Spectrum PathIntegrator::Li(const RayDifferential& r, const Scene& scene, Sample
             break;
         }
 
+        // 根据material添加bxdf
         isect.ComputeScatteringFunctions(ray);
 
         auto distrib = lightDistribution->Lookup(isect.p);
@@ -83,7 +88,8 @@ Spectrum PathIntegrator::Li(const RayDifferential& r, const Scene& scene, Sample
 
         //std::cout << "Sample_f " << std::endl;
 
-        // 以wo采一束光，算出能量。得到一个随机方向，作为下一层的path。
+        // 以wo采一束光，算出能量。
+        // 同时得到一个随机方向，作为下一层的path。
         Spectrum f = isect.bsdf->Sample_f(wo, &wi, sampler.Get2D(), &pdf, BSDF_ALL, &flags);
 
         if (f.IsBlack() || pdf == 0.f)

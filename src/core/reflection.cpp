@@ -9,9 +9,8 @@ float BxDF::Pdf(const Vector3f& wo, const Vector3f& wi) const {
 }
 
 Spectrum BxDF::Sample_f(const Vector3f& wo, Vector3f* wi, const Point2f& u, float* pdf, BxDFType* sampledType) const {
-    //return Spectrum(0.f);
-
-    //pbrt 13.5 13.6设计较多数学推导
+    // 默认对半球随机采样
+    // pbrt 13.5 13.6设计较多数学推导
     
     // Cosine-sample the hemisphere, flipping the direction if necessary
     *wi = CosineSampleHemisphere(u);
@@ -62,7 +61,9 @@ Spectrum BSDF::Sample_f(const Vector3f& woWorld, Vector3f* wiWorld, const Point2
     int matchingComps = NumComponents(type);
     if (matchingComps == 0) {
         *pdf = 0;
-        if (sampledType) *sampledType = BxDFType(0);
+        if (sampledType) 
+            *sampledType = BxDFType(0);
+
         return Spectrum(0);
     }
 
@@ -110,27 +111,36 @@ Spectrum BSDF::Sample_f(const Vector3f& woWorld, Vector3f* wiWorld, const Point2
     //    << *pdf << ", ratio = " << ((*pdf > 0) ? (f / *pdf) : Spectrum(0.))
     //    << ", wi = " << wi;
     if (*pdf == 0) {
-        if (sampledType) *sampledType = BxDFType(0);
+        if (sampledType)
+            *sampledType = BxDFType(0);
+
         return 0;
     }
     *wiWorld = LocalToWorld(wi);
 
     // Compute overall PDF with all matching _BxDF_s
+    // 如果选出的不是specular，且有其他match的bxdf。把其他bxdf的pdf都加上。
     if (!(bxdf->type & BSDF_SPECULAR) && matchingComps > 1)
         for (int i = 0; i < nBxDFs; ++i)
             if (bxdfs[i] != bxdf && bxdfs[i]->MatchesFlags(type))
                 *pdf += bxdfs[i]->Pdf(wo, wi);
-    if (matchingComps > 1) *pdf /= matchingComps;
+
+    // 平均pdf
+    if (matchingComps > 1)
+        *pdf /= matchingComps;
 
     // Compute value of BSDF for sampled direction
     if (!(bxdf->type & BSDF_SPECULAR)) {
         bool reflect = Dot(*wiWorld, ng) * Dot(woWorld, ng) > 0;
         f = 0.;
-        for (int i = 0; i < nBxDFs; ++i)
-            if (bxdfs[i]->MatchesFlags(type) &&
-                ((reflect && (bxdfs[i]->type & BSDF_REFLECTION)) ||
-                    (!reflect && (bxdfs[i]->type & BSDF_TRANSMISSION))))
-                f += bxdfs[i]->f(wo, wi);
+        for (int i = 0; i < nBxDFs; ++i) {
+            if (bxdfs[i]->MatchesFlags(type)) {
+                if ((reflect && (bxdfs[i]->type & BSDF_REFLECTION)) ||
+                    (!reflect && (bxdfs[i]->type & BSDF_TRANSMISSION)))
+                    f += bxdfs[i]->f(wo, wi);
+            }
+        }
+            
     }
     //VLOG(2) << "Overall f = " << f << ", pdf = " << *pdf << ", ratio = " << ((*pdf > 0) ? (f / *pdf) : Spectrum(0.));
 
@@ -158,6 +168,7 @@ float BSDF::Pdf(const Vector3f& woWorld, const Vector3f& wiWorld,
 
 /////////////////////////////////
 
+// 得到fresnel百分比
 float FrDielectric(float cosThetaI, float etaI, float etaT) {
     cosThetaI = Clamp(cosThetaI, -1, 1);
     // Potentially swap indices of refraction
@@ -184,7 +195,6 @@ float FrDielectric(float cosThetaI, float etaI, float etaT) {
         ((etaI * cosThetaI) + (etaT * cosThetaT));
     return (Rparl * Rparl + Rperp * Rperp) / 2;
 }
-
 
 Spectrum FresnelDielectric::Evaluate(float cosThetaI) const {
     return FrDielectric(cosThetaI, etaI, etaT);

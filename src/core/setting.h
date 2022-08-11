@@ -93,6 +93,8 @@ public:
 			std::cout << "Setting.LoadFile() exception" << std::endl;
 		}
 
+		f.close();
+
 		return 0;
 	}
 
@@ -105,6 +107,8 @@ public:
 			std::cout << "Setting.SaveFile() ok" << std::endl;
 			return 1;
 		}
+
+		f.close();
 
 		return 0;
 	}

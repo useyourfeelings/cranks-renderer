@@ -35,6 +35,12 @@ file(GLOB IMGUI_CODE
   ${IMGUI_DIR}/imgui_widgets.cpp
 )
 
+# base64 source
+file(GLOB BASE64_CODE
+  third_party/base64/base64.h
+  third_party/base64/base64.c
+)
+
 # Libraries
 find_package(Vulkan REQUIRED)
 #find_library(VULKAN_LIBRARY
@@ -82,10 +88,7 @@ source_group(vulkan src/vulkan)
 
 source_group(third_party/imgui ${IMGUI_DIR})
 
-#source_group(TREE "src" FILES ${PBR_CODE})
-#source_group(cranks-renderer  FILES ${PBR_CODE})
-
-add_executable(cranks-renderer ${PBR_CODE} ${IMGUI_CODE})
+add_executable(cranks-renderer ${PBR_CODE} ${IMGUI_CODE} ${BASE64_CODE})
 
 target_link_libraries(cranks-renderer ${LIBRARIES})
 target_compile_definitions(cranks-renderer PUBLIC -DImTextureID=ImU64)

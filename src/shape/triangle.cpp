@@ -27,11 +27,17 @@ TriangleMesh::TriangleMesh(
             (fIndices ? sizeof(*fIndices) : 0));*/
 
     // Transform mesh vertices to world space
+    std::cout << "points:" << std::endl;
     p.reset(new Point3f[nVertices]);
     for (int i = 0; i < nVertices; ++i) {
         //p[i] = ObjectToWorld(P[i]);
         p[i] = ObjectToWorld(Point3f(P[i * 3], P[i * 3 + 1], P[i * 3 + 2]));
-        std::cout << P[i * 3] << " " << P[i * 3 + 1] << " " << P[i * 3 + 2] << std::endl;
+        //std::cout << P[i * 3] << " " << P[i * 3 + 1] << " " << P[i * 3 + 2] << std::endl;
+    }
+
+    std::cout << "vertexIndices:" << std::endl;
+    for (int i = 0; i < nTriangles; ++i) {
+        //std::cout << vertexIndices[i * 3] << " " << vertexIndices[i * 3 + 1] << " " << vertexIndices[i * 3 + 2] << std::endl;
     }
         
 
@@ -90,6 +96,9 @@ bool Triangle::Intersect(const Ray& ray, float* tHit, SurfaceInteraction* isect)
     float t = f * Dot(edge_2, q);
 
     if (t > EPSILON) {
+        if (t > ray.tMax)
+            return false;
+
         *tHit = t;
 
         auto hitPoint = ray(float(t)); // get hit position

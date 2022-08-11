@@ -3,7 +3,7 @@
 #include "reflection.h"
 #include "film.h"
 #include "../tool/logger.h"
-#include "../base/json.h"
+#include "../tool/json.h"
 #include "../base/events.h"
 
 void SamplerIntegrator::Render(const Scene& scene) {
@@ -79,6 +79,13 @@ void SamplerIntegrator::Render(const Scene& scene) {
                 Log("Render %d %d", i, j);
                 //std::cout << "Render " << i << " " << j << std::endl;
                 Point2i pixel(i, j);
+
+                if (i == 200 && j == 64) {
+                    static int gg = 0;
+                    gg++;
+
+                    //break;
+                }
 
                 //this->sampler->StartPixel(pixel);
                 local_sampler->StartPixel(pixel);

@@ -11,6 +11,7 @@
 #include "texture.h"
 #include "../tool/logger.h"
 #include "../tool/image.h"
+#include "../tool/model.h"
 #include "setting.h"
 
 std::shared_ptr<Material> PbrApp::GenMaterial(const json& material_config) {
@@ -73,15 +74,26 @@ void PbrApp::AddSphere(const std::string &name, float radius, Point3f pos, const
 	scene->AddPrimitive(std::make_shared<GeometricPrimitive>(shape, GenMaterial(material_config)), name);
 }
 
-void PbrApp::AddTriangleMesh(const std::string& name, Point3f pos, int tri_count, int vertex_count, int* vertex_index, float* points, const json& material_config) {
+void PbrApp::AddTriangleMesh(const std::string& name, Point3f pos, const std::string& file_name, const json& material_config) {
 	auto t = Translate(Vector3f(pos.x, pos.y, pos.z));
 
+	int tri_count, vertex_count;
+	int* vertex_index;
+	float* points;
+
+	LoadGLTF(file_name, &tri_count, &vertex_count, &vertex_index, &points);
+
 	auto mesh = std::make_shared<TriangleMesh>(t, tri_count, vertex_index, vertex_count, points);
+
+	delete[] vertex_index;
+	delete[] points;
 	
 	for (int i = 0; i < tri_count; ++ i) {
 		std::shared_ptr<Shape> shape = std::make_shared<Triangle>(t, Inverse(t), mesh, i);
 		scene->AddPrimitive(std::make_shared<GeometricPrimitive>(shape, GenMaterial(material_config)), name);
 	}
+
+	
 }
 
 void PbrApp::AddPointLight(const std::string& name, Point3f pos) {
