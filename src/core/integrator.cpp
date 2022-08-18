@@ -39,7 +39,7 @@ void SamplerIntegrator::Render(const Scene& scene) {
     // https://stackoverflow.com/questions/4324763/can-we-have-functions-inside-functions-in-c
     // https://en.cppreference.com/w/cpp/language/lambda
 
-    auto manager_func = [&](int task_index, const json& args) {
+    /*auto manager_func = [&](int task_index, const json& args) {
         int y_interval = (int(args["y_end"]) - args["y_start"] + 1) / args["task_count"];
         if((int(args["y_end"]) - args["y_start"] + 1) % args["task_count"] != 0)
             y_interval++;
@@ -54,6 +54,24 @@ void SamplerIntegrator::Render(const Scene& scene) {
             { "y_start", y_start },
             { "x_end", args["x_end"] },
             { "y_end", y_end} });
+    };*/
+
+    // 改为竖着分像素。一般会更均匀。
+    auto manager_func = [&](int task_index, const json& args) {
+        int x_interval = (int(args["x_end"]) - args["x_start"] + 1) / args["task_count"];
+        if ((int(args["x_end"]) - args["x_start"] + 1) % args["task_count"] != 0)
+            x_interval++;
+
+        int x_start = args["x_start"] + x_interval * task_index;
+        int x_end = std::min(int(args["x_end"]), int(x_start + x_interval - 1));
+
+        return json({
+            { "task_index", task_index },
+            { "task_progress_total", (x_end - x_start + 1) * (int(args["y_end"]) - args["y_start"] + 1)},
+            { "y_start", args["y_start"]},
+            { "x_start", x_start },
+            { "y_end", args["y_end"] },
+            { "x_end", x_end} });
     };
 
     auto render_task = [&](const json& args) {

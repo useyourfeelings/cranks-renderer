@@ -15,3 +15,7 @@ Interaction Shape::Sample() {
 float Shape::Pdf() {
 	return 0;
 }
+
+BBox3f Shape::WorldBound() const {
+	return (ObjectToWorld)(ObjectBound());
+}

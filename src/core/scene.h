@@ -9,7 +9,7 @@
 #include "interaction.h"
 #include "primitive.h"
 #include "light.h"
-
+#include "bvh.h"
 
 class Scene {
 public:
@@ -22,11 +22,17 @@ public:
 	void AddInfiniteLight(std::shared_ptr<Light> light, const std::string& name);
 	void AddPrimitive(std::shared_ptr<Primitive>, const std::string &name);
 	void PrintScene();
+	void InitBVH();
+
+	int SetNodesStructure(int structure);
 
 	std::vector<std::shared_ptr<Light>> lights;
 	std::vector<std::shared_ptr<Light>> infiniteLights;
-	std::list<std::shared_ptr<Primitive>> primitives;
+	std::vector<std::shared_ptr<Primitive>> primitives;
 
+	std::shared_ptr<BVH> bvh = nullptr;
+
+	int nodes_structure; // 0 brute force 1 bvh
 	int current_id;
 };
 

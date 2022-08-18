@@ -64,6 +64,12 @@ int PBR_API_set_perspective_camera(const CameraSetting& s) {
 	return 0;
 }
 
+int PBR_API_SET_SCENE_OPTIONS(const SceneOptions& s) {
+	app.SetSceneOptions(s.nodes_structure);
+
+	return 0;
+}
+
 int PBR_API_save_setting() {
 	app.SaveSetting();
 	return 0;

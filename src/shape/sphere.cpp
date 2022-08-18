@@ -1,6 +1,10 @@
 #include "sphere.h"
 #include "../base/efloat.h"
 
+BBox3f Sphere::ObjectBound() const {
+	return BBox3f(Point3f(-radius, -radius, zMin), Point3f(radius, radius, zMax));
+}
+
 bool Sphere::Intersect(const Ray& ray, float* tHit, SurfaceInteraction* isect) const {
 	ray.LogSelf();
 	WorldToObject.LogSelf();

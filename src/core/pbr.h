@@ -5,6 +5,7 @@
 #include <limits>
 #include <utility>
 #include <memory>
+#include <format>
 #include "error.h"
 #include "../tool/logger.h"
 

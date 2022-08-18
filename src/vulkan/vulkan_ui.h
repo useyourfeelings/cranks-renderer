@@ -543,6 +543,7 @@ public:
 		static int init_status = 0;
 
 		static CameraSetting cs;
+		static SceneOptions scene_options;
 
 		std::string hdr_file = "crosswalk_1k.hdr"; // alps_field_1k.hdr crosswalk_1k.hdr tv_studio_1k delta_2_1k
 
@@ -711,7 +712,20 @@ public:
 
 		//ImGui::Dummy(ImVec2(30, 30));
 
+		ImGui::Text("Scene Setting");
+		ImGui::Text("Nodes structure");
+		ImGui::SameLine();
+
+		if (ImGui::RadioButton("brute force", &scene_options.nodes_structure, 0)) {
+			PBR_API_SET_SCENE_OPTIONS(scene_options);
+		}
 		
+		ImGui::SameLine();
+
+		if (ImGui::RadioButton("BVH", &scene_options.nodes_structure, 1)) {
+			PBR_API_SET_SCENE_OPTIONS(scene_options);
+		}
+
 
 		for (int i = 0; i < progress_now.size(); ++i) {
 			char buf[32];
@@ -726,7 +740,7 @@ public:
 			if (set_default_scene == 0) {
 				set_default_scene = 1;
 
-
+#if 1
 				PBR_API_add_sphere("wtfSphere 1", 6, 0, 0, 0, json(
 					{
 						{ "name", "glass" }, // glass mirror matte
@@ -741,7 +755,7 @@ public:
 						{ "remaproughness", false}
 					}
 				));
-#if 1
+
 				PBR_API_add_sphere("wtfSphere 2 green", 5, -10, 0, 12, json({ { "name", "matte" }, { "kd", {0.2, 0.7, 0.2} }, {"sigma", 0.8} }));
 				PBR_API_add_sphere("wtfSphere 3", 20, 30, 30, 30, json({ { "name", "matte" }, { "kd", {0.9, 0.4, 0.12} }, {"sigma", 0.8} }));
 				
@@ -823,38 +837,45 @@ public:
 					}));
 #endif
 
-				PBR_API_add_triangle_mesh("wtf tri 1", 0, 0, 0, "cube50.gltf", json({
+				PBR_API_add_triangle_mesh("wtf tri 1", -10, 0, -15, "cube10.gltf", json({
 					{ "name", "matte" },
-					{ "kd", {0.4, 0.4, 0.4} },
+					{ "kd", {0.7, 0.5, 0.9} },
 					{"sigma", 0.8}
 					/*{ "name", "mirror" },
 					{ "kr", {1.0, 1.0, 1.0} },
 					{ "bumpmap", 0},*/
 				}));
-#if 1
 
+#if 1
 				PBR_API_add_triangle_mesh("wtf tri 2", 38, 5, 10, "cube10.gltf", json({
 					{ "name", "matte" },
-					{ "kd", {0.6, 0.7, 0.6} },
+					{ "kd", {0.6, 0.9, 0.7} },
 					{"sigma", 0.8}
 					/*{ "name", "mirror" },
 					{ "kr", {1.0, 1.0, 1.0} },
 					{ "bumpmap", 0},*/
 				}));
 
-				PBR_API_add_triangle_mesh("wtf tri 2", 10, 5, 10, "monkey.gltf", json({
+				PBR_API_add_triangle_mesh("wtf tri 2", 10, 5, 20, "monkey.gltf", json({
 					/*{ "name", "matte" },
 					{ "kd", {0.4, 0.5, 0.7} },
 					{"sigma", 0.8}*/
-					{ "name", "mirror" },
+					{ "name", "matte" }, // glass mirror matte
+					{ "kd", {0.9, 0.4, 0.2} },
+					{ "sigma", 0.8 },
 					{ "kr", {1.0, 1.0, 1.0} },
+					{ "kt", {1.0, 1.0, 1.0} },
+					{ "eta", 1.6},
+					{ "uroughness", 0},
+					{ "vroughness", 0},
 					{ "bumpmap", 0},
+					{ "remaproughness", false}
 				}));
 #endif
 
 				//PBR_API_add_point_light("wtf Light 2", 10, 30, 10);
 				PBR_API_add_point_light("wtf Light", 0, 0, 20);
-				PBR_API_add_point_light("wtf Light", -30, -30, 20);
+				//PBR_API_add_point_light("wtf Light", -30, -30, 20);
 
 				PBR_API_add_infinite_light("inf light", 0, 0, 100, 1, 1, 1, 1.2, 4, hdr_file); // alps_field_1k.hdr crosswalk_1k.hdr
 			}

@@ -59,6 +59,8 @@ public:
     // reference point p.
     //Float SolidAngle(const Point3f& p, int nSamples = 0) const;
 
+    std::string GetInfoString() const;
+
 private:
 
     std::shared_ptr<TriangleMesh> mesh;

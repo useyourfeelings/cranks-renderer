@@ -1,5 +1,9 @@
 #include "primitive.h"
 
+BBox3f GeometricPrimitive::WorldBound() const {
+    return shape->WorldBound();
+}
+
 bool GeometricPrimitive::Intersect(const Ray& r, float* tHit, SurfaceInteraction* isect) const {
     if (!shape->Intersect(r, tHit, isect))
         return false;

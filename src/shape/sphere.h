@@ -17,8 +17,14 @@ public:
 	
 	//~Sphere();
 
+	std::string GetInfoString() const {
+		return std::format("Sphere GetInfoString todo");
+	};
+
 	bool Intersect(const Ray& ray, float* tHit, SurfaceInteraction* isect) const;
 	bool Intersect(const Ray& ray) const;
+
+	BBox3f ObjectBound() const;
 
 	//float Area() const = 0;
 

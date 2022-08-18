@@ -14,7 +14,7 @@ public:
     // Primitive Interface
     Primitive() {}
     virtual ~Primitive() {};
-    //virtual Bounds3f WorldBound() const = 0;
+    virtual BBox3f WorldBound() const = 0;
     virtual bool Intersect(const Ray& r, float* tHit, SurfaceInteraction*) const = 0;
     virtual bool Intersect(const Ray& r) const = 0;
     //virtual const AreaLight* GetAreaLight() const = 0; // pbrt page 249 如果此物体发光，会带一个AreaLight。
@@ -29,6 +29,8 @@ public:
         name = new_name;
     }
 
+    virtual std::string GetInfoString() = 0;
+
     int id;
     std::string name;
 };
@@ -36,7 +38,6 @@ public:
 class GeometricPrimitive : public Primitive {
 public:
     // GeometricPrimitive Public Methods
-    //virtual Bounds3f WorldBound() const;
     GeometricPrimitive(const std::shared_ptr<Shape>& shape,
         const std::shared_ptr<Material>& material
         //const std::shared_ptr<AreaLight>& areaLight,
@@ -46,6 +47,8 @@ public:
 
     }
 
+    virtual BBox3f WorldBound() const;
+
     bool Intersect(const Ray& r, float* tHit, SurfaceInteraction* isect) const;
     bool Intersect(const Ray& r) const;
 
@@ -53,6 +56,10 @@ public:
     //const Material* GetMaterial() const;
     void ComputeScatteringFunctions(SurfaceInteraction* isect,
         TransportMode mode) const;
+
+    std::string GetInfoString() {
+        return shape->GetInfoString();
+    }
 
 private:
     // GeometricPrimitive Private Data

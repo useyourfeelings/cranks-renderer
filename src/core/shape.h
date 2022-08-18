@@ -13,6 +13,11 @@ public:
 	virtual bool Intersect(const Ray& ray, float* tHit, SurfaceInteraction* isect) const = 0;
 	virtual bool Intersect(const Ray& r) const = 0;
 
+	virtual BBox3f ObjectBound() const = 0;
+	virtual BBox3f WorldBound() const;
+
+	virtual std::string GetInfoString() const = 0;
+
 	//virtual float Area() const = 0;
 
 	virtual float Pdf();

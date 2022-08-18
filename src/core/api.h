@@ -20,6 +20,10 @@ struct CameraSetting {
 	int render_threads_count = 3;
 };
 
+struct SceneOptions {
+	int nodes_structure = 1; // bvh
+};
+
 int PBR_API_hi();
 int PBR_API_print_scene();
 //int PBR_API_render();
@@ -37,5 +41,7 @@ int PBR_API_get_render_progress(int * status, std::vector<int>& now, std::vector
 int PBR_API_get_new_image(unsigned char* dst);
 int PBR_API_make_test_mipmap(const std::string& name);
 int PBR_API_get_mipmap_image(int index, std::vector<unsigned char>& data, int& x, int& y);
+
+int PBR_API_SET_SCENE_OPTIONS(const SceneOptions& s);
 
 #endif

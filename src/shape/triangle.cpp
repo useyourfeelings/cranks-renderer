@@ -1,6 +1,37 @@
 #include "triangle.h"
 #include "../base/efloat.h"
 
+std::string Triangle::GetInfoString() const {
+    return std::format("[{}, {}, {}] [{}, {}, {}] [{}, {}, {}]", 
+        mesh->p[v[0]].x, mesh->p[v[0]].y, mesh->p[v[0]].z,
+        mesh->p[v[1]].x, mesh->p[v[1]].y, mesh->p[v[1]].z,
+        mesh->p[v[2]].x, mesh->p[v[2]].y, mesh->p[v[2]].z);
+}
+
+BBox3f Triangle::ObjectBound() const {
+    // Get triangle vertices in _p0_, _p1_, and _p2_
+    const Point3f& p0 = mesh->p[v[0]];
+    const Point3f& p1 = mesh->p[v[1]];
+    const Point3f& p2 = mesh->p[v[2]];
+    return Union(BBox3f((WorldToObject)(p0), (WorldToObject)(p1)), (WorldToObject)(p2));
+}
+
+BBox3f Triangle::WorldBound() const {
+    // Get triangle vertices in _p0_, _p1_, and _p2_
+    const Point3f& p0 = mesh->p[v[0]];
+    const Point3f& p1 = mesh->p[v[1]];
+    const Point3f& p2 = mesh->p[v[2]];
+
+    /*std::cout << GetInfoString();
+
+    auto b = Union(BBox3f(p0, p1), p2);
+    std::cout << std::format("WorldBound [{}, {}, {}] [{}, {}, {}]\n",
+        b.pMin.x, b.pMin.y, b.pMin.z,
+        b.pMax.x, b.pMax.y, b.pMax.z);*/
+
+    return Union(BBox3f(p0, p1), p2);
+}
+
 TriangleMesh::TriangleMesh(
     const Transform& ObjectToWorld, int nTriangles, const int* vertexIndices,
     int nVertices,

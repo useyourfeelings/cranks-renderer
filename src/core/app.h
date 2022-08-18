@@ -61,6 +61,8 @@ public:
 		float fov, float aspect_ratio, float near, float far, 
 		int resX, int resY, int ray_sample_no, int ray_bounce_no, int render_threads_count);
 
+	void SetSceneOptions(int nodes_structure);
+
 	void SetSampler();
 	void SetRandomSampler();
 	void SetIntegrator();

@@ -98,6 +98,21 @@ Matrix4x4 Inverse(const Matrix4x4& m) {
 }
 
 
+// 把8个顶点都转一下再合并
+BBox3f Transform::operator()(const BBox3f& b) const {
+    const Transform& M = *this;
+    BBox3f ret(M(Point3f(b.pMin.x, b.pMin.y, b.pMin.z)));
+    ret = Union(ret, M(Point3f(b.pMax.x, b.pMin.y, b.pMin.z)));
+    ret = Union(ret, M(Point3f(b.pMin.x, b.pMax.y, b.pMin.z)));
+    ret = Union(ret, M(Point3f(b.pMin.x, b.pMin.y, b.pMax.z)));
+    ret = Union(ret, M(Point3f(b.pMin.x, b.pMax.y, b.pMax.z)));
+    ret = Union(ret, M(Point3f(b.pMax.x, b.pMax.y, b.pMin.z)));
+    ret = Union(ret, M(Point3f(b.pMax.x, b.pMin.y, b.pMax.z)));
+    ret = Union(ret, M(Point3f(b.pMax.x, b.pMax.y, b.pMax.z)));
+    return ret;
+}
+
+
 // ignore error
 template <typename T>
 inline Point3<T> Transform::operator()(const Point3<T>& p) const {

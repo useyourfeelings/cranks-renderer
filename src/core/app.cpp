@@ -15,7 +15,7 @@
 #include "setting.h"
 
 std::shared_ptr<Material> PbrApp::GenMaterial(const json& material_config) {
-	std::cout << "PbrApp::GenMaterial()" << material_config.dump() << std::endl;
+	//std::cout << "PbrApp::GenMaterial()" << material_config.dump() << std::endl;
 
 	std::shared_ptr<Material> material = nullptr;
 
@@ -175,6 +175,8 @@ void PbrApp::RenderScene() {
 
 	SetIntegrator();
 
+	scene->InitBVH();
+
 	integrator->Render(*scene);
 }
 
@@ -214,6 +216,10 @@ void PbrApp::SetPerspectiveCamera(Point3f pos, Point3f look, Vector3f up,
 
 	//this->camera = std::shared_ptr<Camera>(new PerspectiveCamera(pos, look, up, fov, aspect_ratio, near, far, resX, resY));
 
+}
+
+void PbrApp::SetSceneOptions(int nodes_structure) {
+	scene->SetNodesStructure(nodes_structure);
 }
 
 void PbrApp::SetSampler() {

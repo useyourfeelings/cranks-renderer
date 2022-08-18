@@ -1,8 +1,19 @@
 #include "scene.h"
 #include "../tool/logger.h"
 
-Scene::Scene() {
-	current_id = 0;
+Scene::Scene():
+	nodes_structure(1),
+	current_id(0) {
+}
+
+int Scene::SetNodesStructure(int structure) {
+	if (structure == 0 || structure == 1) {
+		std::cout<<"SetNodesStructure "<< structure << std::endl;
+		nodes_structure = structure;
+		return 0;
+	}
+
+	return -1;
 }
 
 void Scene::AddLight(std::shared_ptr<Light> light, const std::string& name) {
@@ -21,6 +32,13 @@ void Scene::AddPrimitive(std::shared_ptr<Primitive> p, const std::string& name) 
 	primitives.push_back(p);
 }
 
+void Scene::InitBVH() {
+	if (bvh == nullptr) {
+		bvh = std::make_shared<BVH>(primitives);
+	}
+	
+}
+
 void Scene::PrintScene() {
 	Log("PrintScene");
 	Log("current_id %d", current_id);
@@ -30,6 +48,9 @@ void Scene::PrintScene() {
 }
 
 bool Scene::Intersect(const Ray& ray, float* tHit, SurfaceInteraction* isect) const {
+	if(nodes_structure == 1)
+		return bvh->Intersect(ray, tHit, isect);
+
 	// 遍历所有。找最小的t。
 
 	SurfaceInteraction isect_result;
@@ -55,6 +76,7 @@ bool Scene::Intersect(const Ray& ray, float* tHit, SurfaceInteraction* isect) co
 
 	return true;
 }
+
 bool Scene::Intersect(const Ray& ray, int except_id) const {
 	for (auto p : primitives) {
 		if (p->id == except_id)

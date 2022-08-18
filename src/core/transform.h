@@ -45,6 +45,8 @@ public:
 
     RayDifferential operator()(const RayDifferential& r) const;
 
+    BBox3f operator()(const BBox3f& b) const;
+
     template <typename T>
     inline Point3<T> operator()(const Point3<T>& pt) const;
 

@@ -132,8 +132,8 @@ public:
 	}
 
 	template <typename U>
-	Vector3<T> operator*(U s) const {
-		return Vector3<T>(s * x, s * y, s * z);
+	Point3<T> operator*(U s) const {
+		return Point3<T>(s * x, s * y, s * z);
 	}
 
 	template <typename U>
@@ -143,6 +143,10 @@ public:
 
 	Point3<T> operator+(const Vector3<T>& v) const {
 		return Point3<T>(x + v.x, y + v.y, z + v.z);
+	}
+
+	Point3<T> operator+(const Point3<T>& p) const {
+		return Point3<T>(x + p.x, y + p.y, z + p.z);
 	}
 
 	Point3<T>& operator+=(const Vector3<T>& v) {
@@ -163,6 +167,18 @@ public:
 
 	Point3<T> operator-(const Vector3<T>& v) const {
 		return Point3<T>(x + v.x, y + v.y, z + v.z);
+	}
+
+	T operator[](int i) const {
+		if (i == 0) return x;
+		if (i == 1) return y;
+		return z;
+	}
+
+	T& operator[](int i) {
+		if (i == 0) return x;
+		if (i == 1) return y;
+		return z;
 	}
 
 	void LogSelf() {
@@ -197,46 +213,6 @@ public:
 	T x, y;
 };
 
-
-
-template <typename T>
-class BBox2 {
-public:
-	BBox2() {
-		T minNum = std::numeric_limits<T>::lowest();
-		T maxNum = std::numeric_limits<T>::max();
-		pMin = Point2<T>(maxNum, maxNum);
-		pMax = Point2<T>(minNum, minNum);
-	}
-	explicit BBox2(const Point2<T>& p) : pMin(p), pMax(p) {}
-	BBox2(const Point2<T>& p1, const Point2<T>& p2) {
-		pMin = Point2<T>(std::min(p1.x, p2.x), std::min(p1.y, p2.y));
-		pMax = Point2<T>(std::max(p1.x, p2.x), std::max(p1.y, p2.y));
-	}
-
-	Point2<T> pMin, pMax;
-};
-
-template <typename T>
-class BBox3 {
-public:
-	// Bounds3 Public Methods
-	BBox3() {
-		T minNum = std::numeric_limits<T>::lowest();
-		T maxNum = std::numeric_limits<T>::max();
-		pMin = Point3<T>(maxNum, maxNum, maxNum);
-		pMax = Point3<T>(minNum, minNum, minNum);
-	}
-	explicit BBox3(const Point3<T>& p) : pMin(p), pMax(p) {}
-	BBox3(const Point3<T>& p1, const Point3<T>& p2)
-		: pMin(std::min(p1.x, p2.x), std::min(p1.y, p2.y),
-			std::min(p1.z, p2.z)),
-		pMax(std::max(p1.x, p2.x), std::max(p1.y, p2.y),
-			std::max(p1.z, p2.z)) {}
-
-	Point3<T> pMin, pMax;
-};
-
 typedef Vector2<float> Vector2f;
 typedef Vector2<int> Vector2i;
 typedef Vector3<float> Vector3f;
@@ -246,10 +222,19 @@ typedef Point2<int> Point2i;
 typedef Point3<float> Point3f;
 typedef Point3<int> Point3i;
 
-typedef BBox2<float> BBox2f;
-typedef BBox2<int> BBox2i;
-typedef BBox3<float> BBox3f;
-typedef BBox3<int> BBox3i;
+
+
+template <typename T>
+Point3<T> Min(const Point3<T>& p1, const Point3<T>& p2) {
+	return Point3<T>(std::min(p1.x, p2.x), std::min(p1.y, p2.y),
+		std::min(p1.z, p2.z));
+}
+
+template <typename T>
+Point3<T> Max(const Point3<T>& p1, const Point3<T>& p2) {
+	return Point3<T>(std::max(p1.x, p2.x), std::max(p1.y, p2.y),
+		std::max(p1.z, p2.z));
+}
 
 template <typename T>
 inline Vector3<T> Cross(const Vector3<T>& v1, const Vector3<T>& v2) {
@@ -383,6 +368,143 @@ inline float SphericalPhi(const Vector3f& v) {
 	float p = std::atan2(v.y, v.x);
 	return (p < 0) ? (p + 2 * Pi) : p;
 }
+
+template <typename T>
+class BBox2 {
+public:
+	BBox2() {
+		T minNum = std::numeric_limits<T>::lowest();
+		T maxNum = std::numeric_limits<T>::max();
+		pMin = Point2<T>(maxNum, maxNum);
+		pMax = Point2<T>(minNum, minNum);
+	}
+	explicit BBox2(const Point2<T>& p) : pMin(p), pMax(p) {}
+	BBox2(const Point2<T>& p1, const Point2<T>& p2) {
+		pMin = Point2<T>(std::min(p1.x, p2.x), std::min(p1.y, p2.y));
+		pMax = Point2<T>(std::max(p1.x, p2.x), std::max(p1.y, p2.y));
+	}
+
+	Point2<T> pMin, pMax;
+};
+
+template <typename T>
+class BBox3 {
+public:
+	// Bounds3 Public Methods
+	BBox3() {
+		T minNum = std::numeric_limits<T>::lowest();
+		T maxNum = std::numeric_limits<T>::max();
+		pMin = Point3<T>(maxNum, maxNum, maxNum);
+		pMax = Point3<T>(minNum, minNum, minNum);
+	}
+	explicit BBox3(const Point3<T>& p) : pMin(p), pMax(p) {}
+	BBox3(const Point3<T>& p1, const Point3<T>& p2)
+		: pMin(std::min(p1.x, p2.x), std::min(p1.y, p2.y),
+			std::min(p1.z, p2.z)),
+		pMax(std::max(p1.x, p2.x), std::max(p1.y, p2.y),
+			std::max(p1.z, p2.z)) {}
+
+	const Point3<T>& operator[](int i) const;
+	Point3<T>& operator[](int i);
+
+	void Union(const BBox3<T>& b) {
+		pMin = Min(pMin, b.pMin);
+		pMax = Max(pMax, b.pMax);
+	}
+
+	void Union(const Point3<T>& p) {
+		pMin = Min(pMin, p);
+		pMax = Max(pMax, p);
+	}
+
+	Vector3<T> Diagonal() const {
+		return pMax - pMin;
+	}
+
+	T SurfaceArea() const {
+		Vector3<T> d = Diagonal();
+		return 2 * (d.x * d.y + d.x * d.z + d.y * d.z);
+	}
+
+	inline bool Intersect(const Ray& ray, const Vector3f& invDir, const int dirIsNeg[3], float *t) const;
+
+	Point3<T> pMin, pMax;
+};
+
+template <typename T>
+inline const Point3<T>& BBox3<T>::operator[](int i) const {
+	//DCHECK(i == 0 || i == 1);
+	return (i == 0) ? pMin : pMax;
+}
+
+template <typename T>
+inline Point3<T>& BBox3<T>::operator[](int i) {
+	//DCHECK(i == 0 || i == 1);
+	return (i == 0) ? pMin : pMax;
+}
+
+template <typename T>
+BBox3<T> Union(const BBox3<T>& b, const Point3<T>& p) {
+	BBox3<T> ret;
+	ret.pMin = Min(b.pMin, p);
+	ret.pMax = Max(b.pMax, p);
+	return ret;
+}
+
+template <typename T>
+BBox3<T> Union(const BBox3<T>& b1, const BBox3<T>& b2) {
+	BBox3<T> ret;
+	ret.pMin = Min(b1.pMin, b2.pMin);
+	ret.pMax = Max(b1.pMax, b2.pMax);
+	return ret;
+}
+
+template <typename T>
+inline bool BBox3<T>::Intersect(const Ray& ray, const Vector3f& invDir, const int dirIsNeg[3], float* t) const {
+	const BBox3& bounds = *this;
+	// Check for ray intersection against $x$ and $y$ slabs
+	// 算x和y轴
+	float tMin = (bounds[dirIsNeg[0]].x - ray.o.x) * invDir.x;
+	float tMax = (bounds[1 - dirIsNeg[0]].x - ray.o.x) * invDir.x;
+	float tyMin = (bounds[dirIsNeg[1]].y - ray.o.y) * invDir.y;
+	float tyMax = (bounds[1 - dirIsNeg[1]].y - ray.o.y) * invDir.y;
+
+	// Update _tMax_ and _tyMax_ to ensure robust bounds intersection
+	// 加上误差
+	tMax *= 1 + 2 * gamma(3);
+	tyMax *= 1 + 2 * gamma(3);
+
+	// 如果无交集返回false
+	if (tMin > tyMax || tyMin > tMax) return false;
+
+	// 取交集
+	if (tyMin > tMin) tMin = tyMin;
+	if (tyMax < tMax) tMax = tyMax;
+
+	// Check for ray intersection against $z$ slab
+	// 算z轴
+	float tzMin = (bounds[dirIsNeg[2]].z - ray.o.z) * invDir.z;
+	float tzMax = (bounds[1 - dirIsNeg[2]].z - ray.o.z) * invDir.z;
+
+	// Update _tzMax_ to ensure robust bounds intersection
+	tzMax *= 1 + 2 * gamma(3);
+
+	// 判断交集
+	if (tMin > tzMax || tzMin > tMax) return false;
+	if (tzMin > tMin) tMin = tzMin;
+	if (tzMax < tMax) tMax = tzMax;
+
+	if ((tMin < ray.tMax) && (tMax > 0)) {
+		*t = tMin;
+		return true;
+	}
+	return false;
+}
+
+typedef BBox2<float> BBox2f;
+typedef BBox2<int> BBox2i;
+typedef BBox3<float> BBox3f;
+typedef BBox3<int> BBox3i;
 
 
 #endif // !CORE_GEOMETRY_H
