@@ -673,7 +673,7 @@ public:
 
 		ImGui::PopItemWidth();
 
-		ImGui::SliderInt("ray_sample_no", &cs.ray_sample_no, 1, 100);
+		ImGui::SliderInt("ray_sample_no", &cs.ray_sample_no, 1, 500);
 		if (ImGui::IsItemDeactivatedAfterEdit()) {
 			cameraChanged = true;
 		}
@@ -835,18 +835,64 @@ public:
 					{ "kr", {1.0, 1.0, 1.0} },
 					{ "bumpmap", 0},*/
 					}));
-#endif
 
-				PBR_API_add_triangle_mesh("wtf tri 1", -10, 0, -15, "cube10.gltf", json({
-					{ "name", "matte" },
-					{ "kd", {0.7, 0.5, 0.9} },
-					{"sigma", 0.8}
+				PBR_API_add_sphere("wtfSphere 12", 4, 5, -10, -4, json({
+					/*{ "name", "matte" },
+					{ "kd", {0.2, 0.8, 0.6} },
+					{"sigma", 0.8}*/
+
 					/*{ "name", "mirror" },
 					{ "kr", {1.0, 1.0, 1.0} },
 					{ "bumpmap", 0},*/
-				}));
+
+					//{ "name", "plastic" }, // glass mirror matte
+					//{ "kd", {0.8, 0.5, 0.2} },
+					//{ "ks", {0.8, 0.6, 0.7} },
+					//{ "roughness", 0.3},
+					//{ "bumpmap", 0},
+					//{ "remaproughness", false}
+
+					{ "name", "metal" }, // glass mirror matte
+					{ "k", {0.9, 0.1, 0.3} },
+					{ "eta", {1.8, 1.8, 1.8} },
+					{ "roughness", 0.01},
+					{ "bumpmap", 0},
+					{ "remaproughness", false}
+					}));
+
+				PBR_API_add_sphere("wtfSphere 13", 4, 11, -10, -4, json({
+					{ "name", "metal" }, // glass mirror matte
+					{ "k", {0.6, 0.1, 0.8} },
+					{ "eta", {1.8, 1.8, 1.8} },
+					{ "roughness", 0.1},
+					{ "bumpmap", 0},
+					{ "remaproughness", false}
+					}));
+
+				PBR_API_add_sphere("wtfSphere 14", 4, 18, -10, -4, json({
+					{ "name", "metal" }, // glass mirror matte
+					{ "k", {0.6, 0.8, 0.3} },
+					{ "eta", {1.8, 1.8, 1.8} },
+					{ "roughness", 0.8},
+					{ "bumpmap", 0},
+					{ "remaproughness", false}
+					}));
+#endif
 
 #if 1
+				PBR_API_add_triangle_mesh("wtf tri 2", 0, 0, 0, "cube50.gltf", json({
+					//{ "name", "metal" }, // glass mirror matte
+					//{ "k", {1, 1, 1} },
+					//{ "eta", {1.5, 1.5, 1.5} },
+					//{ "roughness", 0.2},
+					//{ "bumpmap", 0},
+					//{ "remaproughness", false}
+					{ "name", "matte" },
+					{ "kd", {0.8, 0.8, 0.8} },
+					{"sigma", 0.8}
+					}));
+
+
 				PBR_API_add_triangle_mesh("wtf tri 2", 38, 5, 10, "cube10.gltf", json({
 					{ "name", "matte" },
 					{ "kd", {0.6, 0.9, 0.7} },
@@ -860,8 +906,9 @@ public:
 					/*{ "name", "matte" },
 					{ "kd", {0.4, 0.5, 0.7} },
 					{"sigma", 0.8}*/
+
 					{ "name", "matte" }, // glass mirror matte
-					{ "kd", {0.9, 0.4, 0.2} },
+					{ "kd", {0.7, 0.4, 0.5} },
 					{ "sigma", 0.8 },
 					{ "kr", {1.0, 1.0, 1.0} },
 					{ "kt", {1.0, 1.0, 1.0} },
@@ -870,11 +917,46 @@ public:
 					{ "vroughness", 0},
 					{ "bumpmap", 0},
 					{ "remaproughness", false}
+
+
 				}));
+
+				PBR_API_add_triangle_mesh("wtf tri 3", -3, -5, 10, "monkey.gltf", json({
+					{ "name", "plastic" }, // glass mirror matte
+					{ "kd", {0.7, 0.2, 0.1} },
+					{ "ks", {1.0, 1.0, 1.0} },
+					{ "roughness", 0.1},
+					{ "bumpmap", 0},
+					{ "remaproughness", false}
+				}));
+
+				PBR_API_add_triangle_mesh("wtf tri 4", 8, -5, 10, "monkey.gltf", json({
+					{ "name", "plastic" }, // glass mirror matte
+					{ "kd", {0.1, 0.2, 0.7} },
+					{ "ks", {0.7, 1.0, 0.8} },
+					{ "roughness", 0.8},
+					{ "bumpmap", 0},
+					{ "remaproughness", false}
+					}));
+
+				PBR_API_add_triangle_mesh("wtf tri 1", -10, 0, -15, "cube10.gltf", json({
+					/*{ "name", "matte" },
+					{ "kd", {0.7, 0.5, 0.9} },
+					{"sigma", 0.8}*/
+					/*{ "name", "mirror" },
+					{ "kr", {1.0, 1.0, 1.0} },
+					{ "bumpmap", 0},*/
+					{ "name", "plastic" }, // glass mirror matte
+					{ "kd", {0.6, 0.8, 0.4} },
+					{ "ks", {0.9, 1.0, 0.9} },
+					{ "roughness", 0.9},
+					{ "bumpmap", 0},
+					{ "remaproughness", false}
+					}));
 #endif
 
 				//PBR_API_add_point_light("wtf Light 2", 10, 30, 10);
-				PBR_API_add_point_light("wtf Light", 0, 0, 20);
+				PBR_API_add_point_light("wtf Light", 0, -30, 30);
 				//PBR_API_add_point_light("wtf Light", -30, -30, 20);
 
 				PBR_API_add_infinite_light("inf light", 0, 0, 100, 1, 1, 1, 1.2, 4, hdr_file); // alps_field_1k.hdr crosswalk_1k.hdr

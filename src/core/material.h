@@ -86,6 +86,58 @@ private:
     std::shared_ptr<Texture<float>> bumpMap;
 };
 
+///////////////////////
 
+class PlasticMaterial : public Material {
+public:
+    // PlasticMaterial Public Methods
+    PlasticMaterial(const std::shared_ptr<Texture<Spectrum>>& Kd,
+        const std::shared_ptr<Texture<Spectrum>>& Ks,
+        const std::shared_ptr<Texture<float>>& roughness,
+        const std::shared_ptr<Texture<float>>& bumpMap,
+        bool remapRoughness)
+        : Kd(Kd),
+        Ks(Ks),
+        roughness(roughness),
+        bumpMap(bumpMap),
+        remapRoughness(remapRoughness) {}
+    void ComputeScatteringFunctions(SurfaceInteraction* si, TransportMode mode, bool allowMultipleLobes) const;
+
+private:
+    // PlasticMaterial Private Data
+    std::shared_ptr<Texture<Spectrum>> Kd, Ks;
+    std::shared_ptr<Texture<float>> roughness, bumpMap;
+    const bool remapRoughness;
+};
+
+///////////////////////
+
+class MetalMaterial : public Material {
+public:
+    // MetalMaterial Public Methods
+    MetalMaterial(const std::shared_ptr<Texture<Spectrum>>& eta,
+        const std::shared_ptr<Texture<Spectrum>>& k,
+        const std::shared_ptr<Texture<float>>& rough,
+        //const std::shared_ptr<Texture<float>>& urough,
+        //const std::shared_ptr<Texture<float>>& vrough,
+        const std::shared_ptr<Texture<float>>& bump,
+        bool remapRoughness)
+        : eta(eta),
+        k(k),
+        roughness(rough),
+        //uRoughness(uRoughness),
+        //vRoughness(vRoughness),
+        bumpMap(bumpMap),
+        remapRoughness(remapRoughness) {}
+
+    void ComputeScatteringFunctions(SurfaceInteraction* si, TransportMode mode, bool allowMultipleLobes) const;
+
+private:
+    // MetalMaterial Private Data
+    std::shared_ptr<Texture<Spectrum>> eta, k;
+    std::shared_ptr<Texture<float>> roughness;// , uRoughness, vRoughness;
+    std::shared_ptr<Texture<float>> bumpMap;
+    bool remapRoughness;
+};
 
 #endif

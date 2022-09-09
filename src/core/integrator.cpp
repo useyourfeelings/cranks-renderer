@@ -362,7 +362,7 @@ Spectrum EstimateDirect(const Interaction& it, const Point2f& uScattering,
     //VisibilityTester visibility;
 
     // 先得到直接光的初始值。有可能被遮挡。后续再判断。
-    // 光打到交点，算出wi。
+    // 光打到交点。算出wi，采样出光能，对应pdf。
     Spectrum Li = light.Sample_Li(it, uLight, &wi, &lightPdf);
 
     const SurfaceInteraction& isect = (const SurfaceInteraction&)it;

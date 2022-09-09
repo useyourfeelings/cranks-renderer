@@ -210,6 +210,18 @@ public:
 		return Point2<T>(x - v.x, y - v.y);
 	}
 
+	T operator[](int i) const {
+		//DCHECK(i >= 0 && i <= 1);
+		if (i == 0) return x;
+		return y;
+	}
+
+	T& operator[](int i) {
+		//DCHECK(i >= 0 && i <= 1);
+		if (i == 0) return x;
+		return y;
+	}
+
 	T x, y;
 };
 

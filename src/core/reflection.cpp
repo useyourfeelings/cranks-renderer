@@ -200,6 +200,38 @@ Spectrum FresnelDielectric::Evaluate(float cosThetaI) const {
     return FrDielectric(cosThetaI, etaI, etaT);
 }
 
+// https://seblagarde.wordpress.com/2013/04/29/memo-on-fresnel-equations/
+Spectrum FrConductor(float cosThetaI, const Spectrum& etai,
+    const Spectrum& etat, const Spectrum& k) {
+    cosThetaI = Clamp(cosThetaI, -1, 1);
+    Spectrum eta = etat / etai;
+    Spectrum etak = k / etai;
+
+    float cosThetaI2 = cosThetaI * cosThetaI;
+    float sinThetaI2 = 1. - cosThetaI2;
+    Spectrum eta2 = eta * eta;
+    Spectrum etak2 = etak * etak;
+
+    Spectrum t0 = eta2 - etak2 - sinThetaI2;
+    Spectrum a2plusb2 = Sqrt(t0 * t0 + 4 * eta2 * etak2);
+    Spectrum t1 = a2plusb2 + cosThetaI2;
+    Spectrum a = Sqrt(0.5f * (a2plusb2 + t0));
+    Spectrum t2 = (float)2 * cosThetaI * a;
+    Spectrum Rs = (t1 - t2) / (t1 + t2);
+
+    Spectrum t3 = cosThetaI2 * a2plusb2 + sinThetaI2 * sinThetaI2;
+    Spectrum t4 = t2 * sinThetaI2;
+    Spectrum Rp = Rs * (t3 - t4) / (t3 + t4);
+
+    return 0.5 * (Rp + Rs);
+}
+
+Spectrum FresnelConductor::Evaluate(float cosThetaI) const {
+    return FrConductor(std::abs(cosThetaI), etaI, etaT, k);
+}
+
+/////////////////////////////////
+
 // 镜面的反射部分
 Spectrum SpecularReflection::Sample_f(const Vector3f& wo, Vector3f* wi, const Point2f& sample, float* pdf, BxDFType* sampledType) const {
     // Compute perfect specular reflection direction
@@ -233,3 +265,53 @@ Spectrum SpecularTransmission::Sample_f(const Vector3f& wo, Vector3f* wi,
 
     return ft / AbsCosTheta(*wi);
 }
+
+//////////////////////////
+
+float MicrofacetReflection::Pdf(const Vector3f& wo, const Vector3f& wi) const {
+    if (!SameHemisphere(wo, wi)) return 0;
+    Vector3f wh = Normalize(wo + wi);
+    return distribution->Pdf(wo, wh) / (4 * Dot(wo, wh));
+}
+
+Spectrum MicrofacetReflection::f(const Vector3f& wo, const Vector3f& wi) const {
+    float cosThetaO = AbsCosTheta(wo), cosThetaI = AbsCosTheta(wi);
+    Vector3f wh = wi + wo;
+    // Handle degenerate cases for microfacet reflection
+    if (cosThetaI == 0 || cosThetaO == 0) return Spectrum(0.);
+    if (wh.x == 0 && wh.y == 0 && wh.z == 0) return Spectrum(0.);
+    wh = Normalize(wh);
+    // For the Fresnel call, make sure that wh is in the same hemisphere
+    // as the surface normal, so that TIR is handled correctly.
+    Spectrum F = fresnel->Evaluate(Dot(wi, Faceforward(wh, Vector3f(0, 0, 1))));
+    //return R * distribution->D(wh) * distribution->G(wo, wi) * F / (4 * cosThetaI * cosThetaO);
+
+    return R * distribution->D(wh) * F / (4 * cosThetaI * cosThetaO);
+}
+
+// 微小面的反射
+// wo为本地坐标。z轴为normal。
+Spectrum MicrofacetReflection::Sample_f(const Vector3f& wo, Vector3f* wi,
+    const Point2f& u, float* pdf,
+    BxDFType* sampledType) const {
+
+    // Sample microfacet orientation $\wh$ and reflected direction $\wi$
+    if (wo.z == 0)
+        return 0.;
+
+
+    Vector3f wh = distribution->Sample_wh(wo, u);
+    if (Dot(wo, wh) < 0) 
+        return 0.;   // Should be rare
+
+    // 得到对称的入射光线
+    *wi = Reflect(wo, wh);
+
+    if (!SameHemisphere(wo, *wi))
+        return Spectrum(0.f);
+
+    // Compute PDF of _wi_ for microfacet reflection
+    *pdf = distribution->Pdf(wo, wh) / (4 * Dot(wo, wh));
+    return f(wo, *wi);
+}
+

@@ -49,6 +49,28 @@ std::shared_ptr<Material> PbrApp::GenMaterial(const json& material_config) {
 		std::shared_ptr<Texture<float>> bumpmap = std::make_shared<ConstantTexture<float>>(material_config["bumpmap"]);
 
 		material = std::make_shared<MirrorMaterial>(kr_tex, bumpmap);
+	} else if (material_name == "plastic") {
+		auto kd = material_config["kd"];
+		auto ks = material_config["ks"];
+		auto remaproughness = material_config["remaproughness"];
+		std::shared_ptr<Texture<Spectrum>> kd_tex = std::make_shared<ConstantTexture<Spectrum>>(Spectrum(kd[0], kd[1], kd[2]));
+		std::shared_ptr<Texture<Spectrum>> ks_tex = std::make_shared<ConstantTexture<Spectrum>>(Spectrum(ks[0], ks[1], ks[2]));
+
+		std::shared_ptr<Texture<float>> roughness = std::make_shared<ConstantTexture<float>>(material_config["roughness"]);
+		std::shared_ptr<Texture<float>> bumpmap = std::make_shared<ConstantTexture<float>>(material_config["bumpmap"]);
+
+		material = std::make_shared<PlasticMaterial>(kd_tex, ks_tex, roughness, bumpmap, remaproughness);
+	} else if (material_name == "metal") {
+		auto k = material_config["k"];
+		auto eta = material_config["eta"];
+		auto remaproughness = material_config["remaproughness"];
+		std::shared_ptr<Texture<Spectrum>> k_tex = std::make_shared<ConstantTexture<Spectrum>>(Spectrum(k[0], k[1], k[2]));
+		std::shared_ptr<Texture<Spectrum>> eta_tex = std::make_shared<ConstantTexture<Spectrum>>(Spectrum(eta[0], eta[1], eta[2]));
+
+		std::shared_ptr<Texture<float>> roughness = std::make_shared<ConstantTexture<float>>(material_config["roughness"]);
+		std::shared_ptr<Texture<float>> bumpmap = std::make_shared<ConstantTexture<float>>(material_config["bumpmap"]);
+
+		material = std::make_shared<MetalMaterial>(eta_tex, k_tex, roughness, bumpmap, remaproughness);
 	}
 
 

@@ -7,6 +7,7 @@
 #include "transform.h"
 #include "spectrum.h"
 #include "interaction.h"
+#include "microfacet.h"
 
 enum BxDFType {
 	BSDF_REFLECTION = 1 << 0,
@@ -19,8 +20,32 @@ enum BxDFType {
 };
 
 // pbrt page 510
+// 本地w的各种计算
 inline float CosTheta(const Vector3f& w) { return w.z; }
+inline float Cos2Theta(const Vector3f& w) { return w.z * w.z; }
 inline float AbsCosTheta(const Vector3f& w) { return std::abs(w.z); }
+inline float Sin2Theta(const Vector3f& w) {
+    return std::max((float)0, (float)1 - Cos2Theta(w));
+}
+
+inline float SinTheta(const Vector3f& w) { return std::sqrt(Sin2Theta(w)); }
+inline float TanTheta(const Vector3f& w) { return SinTheta(w) / CosTheta(w); }
+inline float Tan2Theta(const Vector3f& w) {
+    return Sin2Theta(w) / Cos2Theta(w);
+}
+
+inline float CosPhi(const Vector3f& w) {
+    float sinTheta = SinTheta(w);
+    return (sinTheta == 0) ? 1 : Clamp(w.x / sinTheta, -1, 1);
+}
+
+inline float SinPhi(const Vector3f& w) {
+    float sinTheta = SinTheta(w);
+    return (sinTheta == 0) ? 0 : Clamp(w.y / sinTheta, -1, 1);
+}
+
+inline float Cos2Phi(const Vector3f& w) { return CosPhi(w) * CosPhi(w); }
+inline float Sin2Phi(const Vector3f& w) { return SinPhi(w) * SinPhi(w); }
 
 // 已知入射方向，normal和eta比。求折射方向。
 inline bool Refract(const Vector3f& wi, const Vector3f& n, float eta, Vector3f* wt) {
@@ -39,8 +64,19 @@ inline bool Refract(const Vector3f& wi, const Vector3f& n, float eta, Vector3f* 
     return true;
 }
 
+// 已知normal求反射光线
+inline Vector3f Reflect(const Vector3f& wo, const Vector3f& n) {
+    return -wo + 2 * Dot(wo, n) * n;
+}
+
+// 夹角<90度。在同个半球。
 inline bool SameHemisphere(const Vector3f& w, const Vector3f& wp) {
     return w.z * wp.z > 0;
+}
+
+// 球坐标
+inline Vector3f SphericalDirection(float sinTheta, float cosTheta, float phi) {
+    return Vector3f(sinTheta * std::cos(phi), sinTheta * std::sin(phi), cosTheta);
 }
 
 float FrDielectric(float cosThetaI, float etaI, float etaT);
@@ -195,6 +231,20 @@ private:
     float etaT; // 材质2 eta
 };
 
+// 导体
+class FresnelConductor : public Fresnel {
+public:
+    // FresnelConductor Public Methods
+    Spectrum Evaluate(float cosThetaI) const;
+    FresnelConductor(const Spectrum& etaI, const Spectrum& etaT,
+        const Spectrum& k)
+        : etaI(etaI), etaT(etaT), k(k) {}
+    //std::string ToString() const;
+
+private:
+    Spectrum etaI, etaT, k;
+};
+
 class FresnelNoOp : public Fresnel {
 public:
     Spectrum Evaluate(float) const { return Spectrum(1.); }
@@ -255,6 +305,27 @@ private:
     const float etaA, etaB;
     const FresnelDielectric fresnel;
     const TransportMode mode;
+};
+
+class MicrofacetReflection : public BxDF {
+public:
+    // MicrofacetReflection Public Methods
+    MicrofacetReflection(const Spectrum& R, std::shared_ptr<MicrofacetDistribution> distribution, std::shared_ptr<Fresnel> fresnel)
+        : BxDF(BxDFType(BSDF_REFLECTION | BSDF_GLOSSY)),
+        R(R),
+        distribution(distribution),
+        fresnel(fresnel) {}
+    Spectrum f(const Vector3f& wo, const Vector3f& wi) const;
+    Spectrum Sample_f(const Vector3f& wo, Vector3f* wi, const Point2f& u,
+        float* pdf, BxDFType* sampledType) const;
+    float Pdf(const Vector3f& wo, const Vector3f& wi) const;
+    //std::string ToString() const;
+
+private:
+    // MicrofacetReflection Private Data
+    const Spectrum R;
+    std::shared_ptr<MicrofacetDistribution> distribution;
+    std::shared_ptr<Fresnel> fresnel;
 };
 
 

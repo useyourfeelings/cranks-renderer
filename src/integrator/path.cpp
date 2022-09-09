@@ -88,7 +88,7 @@ Spectrum PathIntegrator::Li(const RayDifferential& r, const Scene& scene, Sample
 
         //std::cout << "Sample_f " << std::endl;
 
-        // 以wo采一束光，算出能量。
+        // 以wo采一束入射光，算出能量。
         // 同时得到一个随机方向，作为下一层的path。
         Spectrum f = isect.bsdf->Sample_f(wo, &wi, sampler.Get2D(), &pdf, BSDF_ALL, &flags);
 

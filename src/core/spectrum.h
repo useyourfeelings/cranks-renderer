@@ -13,15 +13,15 @@ enum class SpectrumType {
 
 class CoefficientSpectrum {
 public:
-    CoefficientSpectrum(int nSpectrumSamples, float v = 0.f):
-        nSpectrumSamples(nSpectrumSamples),
+    CoefficientSpectrum(float v = 0.f):
+        nSpectrumSamples(3),
         c(nSpectrumSamples) {
 
         for (int i = 0; i < nSpectrumSamples; ++i) c[i] = v;
     }
 
-    CoefficientSpectrum(int nSpectrumSamples, float r, float g, float b) :
-        nSpectrumSamples(nSpectrumSamples),
+    CoefficientSpectrum(float r, float g, float b) :
+        nSpectrumSamples(3),
         c(nSpectrumSamples) {
 
         c[0] = r;
@@ -98,10 +98,27 @@ public:
         return ret;
     }
 
+    CoefficientSpectrum operator/(const CoefficientSpectrum& s2) const {
+        //DCHECK(!s2.HasNaNs());
+        CoefficientSpectrum ret = *this;
+        for (int i = 0; i < nSpectrumSamples; ++i) {
+            //CHECK_NE(s2.c[i], 0);
+            ret.c[i] /= s2.c[i];
+        }
+        return ret;
+    }
+
     friend inline CoefficientSpectrum operator*(float a,
         const CoefficientSpectrum& s) {
         //DCHECK(!std::isnan(a) && !s.HasNaNs());
         return s * a;
+    }
+
+    friend CoefficientSpectrum Sqrt(const CoefficientSpectrum& s) {
+        CoefficientSpectrum ret(3);
+        for (int i = 0; i < s.nSpectrumSamples; ++i) ret.c[i] = std::sqrt(s.c[i]);
+        //DCHECK(!ret.HasNaNs());
+        return ret;
     }
 
     int nSpectrumSamples;
@@ -113,11 +130,11 @@ public:
 
     ~RGBSpectrum() {}
     // RGBSpectrum Public Methods
-    RGBSpectrum(float v = 0.f) : CoefficientSpectrum(3, v) {}
-    RGBSpectrum(float r, float g, float b) : CoefficientSpectrum(3, r, g, b) {}
+    RGBSpectrum(float v = 0.f) : CoefficientSpectrum(v) {}
+    RGBSpectrum(float r, float g, float b) : CoefficientSpectrum(r, g, b) {}
     RGBSpectrum(const CoefficientSpectrum& v) : CoefficientSpectrum(v) {}
     RGBSpectrum(const RGBSpectrum& s,
-        SpectrumType type = SpectrumType::Reflectance):CoefficientSpectrum(3) {
+        SpectrumType type = SpectrumType::Reflectance):CoefficientSpectrum() {
         *this = s;
     }
 
