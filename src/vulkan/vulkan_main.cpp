@@ -26,7 +26,7 @@ int VulkanApp::init() {
     glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
     //glfwWindowHint(GLFW_RESIZABLE, GLFW_FALSE);
 
-    int width = 1600;
+    int width = 2000;
     int height = 1200;
 
     window = glfwCreateWindow(width, height, "Cranks Renderer Vulkan", nullptr, nullptr);

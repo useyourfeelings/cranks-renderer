@@ -35,6 +35,13 @@ file(GLOB IMGUI_CODE
   ${IMGUI_DIR}/imgui_widgets.cpp
 )
 
+# imgui file dialog
+set(IMGUI_FILE_DIALOG_DIR third_party/imgui_file_dialog)
+include_directories(${IMGUI_FILE_DIALOG_DIR})
+file(GLOB IMGUI_FILE_DIALOG_CODE
+  ${IMGUI_FILE_DIALOG_DIR}/ImGuiFileDialog.cpp
+)
+
 # base64 source
 file(GLOB BASE64_CODE
   third_party/base64/base64.h
@@ -87,8 +94,9 @@ source_group(integrator src/integrator)
 source_group(vulkan src/vulkan)
 
 source_group(third_party/imgui ${IMGUI_DIR})
+source_group(third_party/imgui_file_dialog ${IMGUI_FILE_DIALOG_DIR})
 
-add_executable(cranks-renderer ${PBR_CODE} ${IMGUI_CODE} ${BASE64_CODE})
+add_executable(cranks-renderer ${PBR_CODE} ${IMGUI_CODE} ${BASE64_CODE} ${IMGUI_FILE_DIALOG_CODE})
 
 target_link_libraries(cranks-renderer ${LIBRARIES})
 target_compile_definitions(cranks-renderer PUBLIC -DImTextureID=ImU64)
