@@ -19,7 +19,7 @@ public:
     }
 
     bool IsDone() {
-        std::cout << "IsDone id " << system_thread.get_id() <<" status = "<< status << std::endl;
+        //std::cout << "IsDone id " << system_thread.get_id() <<" status = "<< status << std::endl;
         return status == THREAD_DONE;
     }
 

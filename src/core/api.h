@@ -2,6 +2,7 @@
 #define CORE_API_H
 
 #include <string>
+#include <tuple>
 #include"../tool/json.h"
 // api for client
 
@@ -26,13 +27,20 @@ struct SceneOptions {
 
 int PBR_API_hi();
 int PBR_API_print_scene();
-//int PBR_API_render();
 void PBR_API_render(const json&);
 int PBR_API_stop_rendering();
-int PBR_API_add_sphere(const std::string &name, float radius, float x, float y, float z, const json& material_config);
-int PBR_API_add_triangle_mesh(const std::string& name, float x, float y, float z, const std::string& file_name, const nlohmann::json& material_config);
-int PBR_API_add_point_light(const std::string& name, float x, float y, float z);
-int PBR_API_add_infinite_light(const std::string& name, float x, float y, float z, float r, float g, float b, float strength, float nSample, const std::string& texmap);
+int PBR_API_save_project(const std::string& path, const std::string& name);
+int PBR_API_load_project(const std::string& path);
+std::tuple<int, json> PBR_API_add_object_to_scene(const json& obj_info);
+int PBR_API_delete_object_from_scene(const json& obj_info);
+int PBR_API_update_scene_object(const json& obj_info);
+const json& PBR_API_get_scene_tree();
+json PBR_API_get_material_tree();
+json PBR_API_new_material();
+int PBR_API_update_material(const json& m_info);
+int PBR_API_delete_material(const json& obj_info);
+std::string PBR_API_rename_material(int material_id, const std::string& new_name);
+std::string PBR_API_rename_object(int obj_id, const std::string& new_name);
 int PBR_API_set_perspective_camera(const CameraSetting &s);
 int PBR_API_get_camera_setting(CameraSetting &s);
 int PBR_API_get_defualt_camera_setting(CameraSetting& s);

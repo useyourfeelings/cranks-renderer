@@ -1,34 +1,98 @@
 #ifndef CORE_MATERIAL_H
 #define CORE_MATERIAL_H
 
+#include <unordered_set>
 #include "pbr.h"
 #include "transform.h"
 #include "spectrum.h"
+#include "../tool/json.h"
+
+inline std::unordered_set<std::string> material_name_set;
+inline int latest_material_id = 0;
 
 enum class TransportMode { Radiance, Importance };
 
 // Material Declarations
 class Material {
 public:
+    Material(const json& new_config, int keep_id, int inc_last_id) {
+        config = new_config;
+        std::string name = config["name"];
+
+        int index = 2;
+        while (material_name_set.contains(name)) {
+            name = std::string(new_config["name"]) + std::format("_{}", index++);
+        }
+
+        config["name"] = name;
+
+        if (keep_id == 0) {
+            config["id"] = ++latest_material_id;
+        }
+        else {
+            //config["id"] = keep_id;
+            if (inc_last_id)
+                latest_material_id = config["id"];// keep_id;
+        }
+
+        material_name_set.insert(name);
+    }
+
+    virtual ~Material() {
+        material_name_set.erase(std::string(config["name"]));
+    };
+
+    std::string Rename(const std::string new_name) {
+        // delete current
+        material_name_set.erase(std::string(config["name"]));
+
+        // add new
+        std::string name = new_name;
+
+        int index = 2;
+        while (material_name_set.contains(name)) {
+            name = new_name + std::format("_{}", index++);
+        }
+
+        config["name"] = name;
+        material_name_set.insert(name);
+
+        return name;
+    }
+
     // Material Interface
     virtual void ComputeScatteringFunctions(SurfaceInteraction* si, TransportMode mode, bool allowMultipleLobes = false) const = 0;
-    virtual ~Material() {};
+    
     static void Bump(const std::shared_ptr<Texture<float>>& d, SurfaceInteraction* si);
+    const json& GetJson() const;
+    int GetID() const;
+
+    void Update(const json& new_config);
+
+    
+
+    json config;
 };
 
 /////////////////////////////////////////
 
-
+std::shared_ptr<Material> GenMaterial(const json& material_config, int keep_id, int inc_last_id);
 
 
 class MatteMaterial : public Material {
 public:
     // MatteMaterial Public Methods
-    MatteMaterial() {}
-    MatteMaterial(const std::shared_ptr<Texture<Spectrum>>& Kd,
+    //MatteMaterial() {}
+    MatteMaterial(const json& new_config,
+        int keep_id, int inc_last_id,
+        const std::shared_ptr<Texture<Spectrum>>& Kd,
         const std::shared_ptr<Texture<float>>& sigma,
         const std::shared_ptr<Texture<float>>& bumpMap)
-        : Kd(Kd), sigma(sigma), bumpMap(bumpMap) {}
+        : Material(new_config, keep_id, inc_last_id),
+        Kd(Kd), sigma(sigma), bumpMap(bumpMap) {
+
+        config["type"] = "matte";
+    }
     void ComputeScatteringFunctions(SurfaceInteraction* si, TransportMode mode, bool allowMultipleLobes = false) const;
 
 private:
@@ -42,20 +106,25 @@ private:
 class GlassMaterial : public Material {
 public:
     // GlassMaterial Public Methods
-    GlassMaterial(const std::shared_ptr<Texture<Spectrum>>& Kr,
+    GlassMaterial(const json& new_config, 
+        int keep_id, int inc_last_id,
+        const std::shared_ptr<Texture<Spectrum>>& Kr,
         const std::shared_ptr<Texture<Spectrum>>& Kt,
         const std::shared_ptr<Texture<float>>& uRoughness,
         const std::shared_ptr<Texture<float>>& vRoughness,
         const std::shared_ptr<Texture<float>>& index,
         const std::shared_ptr<Texture<float>>& bumpMap,
         bool remapRoughness)
-        : Kr(Kr),
+        : Material(new_config, keep_id, inc_last_id),
+        Kr(Kr),
         Kt(Kt),
         uRoughness(uRoughness),
         vRoughness(vRoughness),
         index(index),
         bumpMap(bumpMap),
-        remapRoughness(remapRoughness) {}
+        remapRoughness(remapRoughness) {
+        config["type"] = "glass";
+    }
     void ComputeScatteringFunctions(SurfaceInteraction* si, TransportMode mode, bool allowMultipleLobes = false) const;
 
 private:
@@ -73,10 +142,15 @@ private:
 class MirrorMaterial : public Material {
 public:
     // MirrorMaterial Public Methods
-    MirrorMaterial(const std::shared_ptr<Texture<Spectrum>>& r,
-        const std::shared_ptr<Texture<float>>& bump) {
+    MirrorMaterial(const json& new_config, 
+        int keep_id, int inc_last_id,
+        const std::shared_ptr<Texture<Spectrum>>& r,
+        const std::shared_ptr<Texture<float>>& bump):
+        Material(new_config, keep_id, inc_last_id) {
         Kr = r;
         bumpMap = bump;
+
+        config["type"] = "mirror";
     }
     void ComputeScatteringFunctions(SurfaceInteraction* si, TransportMode mode, bool allowMultipleLobes) const;
 
@@ -91,16 +165,21 @@ private:
 class PlasticMaterial : public Material {
 public:
     // PlasticMaterial Public Methods
-    PlasticMaterial(const std::shared_ptr<Texture<Spectrum>>& Kd,
+    PlasticMaterial(const json& new_config, 
+        int keep_id, int inc_last_id,
+        const std::shared_ptr<Texture<Spectrum>>& Kd,
         const std::shared_ptr<Texture<Spectrum>>& Ks,
         const std::shared_ptr<Texture<float>>& roughness,
         const std::shared_ptr<Texture<float>>& bumpMap,
         bool remapRoughness)
-        : Kd(Kd),
+        : Material(new_config, keep_id, inc_last_id),
+        Kd(Kd),
         Ks(Ks),
         roughness(roughness),
         bumpMap(bumpMap),
-        remapRoughness(remapRoughness) {}
+        remapRoughness(remapRoughness) {
+        config["type"] = "plastic";
+    }
     void ComputeScatteringFunctions(SurfaceInteraction* si, TransportMode mode, bool allowMultipleLobes) const;
 
 private:
@@ -115,20 +194,25 @@ private:
 class MetalMaterial : public Material {
 public:
     // MetalMaterial Public Methods
-    MetalMaterial(const std::shared_ptr<Texture<Spectrum>>& eta,
+    MetalMaterial(const json& new_config, 
+        int keep_id, int inc_last_id,
+        const std::shared_ptr<Texture<Spectrum>>& eta,
         const std::shared_ptr<Texture<Spectrum>>& k,
         const std::shared_ptr<Texture<float>>& rough,
         //const std::shared_ptr<Texture<float>>& urough,
         //const std::shared_ptr<Texture<float>>& vrough,
         const std::shared_ptr<Texture<float>>& bump,
         bool remapRoughness)
-        : eta(eta),
+        : Material(new_config, keep_id, inc_last_id),
+        eta(eta),
         k(k),
         roughness(rough),
         //uRoughness(uRoughness),
         //vRoughness(vRoughness),
         bumpMap(bumpMap),
-        remapRoughness(remapRoughness) {}
+        remapRoughness(remapRoughness) {
+        config["type"] = "metal";
+    }
 
     void ComputeScatteringFunctions(SurfaceInteraction* si, TransportMode mode, bool allowMultipleLobes) const;
 

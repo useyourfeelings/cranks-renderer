@@ -3,6 +3,72 @@
 #include "reflection.h"
 #include "pbr.h"
 
+std::shared_ptr<Material> GenMaterial(const json& material_config, int keep_id, int inc_last_id) {
+    //std::cout << "PbrApp::GenMaterial()" << material_config.dump() << std::endl;
+
+    std::shared_ptr<Material> material = nullptr;
+
+    auto material_type = material_config["type"];
+
+    if (material_type == "matte") {
+        auto kd = material_config["kd"];
+        std::shared_ptr<Texture<Spectrum>> kd_tex = std::make_shared<ConstantTexture<Spectrum>>(Spectrum(kd[0], kd[1], kd[2]));
+
+        std::shared_ptr<Texture<float>> sigma_tex = std::make_shared<ConstantTexture<float>>(material_config["sigma"]);
+
+        material = std::make_shared<MatteMaterial>(material_config, keep_id, inc_last_id, kd_tex, sigma_tex, nullptr);
+    }
+    else if (material_type == "glass") {
+        auto kr = material_config["kr"];
+        auto kt = material_config["kt"];
+        auto remaproughness = material_config["remaproughness"];
+        std::shared_ptr<Texture<Spectrum>> kr_tex = std::make_shared<ConstantTexture<Spectrum>>(Spectrum(kr[0], kr[1], kr[2]));
+        std::shared_ptr<Texture<Spectrum>> kt_tex = std::make_shared<ConstantTexture<Spectrum>>(Spectrum(kt[0], kt[1], kt[2]));
+
+        std::shared_ptr<Texture<float>> eta = std::make_shared<ConstantTexture<float>>(material_config["eta"]);
+        std::shared_ptr<Texture<float>> uroughness = std::make_shared<ConstantTexture<float>>(material_config["uroughness"]);
+        std::shared_ptr<Texture<float>> vroughness = std::make_shared<ConstantTexture<float>>(material_config["vroughness"]);
+        std::shared_ptr<Texture<float>> bumpmap = std::make_shared<ConstantTexture<float>>(material_config["bumpmap"]);
+
+        material = std::make_shared<GlassMaterial>(material_config, keep_id, inc_last_id, kr_tex, kt_tex, uroughness, vroughness, eta, bumpmap, remaproughness);
+    }
+    else if (material_type == "mirror") {
+        auto kr = material_config["kr"];
+        std::shared_ptr<Texture<Spectrum>> kr_tex = std::make_shared<ConstantTexture<Spectrum>>(Spectrum(kr[0], kr[1], kr[2]));
+
+        std::shared_ptr<Texture<float>> bumpmap = std::make_shared<ConstantTexture<float>>(material_config["bumpmap"]);
+
+        material = std::make_shared<MirrorMaterial>(material_config, keep_id, inc_last_id, kr_tex, bumpmap);
+    }
+    else if (material_type == "plastic") {
+        auto kd = material_config["kd"];
+        auto ks = material_config["ks"];
+        auto remaproughness = material_config["remaproughness"];
+        std::shared_ptr<Texture<Spectrum>> kd_tex = std::make_shared<ConstantTexture<Spectrum>>(Spectrum(kd[0], kd[1], kd[2]));
+        std::shared_ptr<Texture<Spectrum>> ks_tex = std::make_shared<ConstantTexture<Spectrum>>(Spectrum(ks[0], ks[1], ks[2]));
+
+        std::shared_ptr<Texture<float>> roughness = std::make_shared<ConstantTexture<float>>(material_config["roughness"]);
+        std::shared_ptr<Texture<float>> bumpmap = std::make_shared<ConstantTexture<float>>(material_config["bumpmap"]);
+
+        material = std::make_shared<PlasticMaterial>(material_config, keep_id, inc_last_id, kd_tex, ks_tex, roughness, bumpmap, remaproughness);
+    }
+    else if (material_type == "metal") {
+        auto k = material_config["k"];
+        auto eta = material_config["eta"];
+        auto remaproughness = material_config["remaproughness"];
+        std::shared_ptr<Texture<Spectrum>> k_tex = std::make_shared<ConstantTexture<Spectrum>>(Spectrum(k[0], k[1], k[2]));
+        std::shared_ptr<Texture<Spectrum>> eta_tex = std::make_shared<ConstantTexture<Spectrum>>(Spectrum(eta[0], eta[1], eta[2]));
+
+        std::shared_ptr<Texture<float>> roughness = std::make_shared<ConstantTexture<float>>(material_config["roughness"]);
+        std::shared_ptr<Texture<float>> bumpmap = std::make_shared<ConstantTexture<float>>(material_config["bumpmap"]);
+
+        material = std::make_shared<MetalMaterial>(material_config, keep_id, inc_last_id, eta_tex, k_tex, roughness, bumpmap, remaproughness);
+    }
+
+
+    return material;
+}
+
 void MatteMaterial::ComputeScatteringFunctions(SurfaceInteraction* si, TransportMode mode, bool allowMultipleLobes) const {
     // Perform bump mapping with _bumpMap_, if present
     //if (bumpMap) Bump(bumpMap, si);
@@ -19,6 +85,9 @@ void MatteMaterial::ComputeScatteringFunctions(SurfaceInteraction* si, Transport
     //}
 
     Spectrum r = Kd->Evaluate(*si).Clamp();
+
+    //std::cout << r.c[0] << " " << r.c[1] << " "<<r.c[2]<<std::endl;
+
     float sig = Clamp(sigma->Evaluate(*si), 0, 90);
 
     si->bsdf = std::make_shared<BSDF>(*si);
@@ -29,7 +98,6 @@ void MatteMaterial::ComputeScatteringFunctions(SurfaceInteraction* si, Transport
     si->bsdf->Add(std::make_shared<LambertianReflection>(r));
 
 }
-
 
 //////////////////////////////////
 
@@ -104,6 +172,41 @@ void MirrorMaterial::ComputeScatteringFunctions(SurfaceInteraction* si, Transpor
 
 void Material::Bump(const std::shared_ptr<Texture<float>>& d,
     SurfaceInteraction* si) {
+}
+
+const json& Material::GetJson() const {
+    return config;
+}
+
+int Material::GetID() const {
+    return config["id"];
+}
+
+void Material::Update(const json& new_config) { // update whole material
+    std::cout << "Material::Update " << new_config << std::endl;
+    std::string final_name = config["name"];
+
+    if (new_config.contains("name")) {
+        // delete old
+        material_name_set.erase(std::string(config["name"]));
+
+        // gen new
+        std::string new_name = new_config["name"];
+        final_name = new_name;
+
+        int index = 2;
+        while (material_name_set.contains(final_name)) {
+            final_name = new_name + std::format("_{}", index++);
+        }
+
+        material_name_set.insert(final_name);
+    }
+
+    config = new_config;
+    config["name"] = final_name;
+
+
+    
 }
 
 

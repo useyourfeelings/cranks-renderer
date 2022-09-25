@@ -2,21 +2,26 @@
 #define CORE_TRIANGLE_H
 
 #include "../core/shape.h"
+#include "../core/object.h"
+#include "../core/scene.h"
 
 // mesh数据
-class TriangleMesh {
+class TriangleMesh: public Object {
 public:
 	// TriangleMesh Public Methods
-	TriangleMesh(const Transform& ObjectToWorld, int nTriangles,
-		const int* vertexIndices, int nVertices, 
-		//const Point3f* P
-        const float* P
-		//const Vector3f* S,
-		//const Normal3f* N,
-		//const Point2f* uv,
-		//const std::shared_ptr<Texture<float>>& alphaMask,
-		//const std::shared_ptr<Texture<float>>& shadowAlphaMask,
-		//const int* faceIndices
+    TriangleMesh(const std::string& name, const Transform& ObjectToWorld, int nTriangles,
+        const int* vertexIndices, int nVertices,
+        //const Point3f* P
+        const float* P,
+        //const Vector3f* S,
+        //const Normal3f* N,
+        //const Point2f* uv,
+        //const std::shared_ptr<Texture<float>>& alphaMask,
+        //const std::shared_ptr<Texture<float>>& shadowAlphaMask,
+        //const int* faceIndices
+        //int material_id
+        std::shared_ptr<Material> material,
+        std::shared_ptr<Scene> scene
 	);
 
 	// TriangleMesh Data
@@ -29,6 +34,13 @@ public:
 	//std::unique_ptr<Point2f[]> uv;
 	//std::shared_ptr<Texture<float>> alphaMask, shadowAlphaMask;
 	//std::vector<int> faceIndices;
+
+    std::shared_ptr<Material> GetMaterial();
+
+private:
+    int material_id;
+    std::weak_ptr<Material> material;
+    std::weak_ptr<Scene> scene;
 };
 
 // 三角形

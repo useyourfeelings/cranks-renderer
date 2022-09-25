@@ -4,9 +4,10 @@
 #include<iostream>
 #include<fstream>
 #include<set>
-#include"../../third_party/json/json.hpp"
+#include"../tool/json.h"
+//#include"../../third_party/json/json.hpp"
 
-using namespace nlohmann;
+// using namespace nlohmann;
 
 static std::set<std::string> valid_setting_key{
 	"camera_look",

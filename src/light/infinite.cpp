@@ -1,10 +1,10 @@
 #include "infinite.h"
 #include "../tool/image.h"
 
-InfiniteAreaLight::InfiniteAreaLight(const Transform& LightToWorld,
+InfiniteAreaLight::InfiniteAreaLight(const std::string &name, const Transform& LightToWorld,
     const Spectrum& L, float strength, int nSamples,
     const std::string& texmap)
-    : Light((int)LightFlags::Infinite, LightToWorld, nSamples) {
+    : Light(name, (int)LightFlags::Infinite, LightToWorld, nSamples) {
 
     // todo
     // 方向的设置

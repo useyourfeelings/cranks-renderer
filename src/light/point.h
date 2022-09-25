@@ -6,8 +6,8 @@
 class PointLight : public Light {
 public:
     // PointLight Public Methods
-    PointLight(const Transform& LightToWorld, const Spectrum& I)
-        : Light((int)LightFlags::DeltaPosition, LightToWorld),
+    PointLight(const std::string &name, const Transform& LightToWorld, const Spectrum& I)
+        : Light(name, (int)LightFlags::DeltaPosition, LightToWorld),
         pLight(LightToWorld(Point3f(0, 0, 0))),
         I(I) {
         pos = LightToWorld(Point3f(0, 0, 0));

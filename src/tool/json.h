@@ -3,6 +3,6 @@
 
 #include"../../third_party/json/json.hpp"
 
-typedef nlohmann::json json;
+typedef nlohmann::ordered_json json; // ordered_json
 
 #endif

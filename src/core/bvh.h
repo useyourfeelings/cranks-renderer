@@ -6,7 +6,6 @@
 #include <string>
 #include "geometry.h"
 #include "interaction.h"
-#include "primitive.h"
 
 // todo-node的更新/添加/删除
 
@@ -93,7 +92,7 @@ private:
 
 	std::vector<std::shared_ptr<Primitive>> primitives;
 
-	std::shared_ptr<BVHNode> root;
+	std::shared_ptr<BVHNode> root = nullptr;
 
 	int binCount;
 };

@@ -1,5 +1,6 @@
 #include "triangle.h"
 #include "../base/efloat.h"
+#include <cassert>
 
 std::string Triangle::GetInfoString() const {
     return std::format("[{}, {}, {}] [{}, {}, {}] [{}, {}, {}]", 
@@ -32,24 +33,72 @@ BBox3f Triangle::WorldBound() const {
     return Union(BBox3f(p0, p1), p2);
 }
 
+// 目前的理解。
+// 允许shared_ptr被删除，此时weak_ptr可判断shared_ptr还是否有效。
+// 但如果shared_ptr被替换，weak_ptr无法自动更新，还是绑定老的shared_ptr。
+// 能否这样。保留material_id，如果weak_ptr判断shared_ptr失效，则尝试根据material_id去找新的shared_ptr并更新weak_ptr。
+// 如果是被删，则material_id找不到新的shared_ptr，返回默认material。
+// 如果是更新，则weak_ptr更新为新的shared_ptr。
+// 
+// 总体是借助material_id来判断shared_ptr的真实情况，进行更新。
+std::shared_ptr<Material> TriangleMesh::GetMaterial() {
+    auto m = material.lock();
+    if (m) {
+        //std::cout << "TriangleMesh::GetMaterial() ok" << m->GetJson() << std::endl;
+        return m;
+    }
+    else {
+        // try get real material
+        auto scene_ptr = scene.lock();
+        assert(scene_ptr);
+        auto m = scene_ptr->GetMaterial(material_id);
+
+        if (m) {
+            // update
+            material = m;
+            material_id = m->GetID();
+            //std::cout << "TriangleMesh::GetMaterial() new" << m->GetJson() << std::endl;
+            return m;
+        }
+        else {
+            throw("failed to get material");
+        }
+        //else {
+        //    // material is gone
+        //    material_id = -1;
+        //    return nullptr;
+        //}
+    }
+}
+
 TriangleMesh::TriangleMesh(
+    const std::string& name,
     const Transform& ObjectToWorld, int nTriangles, const int* vertexIndices,
     int nVertices,
     //const Point3f* P
-    const float* P
+    const float* P,
     //const Vector3f* S,
     //const Normal3f* N,
     //const Point2f* UV,
     //const std::shared_ptr<Texture<float>>& alphaMask,
     //const std::shared_ptr<Texture<float>>& shadowAlphaMask,
     //const int* fIndices
+    //int material_id
+    std::shared_ptr<Material> material,
+    std::shared_ptr<Scene> scene
 )
-    : nTriangles(nTriangles),
+    : Object(name),
+    nTriangles(nTriangles),
     nVertices(nVertices),
-    vertexIndices(vertexIndices, vertexIndices + 3 * nTriangles)
+    vertexIndices(vertexIndices, vertexIndices + 3 * nTriangles),
+    //material_id(material_id)
+    material(material),
+    scene(scene)
     //alphaMask(alphaMask),
     //shadowAlphaMask(shadowAlphaMask)
     {
+
+    material_id = material->GetID();
     /*++nMeshes;
     nTris += nTriangles;
     triMeshBytes += sizeof(*this) + this->vertexIndices.size() * sizeof(int) +

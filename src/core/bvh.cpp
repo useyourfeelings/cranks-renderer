@@ -1,8 +1,12 @@
 #include "bvh.h"
+#include "primitive.h"
 
 BVH::BVH(const std::vector<std::shared_ptr<Primitive>> &p):
 	primitives(std::move(p)),
 	binCount(12) {
+
+	if (primitives.empty())
+		return;
 
 	// ≥ı ºªØprimitiveInfo
 	std::vector<BVHPrimitiveInfo> primitiveInfo(primitives.size());
@@ -168,6 +172,9 @@ std::shared_ptr<BVHNode> BVH::Build(std::vector<BVHPrimitiveInfo>& primitiveInfo
 }
 
 bool BVH::Intersect(const Ray& ray) const {
+	if (root == nullptr)
+		return false;
+
 	Vector3f invDir(1 / ray.d.x, 1 / ray.d.y, 1 / ray.d.z);
 	int dirIsNeg[3] = { invDir.x < 0, invDir.y < 0, invDir.z < 0 };
 
@@ -208,6 +215,9 @@ bool BVH::Intersect(const Ray& ray) const {
 
 
 bool BVH::Intersect(const Ray& ray, float *tHit, SurfaceInteraction* isect) const {
+	if (root == nullptr)
+		return false;
+
 	Vector3f invDir(1 / ray.d.x, 1 / ray.d.y, 1 / ray.d.z);
 	int dirIsNeg[3] = { invDir.x < 0, invDir.y < 0, invDir.z < 0 };
 

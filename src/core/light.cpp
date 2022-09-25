@@ -3,8 +3,9 @@
 
 Light::~Light() {}
 
-Light::Light(int flags, const Transform& LightToWorld, int nSamples)
-    : flags(flags),
+Light::Light(const std::string& name, int flags, const Transform& LightToWorld, int nSamples)
+    : Object(name),
+    flags(flags),
     nSamples(std::max(1, nSamples)),
     LightToWorld(LightToWorld),
     WorldToLight(Inverse(LightToWorld)) {

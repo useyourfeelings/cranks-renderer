@@ -8,7 +8,7 @@
 class InfiniteAreaLight : public Light {
 public:
     // InfiniteAreaLight Public Methods
-    InfiniteAreaLight(const Transform& LightToWorld, const Spectrum& power, float strength,
+    InfiniteAreaLight(const std::string& name, const Transform& LightToWorld, const Spectrum& power, float strength,
         int nSamples, const std::string& texmap);
     void Preprocess(const Scene& scene) {
         //scene.WorldBound().BoundingSphere(&worldCenter, &worldRadius);

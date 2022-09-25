@@ -6,6 +6,8 @@
 #include <iostream>
 #include <vector>
 #include <mutex>
+#include <map>
+#include <tuple>
 #include "scene.h"
 #include "camera.h"
 #include "film.h"
@@ -16,21 +18,11 @@
 #include "../tool/logger.h"
 #include "setting.h"
 #include "mipmap.h"
+#include "material.h"
 
 class PbrApp {
 public:
-	PbrApp(){
-		std::cout << "PbrApp::PbrApp" << std::endl;
-		//Log("PbrApp()"); // can cause exception. mutex not initialized. global variable problem.
-		camera = nullptr;
-		sampler = nullptr;
-		integrator = nullptr;
-
-		scene = std::make_unique<Scene>();
-		camera = std::shared_ptr<Camera>(new PerspectiveCamera());
-		SetSampler();
-		SetIntegrator();
-	}
+	PbrApp();
 
 	void SayHi() {
 		Log("PbrApp hi");
@@ -38,15 +30,19 @@ public:
 
 	void PrintScene();
 
-	//
-	std::shared_ptr<Material> GenMaterial(const json& material_config);
+	int SaveProject(const std::string& path, const std::string& name);
+	int LoadProject(const std::string& path);
+	std::tuple<int, json> AddObjectToScene(const json& obj_info);
+	int DeleteObjectFromScene(const json& obj_info);
+	int UpdateSceneObject(const json& obj_info);
+	const json& GetSceneTree();
+	json GetMaterialTree();
+	json NewMaterial();
+	int UpdateMaterial(const json& m_info);
+	int DeleteMaterial(const json& m_info);
+	std::string RenameMaterial(int material_id, const std::string& new_name);
+	std::string RenameObject(int obj_id, const std::string& new_name);
 
-
-	void AddSphere(const std::string& name, float radius, Point3f position, const json& material_config);
-	void AddTriangleMesh(const std::string& name, Point3f pos, const std::string& file_name, const json& material_config);
-	
-	void AddPointLight(const std::string& name, Point3f position);
-	void AddInfiniteLight(const std::string& name, Point3f pos, const Spectrum& power, float strength, int nSamples, const std::string& texmap);
 	//
 
 	void RenderScene();
@@ -74,7 +70,7 @@ public:
 	void MakeTestMipmap(const std::string& file_name);
 	void GetTestMipmapImage(int index, std::vector<unsigned char>& data, int& x, int& y);
 
-	std::unique_ptr<Scene> scene;
+	std::shared_ptr<Scene> scene;
 	std::shared_ptr<Camera> camera;
 	std::shared_ptr<Sampler> sampler;
 	std::unique_ptr<Integrator> integrator;
@@ -84,7 +80,12 @@ public:
 
 	std::mutex image_mutex;
 
+	std::shared_ptr<std::map<int, std::shared_ptr<Material>>> material_list;
+
 	int SendNewImage(unsigned char* dst);
+
+private:
+	bool project_changed;
 };
 
 inline PbrApp app;

@@ -29,7 +29,7 @@ int VulkanApp::init() {
     int width = 2000;
     int height = 1200;
 
-    window = glfwCreateWindow(width, height, "Cranks Renderer Vulkan", nullptr, nullptr);
+    window = glfwCreateWindow(width, height, "Cranks Renderer", nullptr, nullptr);
 
     VkResult err;
 

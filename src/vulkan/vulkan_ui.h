@@ -5,6 +5,7 @@
 #include <vector>
 #include <GLFW/glfw3.h>
 #include"imgui.h"
+#include"imgui_internal.h"
 #include "imgui_impl_glfw.h"
 
 #include <vulkan/vulkan.h>
@@ -33,7 +34,8 @@ public:
 		height(height) {
 
 		ImGui::CreateContext();
-		//ImGuiIO& io = ImGui::GetIO();
+		ImGuiIO& io = ImGui::GetIO();
+		io.ConfigFlags |= ImGuiConfigFlags_DockingEnable;
 	};
 
 	~VulkanUI() {
@@ -64,14 +66,17 @@ public:
 		ImGui::StyleColorsLight();
 		ImGuiStyle& style = ImGui::GetStyle();
 		style.ItemSpacing = ImVec2(8, 8);
-		style.FrameRounding = 2;
+		style.FrameRounding = 3;
 		style.FrameBorderSize = 1;
 		style.TabBorderSize = 1;
 		style.TabRounding = 2;
 		style.WindowRounding = 1;
 		style.ScrollbarSize = 16;
-		style.WindowMenuButtonPosition = 1; // right
+		style.WindowMenuButtonPosition = ImGuiDir_None;
 		style.GrabRounding = 1;
+		style.WindowPadding = ImVec2(4, 4);
+		style.ItemSpacing = ImVec2(6, 6);
+		style.WindowTitleAlign = ImVec2(0.01, 0.26);
 
 		return 0;
 	}
@@ -456,9 +461,15 @@ public:
 
 				// vkCmdSetScissor设置一个矩形。外部的点全部丢弃。
 				vkCmdSetScissor(commandBuffer, 0, 1, &scissorRect);
-				vkCmdDrawIndexed(commandBuffer, pcmd->ElemCount, 1, indexOffset, vertexOffset, 0);
-				indexOffset += pcmd->ElemCount;
+				
+
+				// imgui problem for modal
+				// https://github.com/ocornut/imgui/releases/tag/v1.86
+
+				vkCmdDrawIndexed(commandBuffer, pcmd->ElemCount, 1, indexOffset + pcmd->IdxOffset, vertexOffset + pcmd->VtxOffset, 0);
+				//indexOffset += pcmd->ElemCount;
 			}
+			indexOffset += cmd_list->IdxBuffer.Size;
 			vertexOffset += cmd_list->VtxBuffer.Size;
 		}
 	}
@@ -506,7 +517,7 @@ public:
 
 		RendererUI();
 
-		ImGui::PushStyleVar(ImGuiStyleVar_WindowRounding, 0);
+		//ImGui::PushStyleVar(ImGuiStyleVar_WindowRounding, 0);
 		/*ImGui::SetNextWindowPos(ImVec2(10, 10));
 		ImGui::SetNextWindowSize(ImVec2(0, 0), ImGuiCond_FirstUseEver);*/
 
@@ -528,7 +539,7 @@ public:
 			ImGui::End();
 		}
 
-		ImGui::PopStyleVar();
+		//ImGui::PopStyleVar();
 
 		//ImGui::EndFrame();
 		ImGui::Render();
@@ -536,10 +547,10 @@ public:
 	}
 
 	void AboutWindow(bool* p_open) {
-		const ImGuiViewport* main_viewport = ImGui::GetMainViewport();
-		ImGui::SetNextWindowPos(ImVec2(main_viewport->WorkPos.x + 500, main_viewport->WorkPos.y + 200), ImGuiCond_FirstUseEver);
+		ImVec2 center = ImGui::GetMainViewport()->GetCenter();
+		ImGui::SetNextWindowPos(center, ImGuiCond_Appearing, ImVec2(0.5f, 0.5f));
 		ImGui::SetNextWindowSize(ImVec2(300, 240), ImGuiCond_FirstUseEver);
-		ImGui::Begin("Cranks Renderer", p_open,
+		ImGui::Begin("Cranks Renderer(Vulkan)", p_open,
 			ImGuiWindowFlags_NoResize | 
 			ImGuiWindowFlags_NoCollapse |
 			ImGuiWindowFlags_NoMove);
@@ -627,11 +638,16 @@ public:
 
 		const ImGuiViewport* main_viewport = ImGui::GetMainViewport();
 
+		ImVec2 main_menu_bar_size;
+
+		if (0)
 		{
 			// main menu
 
 			if (ImGui::BeginMainMenuBar())
+			//if (ImGui::BeginMenuBar())
 			{
+				main_menu_bar_size = ImGui::GetWindowSize();
 				if (ImGui::BeginMenu("File"))
 				{
 					if (ImGui::MenuItem("New Project")) {
@@ -690,432 +706,197 @@ public:
 				}
 			}
 			ImGui::EndMainMenuBar();
+			//ImGui::EndMenuBar();
 		}
 
+		if(1)
 		{
-			if (ImGuiFileDialog::Instance()->Display("Open Project"))
+			//std::cout << std::format("{} {} {} {} {}\n", main_viewport->WorkPos.x, main_viewport->WorkPos.y, 
+			//	main_viewport->WorkSize.x, main_viewport->WorkSize.y, main_menu_bar_size.y);
+			ImGui::SetNextWindowPos(ImVec2(main_viewport->WorkPos.x, main_viewport->WorkPos.y + main_menu_bar_size.y), ImGuiCond_Always);
+			ImGui::SetNextWindowSize(ImVec2(main_viewport->WorkSize.x, main_viewport->WorkSize.y - main_menu_bar_size.y), ImGuiCond_Always);
+
+			ImGui::Begin("main", nullptr,
+				//ImGuiWindowFlags_AlwaysAutoResize |
+				//ImGuiWindowFlags_NoBackground |
+				ImGuiWindowFlags_NoDocking |
+				ImGuiWindowFlags_MenuBar |
+
+
+				ImGuiWindowFlags_NoMove |
+				//ImGuiWindowFlags_NoScrollbar |
+				ImGuiWindowFlags_NoSavedSettings |
+				//ImGuiWindowFlags_NoTitleBar |
+				ImGuiWindowFlags_NoBringToFrontOnFocus |
+				ImGuiWindowFlags_NoDecoration);
+
+			if (1) {
+				if (ImGui::BeginMenuBar()) {
+					if (ImGui::BeginMenu("File"))
+					{
+						if (ImGui::MenuItem("New Project")) {
+						}
+
+						if (ImGui::MenuItem("Open", "Ctrl+O")) {
+							ImGuiFileDialog::Instance()->OpenDialog("Open Project", "Choose File", ".cranks",
+								".", 1, nullptr,
+								ImGuiFileDialogFlags_Modal |
+								ImGuiFileDialogFlags_ConfirmOverwrite);
+						}
+						if (ImGui::BeginMenu("Open Recent"))
+						{
+							ImGui::MenuItem("fish_hat.c");
+							ImGui::MenuItem("fish_hat.inl");
+							ImGui::MenuItem("fish_hat.h");
+							if (ImGui::BeginMenu("More.."))
+							{
+								ImGui::MenuItem("Hello");
+								ImGui::MenuItem("Sailor");
+								ImGui::EndMenu();
+							}
+							ImGui::EndMenu();
+						}
+						if (ImGui::MenuItem("Save", "Ctrl+S")) {}
+						if (ImGui::MenuItem("Save As..")) {
+							ImGuiFileDialog::Instance()->OpenDialog("Save Project As", "Save As", ".cranks",
+								".", 1, nullptr,
+								ImGuiFileDialogFlags_Modal |
+								ImGuiFileDialogFlags_ConfirmOverwrite);
+						}
+						ImGui::EndMenu();
+					}
+
+					if (ImGui::BeginMenu("Options"))
+					{
+						static bool enabled = true;
+						ImGui::MenuItem("Enabled", "", &enabled);
+						ImGui::BeginChild("child", ImVec2(0, 60), true);
+						for (int i = 0; i < 10; i++)
+							ImGui::Text("Scrolling Text %d", i);
+						ImGui::EndChild();
+						static float f = 0.5f;
+						static int n = 0;
+						ImGui::SliderFloat("Value", &f, 0.0f, 1.0f);
+						ImGui::InputFloat("Input", &f, 0.1f);
+						ImGui::Combo("Combo", &n, "Yes\0No\0Maybe\0\0");
+						ImGui::EndMenu();
+					}
+
+					if (ImGui::BeginMenu("Help"))
+					{
+						ImGui::MenuItem("About", NULL, &show_about_window);
+						ImGui::MenuItem("Imgui Demo", NULL, &show_demo_window);
+						ImGui::EndMenu();
+					}
+
+					ImGui::EndMenuBar();
+				}
+			}
+
+			if (1) {
+
+				if (ImGui::DockBuilderGetNode(ImGui::GetID("dockspace")) == NULL)
+				{
+					std::cout << "DockBuilder\n";
+					ImGuiID dockspace_id = ImGui::GetID("dockspace");
+					ImGuiViewport* viewport = ImGui::GetMainViewport();
+					ImGui::DockBuilderRemoveNode(dockspace_id); // Clear out existing layout
+					ImGui::DockBuilderAddNode(dockspace_id, 0); // Add empty node
+
+					ImGuiID dock_main_id = dockspace_id; // This variable will track the document node, however we are not using it here as we aren't docking anything into it.
+					ImGuiID scene_docker = ImGui::DockBuilderSplitNode(dock_main_id, ImGuiDir_Left, 0.30f, NULL, &dock_main_id); 
+					ImGuiID control_docker = ImGui::DockBuilderSplitNode(dock_main_id, ImGuiDir_Left, 0.40f, NULL, &dock_main_id);
+					ImGuiID object_dock = ImGui::DockBuilderSplitNode(dock_main_id, ImGuiDir_Right, 0.30f, NULL, &dock_main_id);
+					ImGuiID property_dock = ImGui::DockBuilderSplitNode(object_dock, ImGuiDir_Down, 0.60f, NULL, &object_dock);
+					ImGuiID material_dock = ImGui::DockBuilderSplitNode(object_dock, ImGuiDir_Right, 0.50f, NULL, &object_dock);
+					
+
+					ImGui::DockBuilderDockWindow("Scene", scene_docker);
+					ImGui::DockBuilderDockWindow("Control", control_docker);
+					ImGui::DockBuilderDockWindow("Object", object_dock);
+					ImGui::DockBuilderDockWindow("Material", material_dock);
+					ImGui::DockBuilderDockWindow("Property", property_dock);
+					ImGui::DockBuilderFinish(dockspace_id);
+				}
+			}
+
+		}
+
+		ImGuiID dockspace_id = ImGui::GetID("dockspace");
+		ImGui::DockSpace(dockspace_id, ImVec2(0.0f, 0.0f), 0);
+
+		const float TEXT_BASE_WIDTH = ImGui::CalcTextSize("A").x;
+		const float TEXT_BASE_HEIGHT = ImGui::GetTextLineHeightWithSpacing();
+
+		static int need_to_update_scene_tree = 1;
+		static int need_to_update_material_tree = 1;
+		static json scene_tree = PBR_API_get_scene_tree();
+		static json material_tree = PBR_API_get_material_tree();
+
+		static std::map<int, std::string> material_name_map;
+		static int material_combo_selected_id = 0;
+
+		{
+			if (ImGuiFileDialog::Instance()->Display("Open Project", ImGuiWindowFlags_NoCollapse, ImVec2(600, 400), ImVec2(1200, 800)))
 			{
 				// action if OK
 				if (ImGuiFileDialog::Instance()->IsOk())
 				{
-					std::string filePathName = ImGuiFileDialog::Instance()->GetFilePathName();
-					std::string filePath = ImGuiFileDialog::Instance()->GetCurrentPath();
+					//std::string filePathName = ImGuiFileDialog::Instance()->GetFilePathName();
+					std::string filePath = ImGuiFileDialog::Instance()->GetFilePathName();
 					// action
 
+					std::cout << "load project " << filePath << std::endl;
+					int result = PBR_API_load_project(filePath);
+					std::cout << "result = " << result << std::endl;
+
+					need_to_update_scene_tree = 1;
+					need_to_update_material_tree = 1;
 				}
 
 				// close
 				ImGuiFileDialog::Instance()->Close();
 			}
 
-			if (ImGuiFileDialog::Instance()->Display("Save Project As"))
+			if (ImGuiFileDialog::Instance()->Display("Save Project As", ImGuiWindowFlags_NoCollapse, ImVec2(600, 400), ImVec2(1200, 800)))
 			{
 				// action if OK
 				if (ImGuiFileDialog::Instance()->IsOk())
 				{
-					std::string filePathName = ImGuiFileDialog::Instance()->GetFilePathName();
-					std::string filePath = ImGuiFileDialog::Instance()->GetCurrentPath();
+					std::string fileName = ImGuiFileDialog::Instance()->GetCurrentFileName();
+					std::string filePath = ImGuiFileDialog::Instance()->GetFilePathName();
 					// action
-					std::cout << filePath << " "<< filePathName<< std::endl;
+					fileName.erase(fileName.rfind('.'));
+					std::cout << "save project " << filePath << " " << fileName << std::endl;
+					int result = PBR_API_save_project(filePath, fileName);
+					std::cout << "result = " << result << std::endl;
 				}
 
 				// close
 				ImGuiFileDialog::Instance()->Close();
+			}
+		}
+
+		if (need_to_update_scene_tree) {
+			scene_tree = PBR_API_get_scene_tree();
+			need_to_update_scene_tree = 0;
+		}
+
+		if (need_to_update_material_tree) {
+			material_tree = PBR_API_get_material_tree();
+			std::cout << "material_tree " << material_tree << std::endl;
+			need_to_update_material_tree = 0;
+
+			material_name_map.clear();
+			for (auto& [material_id, material] : material_tree.items()) {
+				material_name_map[material["id"]] = material["name"];
 			}
 		}
 
 		//ImGui::SetNextWindowPos(ImVec2(main_viewport->WorkPos.x + 650, main_viewport->WorkPos.y + 20), ImGuiCond_FirstUseEver);
 		//LoggerUI();
 
-		{
-			ImGui::SetNextWindowPos(ImVec2(main_viewport->WorkPos.x + 20, main_viewport->WorkPos.y + 40), ImGuiCond_FirstUseEver);
-			ImGui::SetNextWindowSize(ImVec2(480, 600), ImGuiCond_FirstUseEver);
-			ImGui::SetNextWindowBgAlpha(1);
-
-			if (!ImGui::Begin("Hello Crank!民科", nullptr, 
-				ImGuiWindowFlags_AlwaysAutoResize |
-				ImGuiWindowFlags_NoMove |
-				ImGuiWindowFlags_NoCollapse)) {
-				ImGui::End();
-				return;
-			}
-
-			if (render_status == 1) {
-				ImGui::BeginDisabled();
-			}
-
-			ImGui::Text("camera setting");
-			ImGui::SameLine();
-			if (ImGui::Button("load default")) {
-				PBR_API_get_defualt_camera_setting(cs);
-				PBR_API_set_perspective_camera(cs);
-			}
-
-			ImGui::SameLine();
-			if (ImGui::Button("save setting")) {
-				PBR_API_save_setting();
-			}
-
-			ImGui::PushItemWidth(400);
-
-			bool cameraChanged = false;
-			ImGui::SliderFloat3("pos", cs.pos, -100, 100);
-			if (ImGui::IsItemDeactivatedAfterEdit()) {
-				cameraChanged = true;
-			}
-
-			ImGui::SliderFloat3("look", cs.look, -100, 100);
-			if (ImGui::IsItemDeactivatedAfterEdit()) {
-				cameraChanged = true;
-			}
-
-			ImGui::SliderFloat3("up", cs.up, -100, 100);
-			if (ImGui::IsItemDeactivatedAfterEdit()) {
-				cameraChanged = true;
-			}
-
-			ImGui::PopItemWidth();
-
-			ImGui::PushItemWidth(160);
-
-			ImGui::SliderFloat("fov", &cs.fov, 0, 180);
-			if (ImGui::IsItemDeactivatedAfterEdit()) {
-				cameraChanged = true;
-			}
-
-			ImGui::SameLine();
-
-			ImGui::SliderFloat("aspect_ratio", &cs.asp, 0.5f, 2, "%.1f");
-			if (ImGui::IsItemDeactivatedAfterEdit()) {
-				cameraChanged = true;
-			}
-
-			ImGui::PopItemWidth();
-
-			ImGui::PushItemWidth(400);
-
-			ImGui::SliderFloat2("near_far", cs.near_far, 0.001f, 1000);
-			if (ImGui::IsItemDeactivatedAfterEdit()) {
-				cameraChanged = true;
-			}
-
-			ImGui::SliderInt2("resolution", cs.resolution, 0, 1000);
-			if (ImGui::IsItemDeactivatedAfterEdit()) {
-				cameraChanged = true;
-			}
-
-			ImGui::PopItemWidth();
-
-			ImGui::SliderInt("ray_sample_no", &cs.ray_sample_no, 1, 500);
-			if (ImGui::IsItemDeactivatedAfterEdit()) {
-				cameraChanged = true;
-			}
-
-			ImGui::SliderInt("ray_bounce_no", &cs.ray_bounce_no, 0, 10);
-			if (ImGui::IsItemDeactivatedAfterEdit()) {
-				cameraChanged = true;
-			}
-
-			if (ImGui::SliderInt("scale", &cs.image_scale, 1, 16)) {
-				cs.resolution[0] = cs.image_scale * 128;
-				cs.resolution[1] = cs.image_scale * 128;
-				cameraChanged = true;
-			}
-
-			ImGui::SliderInt("render_threads_count", &cs.render_threads_count, 1, 6);
-			if (ImGui::IsItemDeactivatedAfterEdit()) {
-				cameraChanged = true;
-			}
-
-			if (cameraChanged) {
-				Log("cameraChanged");
-				PBR_API_set_perspective_camera(cs);
-			}
-
-			//ImGui::Checkbox("Demo Window", &show_demo_window);      // Edit bools storing our window open/close state
-			//ImGui::Checkbox("Another Window", &show_another_window);
-
-			//ImGui::SliderFloat("float", &f, 0.0f, 1.0f);            // Edit 1 float using a slider from 0.0f to 1.0f
-			//ImGui::ColorEdit3("clear color", (float*)&clear_color); // Edit 3 floats representing a color
-
-			//ImGui::SameLine();
-			//ImGui::Text("counter = %d", counter);
-
-			//ImGui::Text("Application average %.3f ms/frame (%.1f FPS)", 1000.0f / ImGui::GetIO().Framerate, ImGui::GetIO().Framerate);
-
-			//ImGui::Dummy(ImVec2(30, 30));
-
-			ImGui::Text("Scene Setting");
-			ImGui::Text("Nodes structure");
-			ImGui::SameLine();
-
-			if (ImGui::RadioButton("brute force", &scene_options.nodes_structure, 0)) {
-				PBR_API_SET_SCENE_OPTIONS(scene_options);
-			}
-
-			ImGui::SameLine();
-
-			if (ImGui::RadioButton("BVH", &scene_options.nodes_structure, 1)) {
-				PBR_API_SET_SCENE_OPTIONS(scene_options);
-			}
-
-			for (int i = 0; i < progress_now.size(); ++i) {
-				char buf[32];
-				sprintf(buf, "%d/%d", progress_now[i], progress_total[i]);
-				ImGui::ProgressBar(float(progress_now[i]) / progress_total[i], ImVec2(0.f, 0.f), buf);
-			}
-
-			if (ImGui::Button("Render", ImVec2(200, 120))) {
-
-				static int set_default_scene = 0;
-				if (set_default_scene == 0) {
-					set_default_scene = 1;
-
-#if 1
-					PBR_API_add_sphere("wtfSphere 1", 6, 0, 0, 0, json(
-						{
-							{ "name", "glass" }, // glass mirror matte
-							{ "kd", {0.9, 0.4, 0.2} },
-							{ "sigma", 0.8 },
-							{ "kr", {1.0, 1.0, 1.0} },
-							{ "kt", {1.0, 1.0, 1.0} },
-							{ "eta", 1.6},
-							{ "uroughness", 0},
-							{ "vroughness", 0},
-							{ "bumpmap", 0},
-							{ "remaproughness", false}
-						}
-					));
-
-					PBR_API_add_sphere("wtfSphere 2 green", 5, -10, 0, 12, json({ { "name", "matte" }, { "kd", {0.2, 0.7, 0.2} }, {"sigma", 0.8} }));
-					PBR_API_add_sphere("wtfSphere 3", 20, 30, 30, 30, json({ { "name", "matte" }, { "kd", {0.9, 0.4, 0.12} }, {"sigma", 0.8} }));
-
-#if 1
-					PBR_API_add_sphere("wtfSphere 4", 500, 0, 0, -518,
-						json({
-							{ "name", "matte" },
-							{ "kd", {0.8, 0.6, 0.6} },
-							{"sigma", 0.8}
-
-							//{ "name", "glass" }, // glass mirror
-							//{ "kr", {1.0, 1.0, 1.0} },
-							//{ "kt", {1.0, 1.0, 1.0} },
-							//{ "eta", 1.6},
-							//{ "uroughness", 0},
-							//{ "vroughness", 0},
-							//{ "bumpmap", 0},
-							//{ "remaproughness", false}
-							})
-					);
-#endif
-					PBR_API_add_sphere("wtfSphere 55", 2, 7.2, -2, -3, json({
-						{ "name", "matte" },
-						{ "kd", {0.8, 0.0, 0.4} },
-						{"sigma", 0.8}
-						/*{ "name", "mirror" },
-						{ "kr", {1.0, 1.0, 1.0} },
-						{ "bumpmap", 0},*/
-						}));
-
-					PBR_API_add_sphere("wtfSphere 5", 5, 10, 8, 5, json({
-						/*{ "name", "matte" },
-						{ "kd", {0.8, 0.0, 0.4} },
-						{"sigma", 0.8}*/
-						{ "name", "mirror" },
-						{ "kr", {1.0, 1.0, 1.0} },
-						{ "bumpmap", 0},
-						}));
-
-					PBR_API_add_sphere("wtfSphere 6", 3, 14, 0, -5, json(
-						{
-							{ "name", "glass" },
-							{ "kr", {1.0, 1.0, 1.0} },
-							{ "kt", {1.0, 1.0, 1.0} },
-							{ "eta", 1.4},
-							{ "uroughness", 0},
-							{ "vroughness", 0},
-							{ "bumpmap", 0},
-							{ "remaproughness", false}
-						}
-					));
-
-					PBR_API_add_sphere("wtfSphere 7", 4, -10, -4, 0, json(
-						{
-							{ "name", "mirror" },
-							{ "kr", {1.0, 1.0, 1.0} },
-							{ "bumpmap", 0},
-						}
-					));
-
-					/*PBR_API_add_sphere("wtfSphere 8", 4, 0, 20, 0, json(
-						{
-							{ "name", "mirror" },
-							{ "kr", {1.0, 1.0, 1.0} },
-							{ "bumpmap", 0},
-						}
-					));*/
-
-					PBR_API_add_sphere("wtfSphere 9", 4, 0, 16, 3, json({ { "name", "matte" }, { "kd", {1, 0.0, 0.1} }, {"sigma", 0.8} }));
-					PBR_API_add_sphere("wtfSphere 10", 2, 0, 16, -6, json({ { "name", "matte" }, { "kd", {0, 1, 0.5} }, {"sigma", 0.8} }));
-
-					PBR_API_add_sphere("wtfSphere 11", 2, -5, -10, -4, json({
-						{ "name", "matte" },
-						{ "kd", {0.2, 0.3, 0.8} },
-						{"sigma", 0.8}
-						/*{ "name", "mirror" },
-						{ "kr", {1.0, 1.0, 1.0} },
-						{ "bumpmap", 0},*/
-						}));
-
-					PBR_API_add_sphere("wtfSphere 12", 4, 5, -10, -4, json({
-						/*{ "name", "matte" },
-						{ "kd", {0.2, 0.8, 0.6} },
-						{"sigma", 0.8}*/
-
-						/*{ "name", "mirror" },
-						{ "kr", {1.0, 1.0, 1.0} },
-						{ "bumpmap", 0},*/
-
-						//{ "name", "plastic" }, // glass mirror matte
-						//{ "kd", {0.8, 0.5, 0.2} },
-						//{ "ks", {0.8, 0.6, 0.7} },
-						//{ "roughness", 0.3},
-						//{ "bumpmap", 0},
-						//{ "remaproughness", false}
-
-						{ "name", "metal" }, // glass mirror matte
-						{ "k", {0.9, 0.1, 0.3} },
-						{ "eta", {1.8, 1.8, 1.8} },
-						{ "roughness", 0.01},
-						{ "bumpmap", 0},
-						{ "remaproughness", false}
-						}));
-
-					PBR_API_add_sphere("wtfSphere 13", 4, 11, -10, -4, json({
-						{ "name", "metal" }, // glass mirror matte
-						{ "k", {0.6, 0.1, 0.8} },
-						{ "eta", {1.8, 1.8, 1.8} },
-						{ "roughness", 0.1},
-						{ "bumpmap", 0},
-						{ "remaproughness", false}
-						}));
-
-					PBR_API_add_sphere("wtfSphere 14", 4, 18, -10, -4, json({
-						{ "name", "metal" }, // glass mirror matte
-						{ "k", {0.6, 0.8, 0.3} },
-						{ "eta", {1.8, 1.8, 1.8} },
-						{ "roughness", 0.8},
-						{ "bumpmap", 0},
-						{ "remaproughness", false}
-						}));
-#endif
-
-#if 1
-					PBR_API_add_triangle_mesh("wtf tri 2", 0, 0, 0, "cube50.gltf", json({
-						//{ "name", "metal" }, // glass mirror matte
-						//{ "k", {1, 1, 1} },
-						//{ "eta", {1.5, 1.5, 1.5} },
-						//{ "roughness", 0.2},
-						//{ "bumpmap", 0},
-						//{ "remaproughness", false}
-						{ "name", "matte" },
-						{ "kd", {0.8, 0.8, 0.8} },
-						{"sigma", 0.8}
-						}));
-
-
-					PBR_API_add_triangle_mesh("wtf tri 2", 38, 5, 10, "cube10.gltf", json({
-						{ "name", "matte" },
-						{ "kd", {0.6, 0.9, 0.7} },
-						{"sigma", 0.8}
-						/*{ "name", "mirror" },
-						{ "kr", {1.0, 1.0, 1.0} },
-						{ "bumpmap", 0},*/
-						}));
-
-					PBR_API_add_triangle_mesh("wtf tri 2", 10, 5, 20, "monkey.gltf", json({
-						/*{ "name", "matte" },
-						{ "kd", {0.4, 0.5, 0.7} },
-						{"sigma", 0.8}*/
-
-						{ "name", "matte" }, // glass mirror matte
-						{ "kd", {0.7, 0.4, 0.5} },
-						{ "sigma", 0.8 },
-						{ "kr", {1.0, 1.0, 1.0} },
-						{ "kt", {1.0, 1.0, 1.0} },
-						{ "eta", 1.6},
-						{ "uroughness", 0},
-						{ "vroughness", 0},
-						{ "bumpmap", 0},
-						{ "remaproughness", false}
-
-
-						}));
-
-					PBR_API_add_triangle_mesh("wtf tri 3", -3, -5, 10, "monkey.gltf", json({
-						{ "name", "plastic" }, // glass mirror matte
-						{ "kd", {0.7, 0.2, 0.1} },
-						{ "ks", {1.0, 1.0, 1.0} },
-						{ "roughness", 0.1},
-						{ "bumpmap", 0},
-						{ "remaproughness", false}
-						}));
-
-					PBR_API_add_triangle_mesh("wtf tri 4", 8, -5, 10, "monkey.gltf", json({
-						{ "name", "plastic" }, // glass mirror matte
-						{ "kd", {0.1, 0.2, 0.7} },
-						{ "ks", {0.7, 1.0, 0.8} },
-						{ "roughness", 0.8},
-						{ "bumpmap", 0},
-						{ "remaproughness", false}
-						}));
-
-					PBR_API_add_triangle_mesh("wtf tri 1", -10, 0, -15, "cube10.gltf", json({
-						/*{ "name", "matte" },
-						{ "kd", {0.7, 0.5, 0.9} },
-						{"sigma", 0.8}*/
-						/*{ "name", "mirror" },
-						{ "kr", {1.0, 1.0, 1.0} },
-						{ "bumpmap", 0},*/
-						{ "name", "plastic" }, // glass mirror matte
-						{ "kd", {0.6, 0.8, 0.4} },
-						{ "ks", {0.9, 1.0, 0.9} },
-						{ "roughness", 0.9},
-						{ "bumpmap", 0},
-						{ "remaproughness", false}
-						}));
-#endif
-
-					//PBR_API_add_point_light("wtf Light 2", 10, 30, 10);
-					PBR_API_add_point_light("wtf Light", 0, -30, 30);
-					//PBR_API_add_point_light("wtf Light", -30, -30, 20);
-
-					PBR_API_add_infinite_light("inf light", 0, 0, 100, 1, 1, 1, 1.2, 4, hdr_file); // alps_field_1k.hdr crosswalk_1k.hdr
-				}
-
-				SendEvent(RENDER_TASK_ID);
-			}
-
-			if (render_status == 1) {
-				ImGui::EndDisabled();
-			}
-
-			if (render_status == 0) {
-				ImGui::BeginDisabled();
-			}
-
-			ImGui::SameLine();
-			if (ImGui::Button("Stop", ImVec2(200, 120))) {
-				PBR_API_stop_rendering();
-			}
-
-			if (render_status == 0) {
-				ImGui::EndDisabled();
-			}
-
-			ImGui::End();
-		}
-
+		// Scene
 		{
 			//Log("resolution %d, %d", resolution[0], resolution[1]);
 			ImGui::SetNextWindowPos(ImVec2(main_viewport->WorkPos.x + 540, main_viewport->WorkPos.y + 40), ImGuiCond_FirstUseEver);
@@ -1123,19 +904,949 @@ public:
 			ImGui::SetNextWindowSize(ImVec2(cs.resolution[0] + 20, cs.resolution[1] + 50));
 			//ImGui::SetNextWindowPos(ImVec2(20, 140));
 
-			ImGui::Begin("Scene", nullptr,
-				ImGuiWindowFlags_AlwaysAutoResize |
-				ImGuiWindowFlags_NoMove |
-				ImGuiWindowFlags_NoCollapse);
+			if (ImGui::Begin("Scene", nullptr,
+				//ImGuiWindowFlags_AlwaysAutoResize |
+				//ImGuiWindowFlags_NoMove |
+				//ImGuiWindowFlags_NoDecoration |
+				ImGuiWindowFlags_NoCollapse)) {
+				//ImGui::Image((ImTextureID)app.renderImage.descriptorSet);
+				//ImGui::Image((ImTextureID)renderImageID, ImVec2(80, 80), ImVec2(0.0f, 0.0f), ImVec2(1.0f, 1.0f));
+				//Log("renderImageID %d", (ImTextureID)renderImageID);
 
+				//std::cout << "renderImageID = " << renderImageID << std::endl;
+				ImGui::Image((ImTextureID)app->renderImage.descriptorSet, ImVec2(cs.resolution[0], cs.resolution[1]),
+					ImVec2(0.0f, 0.0f), ImVec2(1.0f, 1.0f), ImVec4(1, 1, 1, 1), ImVec4(0, 0, 0, 1));
+			}
+			ImGui::End();
+		}
+		
+		static int selected_obj_id = -1;
+		static json selected_obj;
+		static int selected_material_id = -1;
+		static json selected_material;
+		static int edit_material_name_status = 0;
+		static int edit_obj_name_status = 0;
+		static int open_new_object_dialog = 0;
+
+		static int open_delete_pop = 0;
+		static json op_node;
+		static int delete_node_type = 0;
+
+		static char object_name_buffer[64] = "default";
+		static char material_name_buffer[64] = "default";
+		static float pos[3] = { 0, 0, 0 };
+		static int type = 0;
+		static std::string type_name[] = { "mesh", "sphere", "point_light", "infinite_light" };
+		static std::map<std::string, int> type_name_id_map = { {"mesh", 0}, {"sphere", 1}, {"point_light", 2}, {"infinite_light", 3} };
+		static char file_name_buffer[64] = "cube10.gltf";
+		static float radius = 5.f, strength = 1.2f;
+		static float power[3] = { 1.f, 1.f, 1.f };
+
+		// material
+		static int material_type = 0;
+		static float kd[3] = { 1, 1, 1 };
+		static float kr[3] = { 1, 1, 1 };
+		static float kt[3] = { 1, 1, 1 };
+		static float ks[3] = { 1, 1, 1 };
+		static float eta3[3] = { 1.8f, 1.8f, 1.8f };
+		static float uvrough[2] = { 0.1f, 0.1f };
+		static float sigma = 0.5f, eta = 1.8f, rough = 0.1f;
+		static bool remaproughness = false;
+
+		static std::map<std::string, int> material_type_id_map = { {"matte", 0}, {"glass", 1}, {"mirror", 2}, {"plastic", 3}, {"metal", 4} };
+
+		const auto dump_node_to_buffer = [&](const json& node) -> void {
+			sprintf(object_name_buffer, "%s", (std::string(node["name"])).c_str());
+
+			pos[0] = node["world_pos"][0];
+			pos[1] = node["world_pos"][1];
+			pos[2] = node["world_pos"][2];
+
+			type = type_name_id_map[node["type"]];
+
+			
+
+			if (type == 0) {
+				sprintf(file_name_buffer, "%s", (std::string(node["file_name"])).c_str());
+			}
+			else if (type == 1) {
+				radius = node["radius"];
+			}
+			else if (type == 2) {
+				power[0] = node["power"][0];
+				power[1] = node["power"][1];
+				power[2] = node["power"][2];
+			}
+			else if (type == 3) {
+				sprintf(file_name_buffer, "%s", (std::string(node["file_name"])).c_str());
+
+				power[0] = node["power"][0];
+				power[1] = node["power"][1];
+				power[2] = node["power"][2];
+				strength = node["strength"];
+			}
+
+			if (type == 0 || type == 1) {
+				material_combo_selected_id = node["material_id"];
+			}
+		};
+
+		const auto dump_material_node_to_buffer = [&](const json& node) -> void {
+			sprintf(material_name_buffer, "%s", (std::string(node["name"])).c_str());
+
+			//pos[0] = node["world_pos"][0];
+			//pos[1] = node["world_pos"][1];
+			//pos[2] = node["world_pos"][2];
+
+			material_type = material_type_id_map[node["type"]];
+
+			switch (material_type) {
+			case 0:
+				kd[0] = node["kd"][0];
+				kd[1] = node["kd"][1];
+				kd[2] = node["kd"][2];
+				sigma = node["sigma"];
+
+				break;
+			case 1:
+				kr[0] = node["kr"][0];
+				kr[1] = node["kr"][1];
+				kr[2] = node["kr"][2];
+				kt[0] = node["kt"][0];
+				kt[1] = node["kt"][1];
+				kt[2] = node["kt"][2];
+				eta = node["eta"];
+				uvrough[0] = node["uroughness"];
+				uvrough[1] = node["vroughness"];
+
+				break;
+			case 2:
+				kr[0] = node["kr"][0];
+				kr[1] = node["kr"][1];
+				kr[2] = node["kr"][2];
+
+				break;
+			case 3:
+				kd[0] = node["kd"][0];
+				kd[1] = node["kd"][1];
+				kd[2] = node["kd"][2];
+				ks[0] = node["ks"][0];
+				ks[1] = node["ks"][1];
+				ks[2] = node["ks"][2];
+				rough = node["roughness"];
+
+				break;
+			case 4:
+				kd[0] = node["k"][0];
+				kd[1] = node["k"][1];
+				kd[2] = node["k"][2];
+				eta3[0] = node["eta"][0];
+				eta3[1] = node["eta"][1];
+				eta3[2] = node["eta"][2];
+				rough = node["roughness"];
+
+				break;
+			}
+		};
+
+		// Objects
+		{
+			const auto new_object_popup = [&](const json& on_node) -> void {
+				static int material_combo_selected_id = 1; // default material
+
+				//std::cout << on_node << std::endl;
+				ImGui::OpenPopup("New Object");
+				//ImVec2 center = ImGui::GetMainViewport()->GetCenter();
+				//ImGui::SetNextWindowPos(center, ImGuiCond_Appearing, ImVec2(0.5f, 0.5f));
+				if (ImGui::BeginPopupModal("New Object", NULL,
+					ImGuiWindowFlags_AlwaysAutoResize
+				))
+				{
+					ImGui::Combo("type", &type, "mesh\0sphere\0polit_light\0infinite_light\0\0");
+					ImGui::InputText("name", object_name_buffer, 64);
+					ImGui::SliderFloat3("pos", pos, -100, 100);
+
+					if (type == 0) {
+						ImGui::InputText("file name", file_name_buffer, 64);
+					} else if (type == 1) {
+						
+						ImGui::SliderFloat("radius", &radius, 0, 100);
+					} else if (type == 2) {
+						ImGui::ColorEdit3("power", power,
+							ImGuiColorEditFlags_Float |
+							ImGuiColorEditFlags_NoDragDrop
+						);
+					} else if (type == 3) {
+						ImGui::InputText("file name", file_name_buffer, 64);
+						ImGui::ColorEdit3("power", power,
+							ImGuiColorEditFlags_Float |
+							ImGuiColorEditFlags_NoDragDrop
+						);
+						ImGui::SliderFloat("strength", &strength, 0, 10);
+					}
+
+					if (type == 0 || type == 1) {
+						//material_combo_selected_id = 1; // default material
+						if (ImGui::BeginCombo("material", material_name_map[material_combo_selected_id].c_str()))
+						{
+							for (const auto& [material_id, material_name] : material_name_map) {
+								if (ImGui::Selectable(material_name.c_str(), material_id == material_combo_selected_id))
+									material_combo_selected_id = material_id;
+							}
+							ImGui::EndCombo();
+						}
+
+					}
+
+
+					if (ImGui::Button("Yes", ImVec2(120, 0))) {
+						ImGui::CloseCurrentPopup();
+						open_new_object_dialog = 0;
+
+						json obj_info;
+						obj_info["name"] = object_name_buffer;
+						obj_info["world_pos"] = pos;
+						obj_info["type"] = type_name[type];
+
+						// set tree_path
+						json tree_path = on_node["tree_path"];
+						if (on_node["type"] == "folder") {
+							tree_path.push_back(on_node["id"]);
+						}
+						obj_info["tree_path"] = tree_path;
+
+						if (type == 0) {
+							obj_info["file_name"] = file_name_buffer;
+						}
+
+						if (type == 1) {
+							obj_info["radius"] = radius;
+						}
+
+						if (type == 0 || type == 1) {
+							obj_info["material_id"] = material_combo_selected_id;
+						}
+						else if (type == 2) {
+							obj_info["power"] = power;
+						}
+						else if (type == 3) {
+							obj_info["power"] = power;
+							obj_info["strength"] = strength;
+							obj_info["samples"] = 4;
+							obj_info["file_name"] = file_name_buffer;
+						}
+
+						auto [result, info] = PBR_API_add_object_to_scene(obj_info);
+						selected_obj_id = info["id"];
+						need_to_update_scene_tree = 1;
+						dump_node_to_buffer(info);
+					}
+
+					ImGui::SetItemDefaultFocus();
+					ImGui::SameLine();
+					if (ImGui::Button("No", ImVec2(120, 0))) {
+						open_new_object_dialog = 0;
+						ImGui::CloseCurrentPopup();
+					}
+
+					ImGui::EndPopup();
+				}
+			};
+
+			const auto delete_popup = [&](const json& node) -> void {
+				ImGui::OpenPopup("Delete Object");
+				std::string node_name = node["name"];
+				ImVec2 center = ImGui::GetMainViewport()->GetCenter();
+				ImGui::SetNextWindowPos(center, ImGuiCond_Appearing, ImVec2(0.5f, 0.5f));
+				if (ImGui::BeginPopupModal("Delete Object", NULL, 
+					ImGuiWindowFlags_AlwaysAutoResize |
+					ImGuiWindowFlags_NoMove
+				))
+				{
+
+					ImGui::Text("Delete \"%s\" from scene! Are you sure?\n\n", node_name.c_str());
+					ImGui::Separator();
+
+					if (ImGui::Button("Yes", ImVec2(120, 0))) {
+						ImGui::CloseCurrentPopup();
+						open_delete_pop = 0;
+
+						if (delete_node_type == 0) {
+							PBR_API_delete_object_from_scene(node);
+							need_to_update_scene_tree = 1;
+						}
+						else {
+							PBR_API_delete_material(node);
+							need_to_update_material_tree = 1;
+							need_to_update_scene_tree = 1;
+						}
+						
+					}
+
+					ImGui::SetItemDefaultFocus();
+					ImGui::SameLine();
+					if (ImGui::Button("No", ImVec2(120, 0))) {
+						ImGui::CloseCurrentPopup();
+						open_delete_pop = 0;
+					}
+
+					ImGui::EndPopup();
+				}
+			};
+
+			// recursive lambda 
+			// https://stackoverflow.com/a/45824777
+
+			static int set_focus = 0;
+
+			const auto make_object_tree_table = [&](const auto& myself, const json& parent) -> void {
+
+				for (auto& [node_id, node] : parent.items()) {
+					ImGui::TableNextRow();
+					ImGui::TableNextColumn();
+					std::string node_name = node["name"];
+					std::string node_type = node["type"];
+					if (node["type"] == "folder") {
+						
+						bool open = ImGui::TreeNodeEx(node_name.c_str(), 
+							ImGuiTreeNodeFlags_SpanFullWidth |
+							ImGuiTreeNodeFlags_OpenOnDoubleClick |
+							ImGuiTreeNodeFlags_OpenOnArrow
+						);
+
+						if (!edit_obj_name_status) {
+							if (ImGui::BeginPopupContextItem())
+							{
+								ImGui::Text("This a popup for \"%s\"!", node_name.c_str());
+								if (ImGui::Button("Delete")) {
+									ImGui::CloseCurrentPopup();
+									open_delete_pop = 1;
+									delete_node_type = 0;
+									op_node = node;
+								}
+
+								if (ImGui::Button("Add")) {
+									ImGui::CloseCurrentPopup();
+									open_new_object_dialog = 1;
+									op_node = node;
+								}
+								ImGui::EndPopup();
+							}
+						}
+
+						ImGui::TableNextColumn();
+						ImGui::TextDisabled("--");
+						//ImGui::TableNextColumn();
+						//ImGui::TextUnformatted(node->Type);
+
+						if (open)
+						{
+							myself(myself, node["children"]);
+							ImGui::TreePop();
+						}
+					}
+					else {
+						//ImGui::TreeNodeEx(node_name.c_str(), ImGuiTreeNodeFlags_Leaf | ImGuiTreeNodeFlags_Bullet | ImGuiTreeNodeFlags_NoTreePushOnOpen | ImGuiTreeNodeFlags_SpanFullWidth);
+						
+						if (edit_obj_name_status && selected_obj_id == node["id"]) {
+							//ImGui::ActivateItem();
+							if (set_focus) {
+								ImGui::SetKeyboardFocusHere();
+								set_focus = 0;
+							}
+							if (ImGui::InputText("##obj_name", object_name_buffer, 64,
+								0//ImGuiInputTextFlags_EnterReturnsTrue
+							)) {
+								//std::cout << "name 1\n";
+							}
+							else {
+								//std::cout << "name 2\n";
+							}
+
+							if (ImGui::IsItemDeactivated()) {
+								//std::cout << "name 11\n";
+								edit_obj_name_status = 0;
+
+								if (ImGui::IsItemDeactivatedAfterEdit()) { //IsItemDeactivated   IsItemDeactivatedAfterEdit
+									//std::cout << "name 22\n";
+									auto new_name = PBR_API_rename_object(node["id"], object_name_buffer);
+
+									sprintf(object_name_buffer, "%s", new_name.c_str());
+
+									need_to_update_scene_tree = 1;
+								}
+							}
+						}
+						else {
+							if (ImGui::Selectable(node_name.c_str(), selected_obj_id == node["id"], ImGuiSelectableFlags_AllowDoubleClick)) {
+								selected_obj_id = node["id"];
+								selected_obj = node;
+								dump_node_to_buffer(node);
+
+								if (ImGui::IsMouseDoubleClicked(0)) {
+									edit_obj_name_status = 1;
+									set_focus = 1;
+								}
+							}
+
+							
+						}
+
+						if (!edit_obj_name_status) {
+							if (ImGui::BeginPopupContextItem())
+							{
+								ImGui::Text("This a popup for \"%s\"!", node_name.c_str());
+								if (ImGui::Button("Delete")) {
+									ImGui::CloseCurrentPopup();
+									open_delete_pop = 1;
+									delete_node_type = 0;
+									op_node = node;
+								}
+
+								if (ImGui::Button("Add")) {
+									ImGui::CloseCurrentPopup();
+									open_new_object_dialog = 1;
+									op_node = node;
+								}
+								ImGui::EndPopup();
+							}
+						}
+
+						ImGui::TableNextColumn();
+						ImGui::Text(node_type.c_str());
+						//ImGui::TableNextColumn();
+						//ImGui::TextUnformatted(node->Type);
+					}
+				}
+			};
+
+			if (ImGui::Begin("Object", nullptr,
+				//ImGuiWindowFlags_AlwaysAutoResize |
+				//ImGuiWindowFlags_NoMove |
+				//ImGuiWindowFlags_NoDecoration |
+				ImGuiWindowFlags_NoCollapse)) {
+
+				static ImGuiTableFlags flags = 
+					//ImGuiTableFlags_BordersV | 
+					ImGuiTableFlags_BordersOuterH | 
+					ImGuiTableFlags_Resizable | 
+					ImGuiTableFlags_RowBg | 
+					ImGuiTableFlags_NoBordersInBody;
+
+				if (ImGui::BeginTable("ObjectTable", 2, flags)) {
+					ImGui::TableSetupColumn("Name", ImGuiTableColumnFlags_NoHide);
+					//ImGui::TableSetupColumn("Size", ImGuiTableColumnFlags_WidthFixed, TEXT_BASE_WIDTH * 12.0f);
+					ImGui::TableSetupColumn("Type", ImGuiTableColumnFlags_WidthFixed, TEXT_BASE_WIDTH * 12.0f);
+					ImGui::TableHeadersRow();
+
+					make_object_tree_table(make_object_tree_table, scene_tree);
+				}
+				ImGui::EndTable();
+				
+			}
+			ImGui::End();
+
+			if (open_delete_pop) {
+				delete_popup(op_node);
+			}
+
+			if (open_new_object_dialog) {
+				new_object_popup(op_node);
+			}
+
+
+		}
+
+		// Property
+		{
+		//ImGui::SetNextWindowPos(ImVec2(main_viewport->WorkPos.x + 540, main_viewport->WorkPos.y + 40), ImGuiCond_FirstUseEver);
+		//ImGui::SetNextWindowSize(ImVec2(cs.resolution[0] + 20, cs.resolution[1] + 50));
+
+		if (ImGui::Begin("Property", nullptr,
+			//ImGuiWindowFlags_AlwaysAutoResize |
+			//ImGuiWindowFlags_NoMove |
+			//ImGuiWindowFlags_NoDecoration |
+			ImGuiWindowFlags_NoCollapse)) {
 			//ImGui::Image((ImTextureID)app.renderImage.descriptorSet);
 			//ImGui::Image((ImTextureID)renderImageID, ImVec2(80, 80), ImVec2(0.0f, 0.0f), ImVec2(1.0f, 1.0f));
 			//Log("renderImageID %d", (ImTextureID)renderImageID);
 
 			//std::cout << "renderImageID = " << renderImageID << std::endl;
-			ImGui::Image((ImTextureID)app->renderImage.descriptorSet, ImVec2(cs.resolution[0], cs.resolution[1]), ImVec2(0.0f, 0.0f), ImVec2(1.0f, 1.0f));
 
+			/*ImGui::Combo("type", &type, "mesh\0sphere\0polit_light\0infinite_light\0\0");
+			if (ImGui::IsItemDeactivatedAfterEdit()) {
+				PBR_API_update_scene_object(json({
+					{"id",selected_obj_id},
+					{"world_pos", pos}
+					}));
+			}*/
+
+
+			if (selected_obj_id != -1) {
+
+				ImGui::Text(object_name_buffer);
+				//ImGui::InputText("name", object_name_buffer, 64);
+
+				int update_object = 0;
+
+				ImGui::SliderFloat3("world_position", pos, -100, 100);
+				if (ImGui::IsItemDeactivatedAfterEdit()) {
+					update_object = 1;
+				}
+
+				if(ImGui::Combo("type", &type, "mesh\0sphere\0polit_light\0infinite_light\0\0")){
+					update_object = 1;
+				}
+
+				if (type == 0) {
+					ImGui::InputText("file name", file_name_buffer, 64);
+					if (ImGui::IsItemDeactivatedAfterEdit()) {
+						update_object = 1;
+					}
+				}
+				else if (type == 1) {
+					ImGui::SliderFloat("radius", &radius, 0, 100);
+					if (ImGui::IsItemDeactivatedAfterEdit()) {
+						update_object = 1;
+					}
+				}
+				else if (type == 2) {
+					ImGui::ColorEdit3("power", power,
+						ImGuiColorEditFlags_Float |
+						ImGuiColorEditFlags_NoDragDrop
+					);
+					if (ImGui::IsItemDeactivatedAfterEdit()) {
+						update_object = 1;
+					}
+				}
+				else if (type == 3) {
+					ImGui::InputText("file name", file_name_buffer, 64);
+					if (ImGui::IsItemDeactivatedAfterEdit()) {
+						update_object = 1;
+					}
+
+					ImGui::ColorEdit3("power", power,
+						ImGuiColorEditFlags_Float |
+						ImGuiColorEditFlags_NoDragDrop
+					);
+					if (ImGui::IsItemDeactivatedAfterEdit()) {
+						update_object = 1;
+					}
+
+					ImGui::SliderFloat("strength", &strength, 0, 10);
+					if (ImGui::IsItemDeactivatedAfterEdit()) {
+						update_object = 1;
+					}
+				}
+
+				if (type == 0 || type == 1) {
+					std::string material_string = "None";
+					if (material_name_map.contains(material_combo_selected_id)) {
+						material_string = material_name_map[material_combo_selected_id];
+					}
+
+					if (ImGui::BeginCombo("material", material_string.c_str())) {
+						for (const auto& [material_id, material_name] : material_name_map) {
+							{
+								if (ImGui::Selectable(material_name.c_str(), material_id == material_combo_selected_id)) {
+									material_combo_selected_id = material_id;
+									update_object = 1;
+								}
+									
+							}
+						}
+						ImGui::EndCombo();
+					}
+				}
+
+
+				if (update_object) {
+
+					json obj_info;
+					obj_info["id"] = selected_obj_id;
+					obj_info["name"] = object_name_buffer;
+					obj_info["world_pos"] = pos;
+					obj_info["type"] = type_name[type];
+
+					// set tree_path
+					json tree_path = selected_obj["tree_path"];
+					if (selected_obj["type"] == "folder") {
+						tree_path.push_back(selected_obj["id"]);
+					}
+					obj_info["tree_path"] = tree_path;
+
+					if (type == 0) {
+						obj_info["file_name"] = file_name_buffer;
+					}
+
+					if (type == 1) {
+						obj_info["radius"] = radius;
+					}
+
+					if (type == 0 || type == 1) {
+						obj_info["material_id"] = material_combo_selected_id;
+					}
+					else if (type == 2) {
+						obj_info["power"] = power;
+					}
+					else if (type == 3) {
+						obj_info["power"] = power;
+						obj_info["strength"] = strength;
+						obj_info["samples"] = 4;
+						obj_info["file_name"] = file_name_buffer;
+					}
+
+					PBR_API_update_scene_object(obj_info);
+					need_to_update_scene_tree = 1;
+				}
+			}
+
+		}
+		ImGui::End();
+		}
+
+		// Material
+		{
+			//static int open_delete_pop = 0;
+			//static json op_node;
+
+			static int set_focus = 0;
+
+			const auto make_material_tree_table = [&](const auto& myself, const json& parent) -> void {
+
+				for (auto& [node_id, node] : parent.items()) {
+					ImGui::TableNextRow();
+					ImGui::TableNextColumn();
+					std::string node_name = node["name"];
+					std::string node_type = node["type"];
+					if(0) {// (node["type"] == "folder") {
+						bool open = ImGui::TreeNodeEx(node_name.c_str(),
+							ImGuiTreeNodeFlags_SpanFullWidth |
+							ImGuiTreeNodeFlags_OpenOnDoubleClick |
+							ImGuiTreeNodeFlags_OpenOnArrow
+						);
+
+						if (ImGui::BeginPopupContextItem())
+						{
+							ImGui::Text("This a popup for \"%s\"!", node_name.c_str());
+							if (ImGui::Button("Delete")) {
+								ImGui::CloseCurrentPopup();
+								open_delete_pop = 1;
+								op_node = node;
+								delete_node_type = 1;
+							}
+
+							/*if (ImGui::Button("Add")) {
+								ImGui::CloseCurrentPopup();
+								open_new_object_dialog = 1;
+								op_node = node;
+							}*/
+							ImGui::EndPopup();
+						}
+
+						ImGui::TableNextColumn();
+						ImGui::TextDisabled("--");
+						//ImGui::TableNextColumn();
+						//ImGui::TextUnformatted(node->Type);
+
+
+
+						if (open)
+						{
+							myself(myself, node["children"]);
+							ImGui::TreePop();
+						}
+					}
+					else {
+						//ImGui::TreeNodeEx(node_name.c_str(), ImGuiTreeNodeFlags_Leaf | ImGuiTreeNodeFlags_Bullet | ImGuiTreeNodeFlags_NoTreePushOnOpen | ImGuiTreeNodeFlags_SpanFullWidth);
+
+						if (edit_material_name_status && selected_material_id == node["id"]) {
+							//ImGui::ActivateItem();
+							if (set_focus) {
+								ImGui::SetKeyboardFocusHere();
+								set_focus = 0;
+							}
+							if (ImGui::InputText("##material_name", material_name_buffer, 64, 
+								0//ImGuiInputTextFlags_EnterReturnsTrue
+							)) {
+								//std::cout << "name 1\n";
+							}
+							else {
+								//std::cout << "name 2\n";
+							}
+
+							if (ImGui::IsItemDeactivated()) {
+								//std::cout << "name 11\n";
+								edit_material_name_status = 0;
+
+								if (ImGui::IsItemDeactivatedAfterEdit()) { //IsItemDeactivated   IsItemDeactivatedAfterEdit
+									//std::cout << "name 22\n";
+									auto new_name = PBR_API_rename_material(node["id"], material_name_buffer);
+
+									sprintf(material_name_buffer, "%s", new_name.c_str());
+
+									need_to_update_material_tree = 1;
+								}
+							}
+						}
+						else {
+							if (ImGui::Selectable(node_name.c_str(), selected_material_id == node["id"], ImGuiSelectableFlags_AllowDoubleClick)) {
+								selected_material_id = node["id"];
+								selected_material = node;
+								dump_material_node_to_buffer(node);
+
+								if (ImGui::IsMouseDoubleClicked(0)) {
+									//std::cout << "db click\n";
+									edit_material_name_status = 1;
+									set_focus = 1;
+								}
+							}
+						}
+						
+						if (!edit_material_name_status) {
+							if (ImGui::BeginPopupContextItem())
+							{
+								ImGui::Text("This a popup for \"%s\"!", node_name.c_str());
+								if (ImGui::Button("Delete")) {
+									ImGui::CloseCurrentPopup();
+									open_delete_pop = 1;
+									op_node = node;
+									delete_node_type = 1;
+								}
+
+								if (ImGui::Button("Add")) {
+									ImGui::CloseCurrentPopup();
+									open_new_object_dialog = 1;
+									op_node = node;
+								}
+								ImGui::EndPopup();
+							}
+						}
+						
+
+						ImGui::TableNextColumn();
+						ImGui::Text(node_type.c_str());
+						//ImGui::TableNextColumn();
+						//ImGui::TextUnformatted(node->Type);
+					}
+				}
+			};
+
+			if (ImGui::Begin("Material", nullptr,
+				//ImGuiWindowFlags_AlwaysAutoResize |
+				//ImGuiWindowFlags_NoMove |
+				//ImGuiWindowFlags_NoDecoration |
+				ImGuiWindowFlags_NoCollapse)) {
+
+				//ImGui::SetNextItemWidth();
+				if (ImGui::Button("new material", ImVec2(ImGui::GetContentRegionAvail().x, 0))) {
+					selected_material = PBR_API_new_material();
+					selected_material_id = selected_material["id"];
+					need_to_update_material_tree = 1;
+					dump_material_node_to_buffer(selected_material);
+				}
+
+				static ImGuiTableFlags flags =
+					//ImGuiTableFlags_BordersV | 
+					ImGuiTableFlags_BordersOuterH |
+					ImGuiTableFlags_Resizable |
+					ImGuiTableFlags_RowBg |
+					ImGuiTableFlags_NoBordersInBody;
+
+				if (ImGui::BeginTable("MaterialTable", 2, flags)) {
+					ImGui::TableSetupColumn("Name", ImGuiTableColumnFlags_NoHide);
+					//ImGui::TableSetupColumn("Size", ImGuiTableColumnFlags_WidthFixed, TEXT_BASE_WIDTH * 12.0f);
+					ImGui::TableSetupColumn("Type", ImGuiTableColumnFlags_WidthFixed, TEXT_BASE_WIDTH * 12.0f);
+					ImGui::TableHeadersRow();
+
+					make_material_tree_table(make_material_tree_table, material_tree);
+				}
+				ImGui::EndTable();
+
+				if (ImGui::CollapsingHeader("Property")) {
+					if (selected_material_id != -1) {
+
+						int update_material = 0;
+
+						//ImGui::InputText("name", material_name_buffer, 64, ImGuiInputTextFlags_ReadOnly);
+						ImGui::Text(material_name_buffer);
+
+						if (ImGui::Combo("material", &material_type, "matte\0glass\0mirror\0plastic\0metal\0\0"))
+						{
+							/*PBR_API_update_scene_object(json({
+								{"id",selected_obj_id},
+								{"world_pos", pos}
+								}));*/
+							update_material = 1;
+						}
+
+
+						switch (material_type) {
+						case 0:
+							ImGui::ColorEdit3("kd", kd,
+								ImGuiColorEditFlags_Float |
+								ImGuiColorEditFlags_NoDragDrop
+							);
+							if (ImGui::IsItemDeactivatedAfterEdit()) {
+								update_material = 1;
+							}
+
+							ImGui::SliderFloat("sigma", &sigma, 0, 1);
+							if (ImGui::IsItemDeactivatedAfterEdit()) {
+								update_material = 1;
+							}
+
+							break;
+						case 1:
+							ImGui::ColorEdit3("kr", kr,
+								ImGuiColorEditFlags_Float |
+								ImGuiColorEditFlags_NoDragDrop
+							);
+							if (ImGui::IsItemDeactivatedAfterEdit()) {
+								update_material = 1;
+							}
+
+							ImGui::ColorEdit3("kt", kt,
+								ImGuiColorEditFlags_Float |
+								ImGuiColorEditFlags_NoDragDrop
+							);
+							if (ImGui::IsItemDeactivatedAfterEdit()) {
+								update_material = 1;
+							}
+
+							ImGui::SliderFloat("eta", &eta, 0, 3);
+							if (ImGui::IsItemDeactivatedAfterEdit()) {
+								update_material = 1;
+							}
+
+							ImGui::SliderFloat2("uvrough", uvrough, 0, 1);
+							if (ImGui::IsItemDeactivatedAfterEdit()) {
+								update_material = 1;
+							}
+							break;
+						case 2:
+							ImGui::ColorEdit3("kr", kr,
+								ImGuiColorEditFlags_Float |
+								ImGuiColorEditFlags_NoDragDrop
+							);
+							if (ImGui::IsItemDeactivatedAfterEdit()) {
+								update_material = 1;
+							}
+
+							break;
+						case 3:
+							ImGui::ColorEdit3("kd", kd,
+								ImGuiColorEditFlags_Float |
+								ImGuiColorEditFlags_NoDragDrop
+							);
+							if (ImGui::IsItemDeactivatedAfterEdit()) {
+								update_material = 1;
+							}
+
+							ImGui::ColorEdit3("ks", ks,
+								ImGuiColorEditFlags_Float |
+								ImGuiColorEditFlags_NoDragDrop
+							);
+							if (ImGui::IsItemDeactivatedAfterEdit()) {
+								update_material = 1;
+							}
+
+							ImGui::SliderFloat("rough", &rough, 0, 1);
+							if (ImGui::IsItemDeactivatedAfterEdit()) {
+								update_material = 1;
+							}
+
+							break;
+						case 4:
+							ImGui::ColorEdit3("kd", kd,
+								ImGuiColorEditFlags_Float |
+								ImGuiColorEditFlags_NoDragDrop
+							);
+							if (ImGui::IsItemDeactivatedAfterEdit()) {
+								update_material = 1;
+							}
+
+							ImGui::SliderFloat3("eta", eta3, 0, 3);
+							if (ImGui::IsItemDeactivatedAfterEdit()) {
+								update_material = 1;
+							}
+
+							ImGui::SliderFloat("rough", &rough, 0, 1);
+							if (ImGui::IsItemDeactivatedAfterEdit()) {
+								update_material = 1;
+							}
+							break;
+						}
+
+						if (update_material) {
+
+							json material_info = json({
+								{"id", selected_material_id},
+								{"name", selected_material["name"]}
+								});
+
+							switch (material_type) {
+							case 0:
+								material_info["type"] = "matte";
+								material_info["bumpmap"] = 0;
+								material_info["remaproughness"] = false;
+								material_info["kd"] = kd;
+								material_info["sigma"] = sigma;
+
+								break;
+							case 1:
+								material_info["type"] = "glass";
+								material_info["bumpmap"] = 0;
+								material_info["remaproughness"] = false;
+								material_info["kr"] = kr;
+								material_info["kt"] = kt;
+								material_info["eta"] = eta;
+								material_info["uroughness"] = uvrough[0];
+								material_info["vroughness"] = uvrough[1];
+
+								break;
+							case 2:
+								material_info["type"] = "mirror";
+								material_info["bumpmap"] = 0;
+								material_info["remaproughness"] = false;
+								material_info["kr"] = kr;
+
+								break;
+							case 3:
+								material_info["type"] = "plastic";
+								material_info["bumpmap"] = 0;
+								material_info["remaproughness"] = false;
+								material_info["kd"] = kd;
+								material_info["ks"] = ks;
+								material_info["roughness"] = rough;
+
+								break;
+							case 4:
+								material_info["type"] = "metal";
+								material_info["bumpmap"] = 0;
+								material_info["remaproughness"] = false;
+								material_info["k"] = kd;
+								material_info["eta"] = eta3;
+								material_info["roughness"] = rough;
+
+								break;
+							}
+
+							PBR_API_update_material(material_info);
+							need_to_update_material_tree = 1;
+						}
+					}
+				}
+				
+
+				if (ImGui::CollapsingHeader("Preview")) {
+
+				}
+
+			}
 			ImGui::End();
+			
+			
 		}
 
 		{
@@ -1153,6 +1864,177 @@ public:
 
 			ImGui::End();*/
 		}
+
+		{
+			ImGui::SetNextWindowPos(ImVec2(main_viewport->WorkPos.x + 20, main_viewport->WorkPos.y + 40), ImGuiCond_FirstUseEver);
+			ImGui::SetNextWindowSize(ImVec2(480, 600), ImGuiCond_FirstUseEver);
+			ImGui::SetNextWindowBgAlpha(1);
+
+			if (ImGui::Begin("Control", nullptr,
+				//ImGuiWindowFlags_AlwaysAutoResize |
+				//ImGuiWindowFlags_NoDocking |
+				//ImGuiWindowFlags_NoMove |
+				//ImGuiWindowFlags_NoDecoration |
+				ImGuiWindowFlags_NoCollapse)) {
+
+				if (render_status == 1) {
+					ImGui::BeginDisabled();
+				}
+
+				ImGui::Text("camera setting");
+				ImGui::SameLine();
+				if (ImGui::Button("load default")) {
+					PBR_API_get_defualt_camera_setting(cs);
+					PBR_API_set_perspective_camera(cs);
+				}
+
+				ImGui::SameLine();
+				if (ImGui::Button("save setting")) {
+					PBR_API_save_setting();
+				}
+
+				//ImGui::PushItemWidth(400);
+
+				bool cameraChanged = false;
+				ImGui::SliderFloat3("pos", cs.pos, -100, 100);
+				if (ImGui::IsItemDeactivatedAfterEdit()) {
+					cameraChanged = true;
+				}
+
+				ImGui::SliderFloat3("look", cs.look, -100, 100);
+				if (ImGui::IsItemDeactivatedAfterEdit()) {
+					cameraChanged = true;
+				}
+
+				ImGui::SliderFloat3("up", cs.up, -100, 100);
+				if (ImGui::IsItemDeactivatedAfterEdit()) {
+					cameraChanged = true;
+				}
+
+				//ImGui::PopItemWidth();
+
+				//ImGui::PushItemWidth(160);
+
+				ImGui::SliderFloat("fov", &cs.fov, 0, 180);
+				if (ImGui::IsItemDeactivatedAfterEdit()) {
+					cameraChanged = true;
+				}
+
+				//ImGui::SameLine();
+
+				ImGui::SliderFloat("aspect_ratio", &cs.asp, 0.5f, 2, "%.1f");
+				if (ImGui::IsItemDeactivatedAfterEdit()) {
+					cameraChanged = true;
+				}
+
+				//ImGui::PopItemWidth();
+
+				//ImGui::PushItemWidth(400);
+
+				ImGui::SliderFloat2("near_far", cs.near_far, 0.001f, 1000);
+				if (ImGui::IsItemDeactivatedAfterEdit()) {
+					cameraChanged = true;
+				}
+
+				ImGui::SliderInt2("resolution", cs.resolution, 0, 1000);
+				if (ImGui::IsItemDeactivatedAfterEdit()) {
+					cameraChanged = true;
+				}
+
+				//ImGui::PopItemWidth();
+
+				ImGui::SliderInt("ray_sample_no", &cs.ray_sample_no, 1, 500);
+				if (ImGui::IsItemDeactivatedAfterEdit()) {
+					cameraChanged = true;
+				}
+
+				ImGui::SliderInt("ray_bounce_no", &cs.ray_bounce_no, 0, 10);
+				if (ImGui::IsItemDeactivatedAfterEdit()) {
+					cameraChanged = true;
+				}
+
+				if (ImGui::SliderInt("scale", &cs.image_scale, 1, 16)) {
+					cs.resolution[0] = cs.image_scale * 128;
+					cs.resolution[1] = cs.image_scale * 128;
+					cameraChanged = true;
+				}
+
+				ImGui::SliderInt("render_threads", &cs.render_threads_count, 1, 6);
+				if (ImGui::IsItemDeactivatedAfterEdit()) {
+					cameraChanged = true;
+				}
+
+				if (cameraChanged) {
+					Log("cameraChanged");
+					PBR_API_set_perspective_camera(cs);
+				}
+
+				//ImGui::Checkbox("Demo Window", &show_demo_window);      // Edit bools storing our window open/close state
+				//ImGui::Checkbox("Another Window", &show_another_window);
+
+				//ImGui::SliderFloat("float", &f, 0.0f, 1.0f);            // Edit 1 float using a slider from 0.0f to 1.0f
+				//ImGui::ColorEdit3("clear color", (float*)&clear_color); // Edit 3 floats representing a color
+
+				//ImGui::SameLine();
+				//ImGui::Text("counter = %d", counter);
+
+				//ImGui::Text("Application average %.3f ms/frame (%.1f FPS)", 1000.0f / ImGui::GetIO().Framerate, ImGui::GetIO().Framerate);
+
+				//ImGui::Dummy(ImVec2(30, 30));
+
+				ImGui::Text("Scene Setting");
+				ImGui::Text("Nodes structure");
+				ImGui::SameLine();
+
+				if (ImGui::RadioButton("brute force", &scene_options.nodes_structure, 0)) {
+					PBR_API_SET_SCENE_OPTIONS(scene_options);
+				}
+
+				ImGui::SameLine();
+
+				if (ImGui::RadioButton("BVH", &scene_options.nodes_structure, 1)) {
+					PBR_API_SET_SCENE_OPTIONS(scene_options);
+				}
+
+				for (int i = 0; i < progress_now.size(); ++i) {
+					char buf[32];
+					sprintf(buf, "%d/%d", progress_now[i], progress_total[i]);
+					ImGui::ProgressBar(float(progress_now[i]) / progress_total[i], ImVec2(0.f, 0.f), buf);
+				}
+
+				if (ImGui::Button("Render", ImVec2(200, 120))) {
+
+					static int set_default_scene = 1;
+					if (set_default_scene == 0) {
+						set_default_scene = 1;
+
+					}
+
+					SendEvent(RENDER_TASK_ID);
+				}
+
+				if (render_status == 1) {
+					ImGui::EndDisabled();
+				}
+
+				if (render_status == 0) {
+					ImGui::BeginDisabled();
+				}
+
+				ImGui::SameLine();
+				if (ImGui::Button("Stop", ImVec2(200, 120))) {
+					PBR_API_stop_rendering();
+				}
+
+				if (render_status == 0) {
+					ImGui::EndDisabled();
+				}
+			}
+
+			ImGui::End();
+		}
+
+		ImGui::End();
 	}
 
 	struct vec2 {

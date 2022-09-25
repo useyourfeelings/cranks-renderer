@@ -62,7 +62,7 @@ int EventLoop(std::function<void(const json&)> init_func) {
 
     for (;;) {
         std::unique_lock<std::mutex> lock(events_mutex);
-        std::cout << "events_cv.wait_for start" << std::endl;
+        //std::cout << "events_cv.wait_for start" << std::endl;
 
         // 阻塞等各种消息
         if (events_cv.wait_for(lock, std::chrono::seconds(5), [] { return got_events; })) {
@@ -91,7 +91,7 @@ int EventLoop(std::function<void(const json&)> init_func) {
                 events.clear();
         }
 
-        std::cout << "events_cv.wait_for end" << std::endl;
+        //std::cout << "events_cv.wait_for end" << std::endl;
 
         auto t = threads.begin();
         while (t != threads.end()) {

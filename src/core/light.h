@@ -1,6 +1,7 @@
 #ifndef CORE_LIGHT_H
 #define CORE_LIGHT_H
 
+#include "object.h"
 #include "interaction.h"
 #include "transform.h"
 #include "spectrum.h"
@@ -15,9 +16,9 @@ enum class LightFlags : int {
 	Infinite = 8
 };
 
-class Light {
+class Light: public Object {
 public:
-	Light(int flags, const Transform& LightToWorld, int nSamples = 1);
+	Light(const std::string& name, int flags, const Transform& LightToWorld, int nSamples = 1);
 	virtual ~Light();
 
 	virtual Spectrum Sample_Li(const Interaction& ref, const Point2f& u, Vector3f* wi, float* pdf) const = 0;

@@ -14,121 +14,185 @@
 #include "../tool/model.h"
 #include "setting.h"
 
-std::shared_ptr<Material> PbrApp::GenMaterial(const json& material_config) {
-	//std::cout << "PbrApp::GenMaterial()" << material_config.dump() << std::endl;
+PbrApp::PbrApp() :
+	project_changed(true) {
+	std::cout << "PbrApp::PbrApp" << std::endl;
+	//Log("PbrApp()"); // can cause exception. mutex not initialized. global variable problem.
+	camera = nullptr;
+	sampler = nullptr;
+	integrator = nullptr;
 
-	std::shared_ptr<Material> material = nullptr;
+	material_list = std::make_shared<std::map<int, std::shared_ptr<Material>>>();
+	scene = std::make_unique<Scene>(material_list);
+	camera = std::shared_ptr<Camera>(new PerspectiveCamera());
+	SetSampler();
+	SetIntegrator();
 
-	auto material_name = material_config["name"];
-
-	if (material_name == "matte") {
-		auto kd = material_config["kd"];
-		std::shared_ptr<Texture<Spectrum>> kd_tex = std::make_shared<ConstantTexture<Spectrum>>(Spectrum(kd[0], kd[1], kd[2]));
-
-		std::shared_ptr<Texture<float>> sigma_tex = std::make_shared<ConstantTexture<float>>(material_config["sigma"]);
-
-		material = std::make_shared<MatteMaterial>(kd_tex, sigma_tex, nullptr);
-	} else if (material_name == "glass") {
-		auto kr = material_config["kr"];
-		auto kt = material_config["kt"];
-		auto remaproughness = material_config["remaproughness"];
-		std::shared_ptr<Texture<Spectrum>> kr_tex = std::make_shared<ConstantTexture<Spectrum>>(Spectrum(kr[0], kr[1], kr[2]));
-		std::shared_ptr<Texture<Spectrum>> kt_tex = std::make_shared<ConstantTexture<Spectrum>>(Spectrum(kt[0], kt[1], kt[2]));
-
-		std::shared_ptr<Texture<float>> eta = std::make_shared<ConstantTexture<float>>(material_config["eta"]);
-		std::shared_ptr<Texture<float>> uroughness = std::make_shared<ConstantTexture<float>>(material_config["uroughness"]);
-		std::shared_ptr<Texture<float>> vroughness = std::make_shared<ConstantTexture<float>>(material_config["vroughness"]);
-		std::shared_ptr<Texture<float>> bumpmap = std::make_shared<ConstantTexture<float>>(material_config["bumpmap"]);
-
-		material = std::make_shared<GlassMaterial>(kr_tex, kt_tex, uroughness, vroughness, eta, bumpmap, remaproughness);
-	}
-	else if (material_name == "mirror") {
-		auto kr = material_config["kr"];
-		std::shared_ptr<Texture<Spectrum>> kr_tex = std::make_shared<ConstantTexture<Spectrum>>(Spectrum(kr[0], kr[1], kr[2]));
-
-		std::shared_ptr<Texture<float>> bumpmap = std::make_shared<ConstantTexture<float>>(material_config["bumpmap"]);
-
-		material = std::make_shared<MirrorMaterial>(kr_tex, bumpmap);
-	} else if (material_name == "plastic") {
-		auto kd = material_config["kd"];
-		auto ks = material_config["ks"];
-		auto remaproughness = material_config["remaproughness"];
-		std::shared_ptr<Texture<Spectrum>> kd_tex = std::make_shared<ConstantTexture<Spectrum>>(Spectrum(kd[0], kd[1], kd[2]));
-		std::shared_ptr<Texture<Spectrum>> ks_tex = std::make_shared<ConstantTexture<Spectrum>>(Spectrum(ks[0], ks[1], ks[2]));
-
-		std::shared_ptr<Texture<float>> roughness = std::make_shared<ConstantTexture<float>>(material_config["roughness"]);
-		std::shared_ptr<Texture<float>> bumpmap = std::make_shared<ConstantTexture<float>>(material_config["bumpmap"]);
-
-		material = std::make_shared<PlasticMaterial>(kd_tex, ks_tex, roughness, bumpmap, remaproughness);
-	} else if (material_name == "metal") {
-		auto k = material_config["k"];
-		auto eta = material_config["eta"];
-		auto remaproughness = material_config["remaproughness"];
-		std::shared_ptr<Texture<Spectrum>> k_tex = std::make_shared<ConstantTexture<Spectrum>>(Spectrum(k[0], k[1], k[2]));
-		std::shared_ptr<Texture<Spectrum>> eta_tex = std::make_shared<ConstantTexture<Spectrum>>(Spectrum(eta[0], eta[1], eta[2]));
-
-		std::shared_ptr<Texture<float>> roughness = std::make_shared<ConstantTexture<float>>(material_config["roughness"]);
-		std::shared_ptr<Texture<float>> bumpmap = std::make_shared<ConstantTexture<float>>(material_config["bumpmap"]);
-
-		material = std::make_shared<MetalMaterial>(eta_tex, k_tex, roughness, bumpmap, remaproughness);
-	}
-
-
-	return material;
+	// default material
+	json defualt_material = json({
+		{"id", 1},
+		{"name", "defualt_material"},
+		{"type", "matte"},
+		{"kd", {0.8, 0.8, 0.8}},
+		{"sigma", 0.2},
+		});
+	auto material = GenMaterial(defualt_material, 1, 1);
+	(*material_list)[material->GetID()] = material;
 }
 
-void PbrApp::AddSphere(const std::string &name, float radius, Point3f pos, const json& material_config) {
-	Log("AddSphere %s", name.c_str());
+int PbrApp::SaveProject(const std::string& path, const std::string& name) {
+	auto scene_tree = this->scene->GetSceneTree();
 
-	auto t = Translate(Vector3f(pos.x, pos.y, pos.z));
+	json project_json;
 
-	//Float radius = params.FindOneFloat("radius", 1.f);
-	float zmin = -radius;
-	float zmax = radius;
-	float phimax = 360.f;
+	project_json["name"] = name;
+	project_json["scene"] = scene_tree;
 
-	std::shared_ptr<Shape> shape = std::make_shared<Sphere>(t, Inverse(t), radius, zmin, zmax, phimax);
+	json m = json::object();
+	for (const auto& [key, material] : *material_list) {
+		m[std::to_string(key)] = material->GetJson();
+	}
+	project_json["material"] = m;
 
-	//Log("material ")
+	try {
+		std::ofstream f(path, std::fstream::trunc);
 
-	//std::shared_ptr<Material> material = 
+		if (f.is_open()) {
+			f << std::setw(4) << project_json << std::endl;
 
-	scene->AddPrimitive(std::make_shared<GeometricPrimitive>(shape, GenMaterial(material_config)), name);
+			std::cout << "Setting.SaveFile() ok" << std::endl;
+			return 1;
+		}
+
+		f.close();
+	}
+	catch (const std::exception& e) {
+		std::cout << "SaveProject() exception " << e.what();
+
+		return 1;
+	}
+
+	return 0;
 }
 
-void PbrApp::AddTriangleMesh(const std::string& name, Point3f pos, const std::string& file_name, const json& material_config) {
-	auto t = Translate(Vector3f(pos.x, pos.y, pos.z));
+int PbrApp::LoadProject(const std::string& path) {
+	std::cout << "LoadProject()" << std::endl;
 
-	int tri_count, vertex_count;
-	int* vertex_index;
-	float* points;
+	std::fstream f;
+	f.open(path, std::fstream::in | std::fstream::out);
 
-	LoadGLTF(file_name, &tri_count, &vertex_count, &vertex_index, &points);
+	if (!f.is_open())
+		return 0;
 
-	auto mesh = std::make_shared<TriangleMesh>(t, tri_count, vertex_index, vertex_count, points);
+	f.seekp(0);
 
-	delete[] vertex_index;
-	delete[] points;
+	json project_json;
+
+	try {
+		f >> project_json;
+	}
+	catch (json::type_error& e) {
+		std::cout << e.what() << std::endl << "exception id: " << e.id << std::endl;
+	}
+	catch (...) {
+		std::cout << "LoadProject() exception" << std::endl;
+	}
+
+	f.close();
+
+	material_list->clear();
+
+	if (project_json.contains("material")) {
+		for (auto& [node_id, node] : project_json["material"].items()) {
+			auto material = GenMaterial(node, 1, 1);
+			(* material_list)[material->GetID()] = material;
+		}
+	}
 	
-	for (int i = 0; i < tri_count; ++ i) {
-		std::shared_ptr<Shape> shape = std::make_shared<Triangle>(t, Inverse(t), mesh, i);
-		scene->AddPrimitive(std::make_shared<GeometricPrimitive>(shape, GenMaterial(material_config)), name);
+	scene->Reload(project_json["scene"]);
+
+	return 0;
+}
+
+std::tuple<int, json> PbrApp::AddObjectToScene(const json& obj_info) {
+	return this->scene->AddObject(obj_info);
+}
+
+int PbrApp::DeleteObjectFromScene(const json& obj_info) {
+	return this->scene->DeleteObject(obj_info);
+}
+
+int PbrApp::UpdateSceneObject(const json& obj_info) {
+	return this->scene->UpdateObject(obj_info);
+}
+
+std::string PbrApp::RenameObject(int obj_id, const std::string& new_name) {
+	return this->scene->RenameObject(obj_id, new_name);
+}
+
+const json& PbrApp::GetSceneTree() {
+	return this->scene->GetSceneTree();
+}
+
+json PbrApp::GetMaterialTree() {
+	json m = json::object();
+	for (const auto& [material_id, material] : *material_list) {
+		//if(material_id != 1)
+		m[std::to_string(material_id)] = material->GetJson();
 	}
 
-	
+	return m;
 }
 
-void PbrApp::AddPointLight(const std::string& name, Point3f pos) {
-	auto t = Translate(Vector3f(pos.x, pos.y, pos.z));
+json PbrApp::NewMaterial() {
+	json defualt_material = json({
+		{"name", "new material"},
+		{"type", "matte"},
+		{"kd", {0.8, 0.8, 0.8}},
+		{"sigma", 0.2},
+		});
+	auto material = GenMaterial(defualt_material, 0, 1);
 
-	this->scene->AddLight(std::make_shared<PointLight>(t, Spectrum(1, 1, 1)), name);
+	(*material_list)[material->GetID()] = material;
+
+	return material->GetJson();
 }
 
-void PbrApp::AddInfiniteLight(const std::string& name, Point3f pos, const Spectrum& power, float strength,
-	int nSamples, const std::string& texmap) {
-	auto t = Translate(Vector3f(pos.x, pos.y, pos.z));
+int PbrApp::UpdateMaterial(const json& m_info) {
+	std::cout << "UpdateMaterial " << m_info << std::endl;
+	//auto m = (*material_list)[m_info["id"]];
+	//m->Update(m_info);
 
-	this->scene->AddInfiniteLight(std::make_shared<InfiniteAreaLight>(t, power, strength, nSamples, texmap), name);
+	if (material_list->contains(m_info["id"])) {
+		std::cout << "UpdateMaterial 1" << std::endl;
+		//(*material_list)[m_info["id"]].reset(GenMaterial(m_info, 1).get()); // reset. kill all weak_ptr
+		(*material_list)[m_info["id"]].reset();
+		(*material_list)[m_info["id"]] = GenMaterial(m_info, 1, 0); // reset. kill all weak_ptr
+	}
+
+	return 0;
+}
+
+int PbrApp::DeleteMaterial(const json& m_info) {
+	std::cout << "DeleteMaterial " << m_info << std::endl;
+
+	if (m_info["id"] == 1)
+		return 0; // keep default material
+
+	material_list->erase(m_info["id"]);
+
+
+
+	return 0;
+}
+
+std::string PbrApp::RenameMaterial(int material_id, const std::string& new_name) {
+	if (material_list->contains(material_id)) {
+		return (*material_list)[material_id]->Rename(new_name);
+	}
+	else {
+		throw("invalid material 1");
+	}
 }
 
 void PbrApp::PrintScene() {

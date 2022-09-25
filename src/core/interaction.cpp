@@ -19,7 +19,7 @@ SurfaceInteraction::SurfaceInteraction(
 }
 
 void SurfaceInteraction::LogSelf() {
-    Log("interaction hit primitive = %s", primitive->name.c_str());
+    //Log("interaction hit primitive = %s", primitive->Name().c_str());
     Log("p");
     p.LogSelf();
     Log("n");
@@ -81,7 +81,8 @@ void SurfaceInteraction::ComputeDifferentials( const RayDifferential& ray) const
     //}
 }
 
-void SurfaceInteraction::ComputeScatteringFunctions(const RayDifferential& ray, TransportMode mode) {
+void SurfaceInteraction::ComputeScatteringFunctions(const RayDifferential& ray, 
+    TransportMode mode) {
     ComputeDifferentials(ray);
     primitive->ComputeScatteringFunctions(this, mode);
 }

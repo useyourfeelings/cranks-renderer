@@ -18,24 +18,58 @@ int PBR_API_print_scene() {
 	return 0;
 }
 
-int PBR_API_add_sphere(const std::string& name, float radius, float x, float y, float z, const nlohmann::json& material_config) {
-	app.AddSphere(name, radius, Point3f(x, y, z), material_config);
+int PBR_API_save_project(const std::string& path, const std::string& name) {
+	app.SaveProject(path, name);
 	return 0;
 }
 
-int PBR_API_add_triangle_mesh(const std::string& name, float x, float y, float z, const std::string& file_name, const nlohmann::json& material_config) {
-	app.AddTriangleMesh(name, Point3f(x, y, z), file_name, material_config);
+int PBR_API_load_project(const std::string& path) {
+	app.LoadProject(path);
 	return 0;
 }
 
-int PBR_API_add_point_light(const std::string& name, float x, float y, float z) {
-	app.AddPointLight(name, Point3f(x, y, z));
+std::tuple<int, json> PBR_API_add_object_to_scene(const json& obj_info) {
+	return app.AddObjectToScene(obj_info);
+}
+
+int PBR_API_delete_object_from_scene(const json& obj_info) {
+	app.DeleteObjectFromScene(obj_info);
 	return 0;
 }
 
-int PBR_API_add_infinite_light(const std::string& name, float x, float y, float z, float r, float g, float b, float strength, float nSample, const std::string& texmap) {
-	app.AddInfiniteLight(name, Point3f(x, y, z), Spectrum(r, g, b), strength, nSample, texmap);
+int PBR_API_update_scene_object(const json& obj_info) {
+	app.UpdateSceneObject(obj_info);
 	return 0;
+}
+
+const json& PBR_API_get_scene_tree() {
+	return app.GetSceneTree();
+}
+
+json PBR_API_get_material_tree() {
+	return app.GetMaterialTree();
+}
+
+json PBR_API_new_material() {
+	return app.NewMaterial();
+}
+
+int PBR_API_update_material(const json& m_info) {
+	app.UpdateMaterial(m_info);
+	return 0;
+}
+
+int PBR_API_delete_material(const json& obj_info) {
+	app.DeleteMaterial(obj_info);
+	return 0;
+}
+
+std::string PBR_API_rename_material(int material_id, const std::string& new_name) {
+	return app.RenameMaterial(material_id, new_name);
+}
+
+std::string PBR_API_rename_object(int obj_id, const std::string& new_name) {
+	return app.RenameObject(obj_id, new_name);
 }
 
 int PBR_API_set_perspective_camera(const CameraSetting& s) {
