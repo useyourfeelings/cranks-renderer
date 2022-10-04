@@ -75,6 +75,8 @@ file(GLOB PBR_CODE
   src/shape/*.cpp
   src/tool/*.h
   src/tool/*.cpp
+  src/texture/*.h
+  src/texture/*.cpp
   src/light/*.h
   src/light/*.cpp
   src/integrator/*.h
@@ -91,6 +93,7 @@ source_group(shape src/shape)
 source_group(tool src/tool)
 source_group(light src/light)
 source_group(integrator src/integrator)
+source_group(texture src/texture)
 source_group(vulkan src/vulkan)
 
 source_group(third_party/imgui ${IMGUI_DIR})

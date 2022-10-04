@@ -21,9 +21,10 @@ public:
 	bool Intersect(const Ray& ray, float* tHit, SurfaceInteraction* isect) const;
 	bool Intersect(const Ray& ray, int except_id) const;
 
-	void AddLight(std::shared_ptr<Light>, const std::string& name);
-	void AddInfiniteLight(std::shared_ptr<Light> light, const std::string& name);
-	void AddPrimitive(std::shared_ptr<Primitive>);
+	//void AddLight(std::shared_ptr<Light>, const std::string& name);
+	//void AddInfiniteLight(std::shared_ptr<Light> light, const std::string& name);
+	//void AddPrimitive(std::shared_ptr<Primitive>);
+
 	std::tuple<int, json> AddObject(const json& obj_info);
 	int DeleteObject(const json& obj_info);
 	int UpdateObject(const json& obj_info);

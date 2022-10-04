@@ -88,7 +88,7 @@ Transform RotateZ(float theta);
 Transform LookAt(const Point3f& pos, const Point3f& look, const Vector3f& up);
 Transform Orthographic(float near, float far, float width, float height);
 Transform Perspective(float fov, float asp, float znear, float zfar);
-
+bool SolveLinearSystem2x2(const float A[2][2], const float B[2], float* x0, float* x1);
 
 
 

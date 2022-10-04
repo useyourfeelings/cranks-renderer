@@ -94,6 +94,8 @@ public:
 	//BSDF* bsdf = nullptr;
 	std::shared_ptr<BSDF> bsdf = nullptr;
 
+	mutable Vector3f dpdx, dpdy;
+	mutable float dudx = 0, dvdx = 0, dudy = 0, dvdy = 0;
 };
 
 

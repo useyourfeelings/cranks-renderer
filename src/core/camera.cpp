@@ -14,6 +14,11 @@ void Camera::AddSample(const Point2f& pixel, Spectrum L, float sampleWeight, int
     film->pixels[pixel_index] += L * sampleWeight / samplesPerPixel;
 }
 
+PerspectiveCamera::PerspectiveCamera() {
+    dxCamera = (RasterToCamera(Point3f(1, 0, 0)) - RasterToCamera(Point3f(0, 0, 0)));
+    dyCamera = (RasterToCamera(Point3f(0, 1, 0)) - RasterToCamera(Point3f(0, 0, 0)));
+};
+
 void PerspectiveCamera::SetPerspectiveData(Point3f pos, Point3f look, Vector3f up, float fov, float asp, float near, float far, int resX, int resY) {
     Log("SetPerspectiveData");
     this->CameraToWorld = Inverse(LookAt(pos, look, up));
@@ -64,6 +69,7 @@ void PerspectiveCamera::SetPerspectiveData(Point3f pos, Point3f look, Vector3f u
     RasterToCamera = Inverse(CameraToScreen) * RasterToScreen;
 }
 
+/*
 PerspectiveCamera::PerspectiveCamera(Point3f pos, Point3f look, Vector3f up, float fov, float asp, float near, float far, int resX, int resY):
 	//Camera(film), 
     near(near), far(far), fov(fov), asp(asp)
@@ -71,7 +77,7 @@ PerspectiveCamera::PerspectiveCamera(Point3f pos, Point3f look, Vector3f up, flo
 	//A = film->fullResolution.x * film->fullResolution.y;
 
     SetPerspectiveData(pos, look, up, fov, asp, near, far, resX, resY);
-}
+}*/
 
 //float PerspectiveCamera::GenerateRay(const CameraSample& sample, Ray* ray) const {
 //    // Compute raster and camera sample positions
@@ -155,14 +161,14 @@ float PerspectiveCamera::GenerateRayDifferential(const CameraSample& sample,
         ray->ryOrigin = Point3f(pLens.x, pLens.y, 0);
         ray->ryDirection = Normalize(pFocus - ray->ryOrigin);
     }
-    else {
+    else {*/
+    {
         ray->rxOrigin = ray->ryOrigin = ray->o;
         ray->rxDirection = Normalize(Vector3f(pCamera) + dxCamera);
         ray->ryDirection = Normalize(Vector3f(pCamera) + dyCamera);
     }
-    ray->time = Lerp(sample.time, shutterOpen, shutterClose);
-    ray->medium = medium;
-    */
+    //ray->time = Lerp(sample.time, shutterOpen, shutterClose);
+    //ray->medium = medium;
 
     *ray = CameraToWorld(*ray); // »Øµ½world
 

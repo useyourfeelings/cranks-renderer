@@ -18,6 +18,12 @@ public:
 	}
 	//bool HasNaNs() const { return isNaN(x) || isNaN(y); }
 
+	T operator[](int i) const {
+		//DCHECK(i >= 0 && i <= 1);
+		if (i == 0) return x;
+		return y;
+	}
+
 	T x, y, z;
 
 };
@@ -45,6 +51,13 @@ public:
 		x = v.x;
 		y = v.y;
 		z = v.z;
+	}
+
+	T operator[](int i) const {
+		//DCHECK(i >= 0 && i <= 2);
+		if (i == 0) return x;
+		if (i == 1) return y;
+		return z;
 	}
 
 	Vector3<T> operator-() const { 

@@ -1,5 +1,6 @@
 #include "material.h"
 #include "texture.h"
+#include "../texture/checkerboard.h"
 #include "reflection.h"
 #include "pbr.h"
 
@@ -16,7 +17,9 @@ std::shared_ptr<Material> GenMaterial(const json& material_config, int keep_id, 
 
         std::shared_ptr<Texture<float>> sigma_tex = std::make_shared<ConstantTexture<float>>(material_config["sigma"]);
 
-        material = std::make_shared<MatteMaterial>(material_config, keep_id, inc_last_id, kd_tex, sigma_tex, nullptr);
+        std::shared_ptr<Texture<Spectrum>> checker_tex = nullptr; // CreateCheckerboardSpectrumTexture(Transform());
+
+        material = std::make_shared<MatteMaterial>(material_config, keep_id, inc_last_id, kd_tex, sigma_tex, nullptr, checker_tex);
     }
     else if (material_type == "glass") {
         auto kr = material_config["kr"];
@@ -84,9 +87,15 @@ void MatteMaterial::ComputeScatteringFunctions(SurfaceInteraction* si, Transport
     //        si->bsdf->Add(ARENA_ALLOC(arena, OrenNayar)(r, sig));
     //}
 
-    Spectrum r = Kd->Evaluate(*si).Clamp();
+    Spectrum r = Kd->Evaluate(*si);
 
-    //std::cout << r.c[0] << " " << r.c[1] << " "<<r.c[2]<<std::endl;
+    if (checker != nullptr)
+        r = r * checker->Evaluate(*si);
+
+    r = r.Clamp();
+
+    //auto checker_color = checker->Evaluate(*si);
+    //std::cout << "checker_color " << checker_color.c[0] << " " << checker_color.c[1] << " " << checker_color.c[2] << std::endl;
 
     float sig = Clamp(sigma->Evaluate(*si), 0, 90);
 

@@ -167,7 +167,7 @@ bool Sphere::Intersect(const Ray& ray, float* tHit, SurfaceInteraction* isect) c
 	// 偏微分
 	// 以u，也就是φ的百分比变化，作为微小变量，对球体方程求导。及dpdu。
 
-	// 他为什么用百分比作为微小量而不是直接用φ？
+	// 他为什么用百分比作为微小量而不是直接用φ？因为uv就是百分比，就是要针对百分比来算，用在texture映射中。
 
 	// 微分的理解
 	// 比如对x = r sin(θ) cos(φ)求u的偏导。得到x的变化率(之于φ的百分比)。

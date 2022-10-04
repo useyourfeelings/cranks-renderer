@@ -87,9 +87,11 @@ public:
         int keep_id, int inc_last_id,
         const std::shared_ptr<Texture<Spectrum>>& Kd,
         const std::shared_ptr<Texture<float>>& sigma,
-        const std::shared_ptr<Texture<float>>& bumpMap)
+        const std::shared_ptr<Texture<float>>& bumpMap,
+        const std::shared_ptr<Texture<Spectrum>>& checker
+    )
         : Material(new_config, keep_id, inc_last_id),
-        Kd(Kd), sigma(sigma), bumpMap(bumpMap) {
+        Kd(Kd), sigma(sigma), bumpMap(bumpMap), checker(checker) {
 
         config["type"] = "matte";
     }
@@ -99,6 +101,7 @@ private:
     // MatteMaterial Private Data
     std::shared_ptr<Texture<Spectrum>> Kd;
     std::shared_ptr<Texture<float>> sigma, bumpMap;
+    std::shared_ptr<Texture<Spectrum>> checker;
 };
 
 /////////////////////////////////////////
