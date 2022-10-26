@@ -43,6 +43,13 @@ public:
         return ret;
     }
 
+    float MaxComponentValue() const {
+        float m = c[0];
+        for (int i = 1; i < nSpectrumSamples; ++i)
+            m = std::max(m, c[i]);
+        return m;
+    }
+
     bool IsBlack() const {
         for (int i = 0; i < nSpectrumSamples; ++i)
             if (c[i] != 0.) return false;
@@ -76,6 +83,11 @@ public:
         CoefficientSpectrum ret = *this;
         for (int i = 0; i < nSpectrumSamples; ++i) ret.c[i] /= a;
         return ret;
+    }
+
+    CoefficientSpectrum& operator/=(float a) {
+        for (int i = 0; i < nSpectrumSamples; ++i) c[i] /= a;
+        return *this;
     }
 
     CoefficientSpectrum operator*(const CoefficientSpectrum& sp) const {

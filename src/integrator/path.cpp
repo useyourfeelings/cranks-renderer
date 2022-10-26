@@ -98,6 +98,15 @@ Spectrum PathIntegrator::Li(const RayDifferential& r, const Scene& scene, Sample
         // ¸üÐÂbeta
         beta *= f * AbsDot(wi, isect.shading.n) / pdf;
 
+        // rr
+        float q = 1 - beta.MaxComponentValue();
+        if (q > 0.8 and bounces >= 3) {
+            if (sampler.Get1D() < q)
+                break;
+
+            beta /= 1 - q;
+        }
+
         specularBounce = (flags & BSDF_SPECULAR) != 0;
 
         ray = isect.SpawnRay(wi);
