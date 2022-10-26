@@ -11,15 +11,15 @@ static const float OneMinusEpsilon = FloatOneMinusEpsilon;
 class RNG {
 public:
 	RNG() :dis(0, 1) { // ·¶Î§Îª [0, 1)
-
+		std::random_device rd;
+		gen = std::mt19937(rd());
 	}
-
 
 	float UniformFloat() {
-		return float(dis(e));
+		return float(dis(gen));
 	}
 
-	std::default_random_engine e;
+	std::mt19937 gen;
 	std::uniform_real_distribution<> dis; // rage 0 - 1
 };
 
