@@ -21,6 +21,8 @@ public:
     void Pdf_Le(const Ray&, const Normal3f&, Float* pdfPos,
         Float* pdfDir) const;*/
 
+    Spectrum Le(const RayDifferential& ray) const;
+
     Point3f pLight;
 
 private:

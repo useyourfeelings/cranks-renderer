@@ -14,3 +14,8 @@ Spectrum PointLight::Sample_Li(const Interaction& ref, const Point2f& u, Vector3
     // return I;
     return I / DistanceSquared(pLight, ref.p) * 4000;
 }
+
+Spectrum PointLight::Le(const RayDifferential& ray) const {
+
+    return I;
+}

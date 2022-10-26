@@ -28,6 +28,7 @@ class Film;
 template <typename T> class Texture;
 
 #define MaxFloat std::numeric_limits<float>::max()
+#define MinFloat std::numeric_limits<float>::min()
 #define Infinity std::numeric_limits<float>::infinity()
 #define MachineEpsilon (std::numeric_limits<float>::epsilon() * 0.5) // ulp/2
 

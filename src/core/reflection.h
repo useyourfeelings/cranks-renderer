@@ -87,7 +87,7 @@ public:
 	virtual ~BxDF() {}
 
     bool MatchesFlags(BxDFType t) const { 
-        return (type & t) == type; 
+        return (type & t) == type; // t°üº¬×ÔÉí
     }
 
 	virtual Spectrum f(const Vector3f& wo, const Vector3f& wi) const = 0;

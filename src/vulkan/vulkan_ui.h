@@ -1981,9 +1981,11 @@ public:
 				//ImGui::Text("Application average %.3f ms/frame (%.1f FPS)", 1000.0f / ImGui::GetIO().Framerate, ImGui::GetIO().Framerate);
 
 				//ImGui::Dummy(ImVec2(30, 30));
+				ImGui::Separator();
+
 
 				ImGui::Text("Scene Setting");
-				ImGui::Text("Nodes structure");
+				ImGui::Text("Nodes structure:");
 				ImGui::SameLine();
 
 				if (ImGui::RadioButton("brute force", &scene_options.nodes_structure, 0)) {
@@ -1994,6 +1996,149 @@ public:
 
 				if (ImGui::RadioButton("BVH", &scene_options.nodes_structure, 1)) {
 					PBR_API_SET_SCENE_OPTIONS(scene_options);
+				}
+
+				ImGui::Text("Method:");
+				ImGui::SameLine();
+
+				if (ImGui::RadioButton("whitted", &scene_options.render_method, 0)) {
+					PbrApiSelectIntegrator(scene_options.render_method);
+				}
+
+				ImGui::SameLine();
+
+				if (ImGui::RadioButton("path tracing", &scene_options.render_method, 1)) {
+					PbrApiSelectIntegrator(scene_options.render_method);
+				}
+
+				ImGui::SameLine();
+
+				if (ImGui::RadioButton("photon mapping", &scene_options.render_method, 2)) {
+					PbrApiSelectIntegrator(scene_options.render_method);
+				}
+
+				if (scene_options.render_method == 2) {
+					bool integrator_changed = false;
+					ImGui::SliderInt("total photons", &scene_options.totalPhotons, 0, 100000);
+					if (ImGui::IsItemDeactivatedAfterEdit()) {
+						integrator_changed = true;
+					}
+
+					ImGui::Text("gather method:");
+					ImGui::SameLine();
+
+					if (ImGui::RadioButton("count", &scene_options.gatherMethod, 0)) {
+						integrator_changed = true;
+					}
+
+					ImGui::SameLine();
+
+					if (ImGui::RadioButton("x/1000", &scene_options.gatherMethod, 1)) {
+						integrator_changed = true;
+					}
+
+					ImGui::InputInt("gather photons", &scene_options.gatherPhotons, 0, 500);
+					if (ImGui::IsItemDeactivatedAfterEdit()) {
+						integrator_changed = true;
+					}
+
+					ImGui::SliderFloat("gather photons radius(0=no limit)", &scene_options.gatherPhotonsR, 0, 2);
+					if (ImGui::IsItemDeactivatedAfterEdit()) {
+						integrator_changed = true;
+					}
+
+					ImGui::InputFloat("energy scale", &scene_options.energyScale);
+					//ImGui::SliderFloat("energy scale", &scene_options.energyScale, 0, 200000);
+					if (ImGui::IsItemDeactivatedAfterEdit()) {
+						integrator_changed = true;
+					}
+
+					ImGui::Text("filter:");
+					ImGui::SameLine();
+
+					if (ImGui::RadioButton("None", &scene_options.filter, 0)) {
+						integrator_changed = true;
+					}
+
+					ImGui::SameLine();
+
+					if (ImGui::RadioButton("Cone", &scene_options.filter, 1)) {
+						integrator_changed = true;
+					}
+
+					ImGui::SameLine();
+
+					if (ImGui::RadioButton("Gaussian", &scene_options.filter, 2)) {
+						integrator_changed = true;
+					}
+
+					if (ImGui::Checkbox("reemit photons", &scene_options.reemitPhotons)) {
+						integrator_changed = true;
+					}
+
+					if (ImGui::Checkbox("render direct", &scene_options.renderDirect)) {
+						integrator_changed = true;
+					}
+
+					if (ImGui::Checkbox("render specular", &scene_options.renderSpecular)) {
+						integrator_changed = true;
+					}
+
+					ImGui::SameLine();
+
+					if (ImGui::RadioButton("Monte Carlo", &scene_options.specularMethod, 0)) {
+						integrator_changed = true;
+					}
+
+					ImGui::SameLine();
+
+					if (ImGui::RadioButton("whitted", &scene_options.specularMethod, 1)) {
+						integrator_changed = true;
+					}
+
+					//ImGui::SameLine();
+
+					if (ImGui::SliderInt("samples", &scene_options.specularRTSamples, 1, 50)) {
+						integrator_changed = true;
+					}
+
+					if (ImGui::Checkbox("render caustic", &scene_options.renderCaustic)) {
+						integrator_changed = true;
+					}
+
+					if (ImGui::Checkbox("render diffuse", &scene_options.renderDiffuse)) {
+						integrator_changed = true;
+					}
+
+					if (ImGui::Checkbox("render global", &scene_options.renderGlobal)) {
+						integrator_changed = true;
+					}
+
+
+					if (integrator_changed) {
+						json integrator_info;
+						integrator_info["totalPhotons"] = scene_options.totalPhotons;
+						integrator_info["gatherPhotons"] = scene_options.gatherPhotons;
+						integrator_info["gatherPhotonsR"] = scene_options.gatherPhotonsR;
+						integrator_info["gatherMethod"] = scene_options.gatherMethod;
+						integrator_info["filter"] = scene_options.filter;
+						integrator_info["energyScale"] = scene_options.energyScale;
+						integrator_info["reemitPhotons"] = scene_options.reemitPhotons;
+
+						integrator_info["renderDirect"] = scene_options.renderDirect;
+						integrator_info["renderSpecular"] = scene_options.renderSpecular;
+						integrator_info["renderCaustic"] = scene_options.renderCaustic;
+						integrator_info["renderDiffuse"] = scene_options.renderDiffuse;
+						integrator_info["renderGlobal"] = scene_options.renderGlobal; 
+
+						integrator_info["specularMethod"] = scene_options.specularMethod;
+						integrator_info["specularRTSamples"] = scene_options.specularRTSamples;
+
+						json data;
+						data["pm"] = integrator_info;
+
+						PbrApiSetIntegrator(data);
+					}
 				}
 
 				for (int i = 0; i < progress_now.size(); ++i) {

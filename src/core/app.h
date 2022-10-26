@@ -61,9 +61,13 @@ public:
 
 	void SetSampler();
 	void SetRandomSampler();
-	void SetIntegrator();
-	void SetWhittedIntegrator();
-	void SetPathIntegrator();
+	void InitIntegrator();
+	int SetIntegrator(const json& info);
+	//void SetWhittedIntegrator();
+	//void SetPathIntegrator();
+	//void SetPMIntegrator();
+	void SelectIntegrator(int method);
+
 	void SaveSetting();
 
 	//
@@ -73,19 +77,21 @@ public:
 	std::shared_ptr<Scene> scene;
 	std::shared_ptr<Camera> camera;
 	std::shared_ptr<Sampler> sampler;
-	std::unique_ptr<Integrator> integrator;
 	std::vector<std::shared_ptr<Film>> film_list;
-
 	std::unique_ptr<MIPMap<RGBSpectrum>> test_mipmap = nullptr;
-
 	std::mutex image_mutex;
-
 	std::shared_ptr<std::map<int, std::shared_ptr<Material>>> material_list;
+
+	std::vector<std::unique_ptr<Integrator>> integrators; // 0-whitted 1-path 2-pm
+	//std::unique_ptr<Integrator> whittedIntegrator;
+	//std::unique_ptr<Integrator> pathIntegrator;
+	//std::unique_ptr<Integrator> pmIntegrator;
 
 	int SendNewImage(unsigned char* dst);
 
 private:
 	bool project_changed;
+	int render_method = 2; // 0-whitted 1-path 2-pm
 };
 
 inline PbrApp app;

@@ -8,7 +8,7 @@ Sampler::Sampler(int samplesPerPixel) : samplesPerPixel(samplesPerPixel) {}
 
 CameraSample Sampler::GetCameraSample(const Point2i& pRaster) {
     CameraSample cs;
-    cs.pFilm = Point2f(pRaster.x, pRaster.y) + Get2D();
+    cs.pFilm = Point2f(pRaster.x, pRaster.y) + Get2D(); // 0-1·¶Î§Ëæ»úÈ¡Öµ
     cs.time = Get1D();
     cs.pLens = Get2D();
     return cs;

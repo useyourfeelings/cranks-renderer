@@ -22,6 +22,10 @@ public:
     virtual ~Integrator() {};
     virtual void Render(const Scene& scene) = 0;
 
+    virtual void SetOptions(const json& data) {
+
+    }
+
     void SetRayBounceNo(int n) {
         maxDepth = n + 1;
     }

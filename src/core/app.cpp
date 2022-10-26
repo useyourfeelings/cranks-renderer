@@ -8,6 +8,7 @@
 #include "../shape/triangle.h"
 #include "../integrator/whitted.h"
 #include "../integrator/path.h"
+#include "../integrator/pm.h"
 #include "texture.h"
 #include "../tool/logger.h"
 #include "../tool/image.h"
@@ -20,13 +21,18 @@ PbrApp::PbrApp() :
 	//Log("PbrApp()"); // can cause exception. mutex not initialized. global variable problem.
 	camera = nullptr;
 	sampler = nullptr;
-	integrator = nullptr;
+	//integrator = nullptr;
 
 	material_list = std::make_shared<std::map<int, std::shared_ptr<Material>>>();
 	scene = std::make_unique<Scene>(material_list);
 	camera = std::shared_ptr<Camera>(new PerspectiveCamera());
 	SetSampler();
-	SetIntegrator();
+
+	//SetWhittedIntegrator();
+	//SetPathIntegrator();
+	//SetPMIntegrator();
+	InitIntegrator();
+	SelectIntegrator(render_method);
 
 	// default material
 	json defualt_material = json({
@@ -200,24 +206,24 @@ void PbrApp::PrintScene() {
 }
 
 void PbrApp::GetRenderProgress(int* status, std::vector<int>& now, std::vector<int>& total, int * has_new_photo) {
-	if (this->integrator != nullptr) {
-		*status = this->integrator->render_status;
+	if (this->integrators[render_method] != nullptr) {
+		*status = this->integrators[render_method]->render_status;
 		//*now = this->integrator->GetRenderProgress();
 		//*total = this->integrator->render_progress_total;
-		*has_new_photo = this->integrator->has_new_photo;
+		*has_new_photo = this->integrators[render_method]->has_new_photo;
 
-		if (now.size() != this->integrator->render_threads_count)
-			now.resize(this->integrator->render_threads_count);
+		if (now.size() != this->integrators[render_method]->render_threads_count)
+			now.resize(this->integrators[render_method]->render_threads_count);
 
-		if (total.size() != this->integrator->render_threads_count)
-			total.resize(this->integrator->render_threads_count);
+		if (total.size() != this->integrators[render_method]->render_threads_count)
+			total.resize(this->integrators[render_method]->render_threads_count);
 
 		for (int i = 0; i < now.size(); ++i) {
-			now[i] = this->integrator->render_progress_now[i];
+			now[i] = this->integrators[render_method]->render_progress_now[i];
 		}
 
 		for (int i = 0; i < total.size(); ++i) {
-			total[i] = this->integrator->render_progress_total[i];
+			total[i] = this->integrators[render_method]->render_progress_total[i];
 		}
 	}
 	else {
@@ -230,7 +236,7 @@ void PbrApp::GetRenderProgress(int* status, std::vector<int>& now, std::vector<i
 }
 
 void PbrApp::StopRendering() {
-	integrator->render_status = 0;
+	integrators[render_method]->render_status = 0;
 }
 
 void PbrApp::RenderScene() {
@@ -259,11 +265,11 @@ void PbrApp::RenderScene() {
 
 	SetFilm(camera->resolutionX, camera->resolutionY);
 
-	SetIntegrator();
+	//SetIntegrator();
 
 	scene->InitBVH();
 
-	integrator->Render(*scene);
+	integrators[render_method]->Render(*scene);
 }
 
 void PbrApp::SetFilm(int width, int height) {
@@ -285,8 +291,8 @@ void PbrApp::SetPerspectiveCamera(Point3f pos, Point3f look, Vector3f up,
 	Log("SetPerspectiveCamera");
 
 	sampler->SetSamplesPerPixel(ray_sample_no);
-	integrator->SetRayBounceNo(ray_bounce_no);
-	integrator->SetRenderThreadsCount(render_threads_count);
+	integrators[render_method]->SetRayBounceNo(ray_bounce_no);
+	integrators[render_method]->SetRenderThreadsCount(render_threads_count);
 
 	if (camera != nullptr) {
 		camera->SetPerspectiveData(pos, look, up, fov, aspect_ratio, near, far, resX, resY);
@@ -321,12 +327,48 @@ void PbrApp::SetRandomSampler() {
 	this->sampler = std::shared_ptr<Sampler>(new RandomSampler(setting.Get("ray_sample_no"))); // 8 better than 4. 4 better than 1.
 }
 
-void PbrApp::SetIntegrator() {
-	if (this->integrator != nullptr)
-		return;
+void PbrApp::InitIntegrator() {
+	//if (this->integrator != nullptr)
+	//	return;
 
-	//SetWhittedIntegrator();
-	SetPathIntegrator();
+	integrators.resize(3);
+
+	// whitted
+	int maxDepth = 1;
+	BBox2i bounds(Point2i(0, 0), Point2i(camera->resolutionX, camera->resolutionY));
+
+	integrators[0].reset(new WhittedIntegrator(maxDepth, camera, sampler, bounds));
+
+	// path
+	maxDepth = 20;
+	float rrThreshold = 0;
+
+	integrators[1].reset(new PathIntegrator(maxDepth, camera, sampler, bounds, rrThreshold, "uniform"));
+
+	// pm
+	integrators[2].reset(new PMIntegrator(camera, sampler));
+}
+
+void PbrApp::SelectIntegrator(int method) {
+	render_method = method;
+}
+
+int PbrApp::SetIntegrator(const json& info) {
+	if (info.contains("pm")) {
+		integrators[2]->SetOptions(info["pm"]);
+	}
+
+	return 0;
+}
+
+/*
+int PbrApp::EmitPhoton() {
+	if (render_method == 2) {
+		// https://stackoverflow.com/questions/26377430/how-to-perform-a-dynamic-cast-with-a-unique-ptr
+		dynamic_cast<PMIntegrator*>(integrators[2].get())->EmitPhoton(*scene);
+	}
+
+	return 0;
 }
 
 void PbrApp::SetWhittedIntegrator() {
@@ -335,7 +377,7 @@ void PbrApp::SetWhittedIntegrator() {
 	int maxDepth = 1;
 	BBox2i bounds(Point2i(0, 0), Point2i(camera->resolutionX, camera->resolutionY));
 
-	this->integrator = std::unique_ptr<Integrator>(new WhittedIntegrator(maxDepth, camera, sampler, bounds));
+	this->integrator.reset(new WhittedIntegrator(maxDepth, camera, sampler, bounds));
 }
 
 void PbrApp::SetPathIntegrator() {
@@ -345,8 +387,13 @@ void PbrApp::SetPathIntegrator() {
 	BBox2i bounds(Point2i(0, 0), Point2i(camera->resolutionX, camera->resolutionY));
 	float rrThreshold = 0;
 
-	this->integrator = std::unique_ptr<Integrator>(new PathIntegrator(maxDepth, camera, sampler, bounds, rrThreshold, "uniform"));
+	this->integrator.reset(new PathIntegrator(maxDepth, camera, sampler, bounds, rrThreshold, "uniform"));
 }
+
+void PbrApp::SetPMIntegrator() {
+
+	this->integrator.reset(new PMIntegrator(camera));
+}*/
 
 void PbrApp::SaveSetting() {
 	setting.SaveFile();
@@ -355,11 +402,11 @@ void PbrApp::SaveSetting() {
 int PbrApp::SendNewImage(unsigned char* dst) {
 	std::lock_guard<std::mutex> lock(image_mutex);
 
-	if (!this->integrator->has_new_photo) {
+	if (!this->integrators[render_method]->has_new_photo) {
 		return 1;
 	}
 
-	this->integrator->has_new_photo = 0;
+	this->integrators[render_method]->has_new_photo = 0;
 
 	this->camera->film->WriteVector(dst);
 

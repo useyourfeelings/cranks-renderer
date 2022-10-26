@@ -104,6 +104,16 @@ int PBR_API_SET_SCENE_OPTIONS(const SceneOptions& s) {
 	return 0;
 }
 
+int PbrApiSelectIntegrator(int method) {
+	app.SelectIntegrator(method);
+	return 0;
+}
+
+int PbrApiSetIntegrator(const json& info) {
+	app.SetIntegrator(info);
+	return 0;
+}
+
 int PBR_API_save_setting() {
 	app.SaveSetting();
 	return 0;

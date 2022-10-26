@@ -6,8 +6,8 @@ BBox3f Sphere::ObjectBound() const {
 }
 
 bool Sphere::Intersect(const Ray& ray, float* tHit, SurfaceInteraction* isect) const {
-	ray.LogSelf();
-	WorldToObject.LogSelf();
+	//ray.LogSelf();
+	//WorldToObject.LogSelf();
 
 	Ray r;
 	Point3f hitPoint;

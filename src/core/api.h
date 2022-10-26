@@ -23,6 +23,25 @@ struct CameraSetting {
 
 struct SceneOptions {
 	int nodes_structure = 1; // bvh
+	int render_method = 2; // 0-whitted 1-path tracing 2-photon mapping
+
+	// pm
+	int totalPhotons = 3000;
+	int gatherPhotons = 50;
+	float gatherPhotonsR = 0.1;
+	int gatherMethod = 0;
+	float energyScale = 10000;
+	bool reemitPhotons = 1;
+
+	bool renderDirect = 1;
+	bool renderSpecular = 1;
+	bool renderCaustic = 1;
+	bool renderDiffuse = 1;
+	bool renderGlobal = 0;
+
+	int filter = 1;
+	int specularMethod = 0;
+	int specularRTSamples = 5;
 };
 
 int PBR_API_hi();
@@ -51,5 +70,8 @@ int PBR_API_make_test_mipmap(const std::string& name);
 int PBR_API_get_mipmap_image(int index, std::vector<unsigned char>& data, int& x, int& y);
 
 int PBR_API_SET_SCENE_OPTIONS(const SceneOptions& s);
+
+int PbrApiSelectIntegrator(int method);
+int PbrApiSetIntegrator(const json& info);
 
 #endif
