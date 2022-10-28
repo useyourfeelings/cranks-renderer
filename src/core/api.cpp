@@ -165,8 +165,8 @@ void PBR_API_render(const json& args) {
 	Log("PBR_API_render over");
 }
 
-int PBR_API_get_render_progress(int* status, std::vector<int>& now, std::vector<int>& total, int * has_new_photo) {
-	app.GetRenderProgress(status, now, total, has_new_photo);
+int PBR_API_get_render_progress(int* status, std::vector<int>& now, std::vector<int>& total, std::vector<float>& per, int * has_new_photo) {
+	app.GetRenderProgress(status, now, total, per, has_new_photo);
 	return 0;
 }
 

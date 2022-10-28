@@ -46,7 +46,7 @@ public:
 	//
 
 	void RenderScene();
-	void GetRenderProgress(int* status, std::vector<int>& now, std::vector<int>& total, int* has_new_photo);
+	void GetRenderProgress(int* status, std::vector<int>& now, std::vector<int>& total, std::vector<float>& per, int* has_new_photo);
 	void StopRendering();
 	//
 	

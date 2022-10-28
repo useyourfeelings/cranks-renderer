@@ -205,7 +205,7 @@ void PbrApp::PrintScene() {
 	scene->PrintScene();
 }
 
-void PbrApp::GetRenderProgress(int* status, std::vector<int>& now, std::vector<int>& total, int * has_new_photo) {
+void PbrApp::GetRenderProgress(int* status, std::vector<int>& now, std::vector<int>& total, std::vector<float>& per, int * has_new_photo) {
 	if (this->integrators[render_method] != nullptr) {
 		*status = this->integrators[render_method]->render_status;
 		//*now = this->integrator->GetRenderProgress();
@@ -218,12 +218,13 @@ void PbrApp::GetRenderProgress(int* status, std::vector<int>& now, std::vector<i
 		if (total.size() != this->integrators[render_method]->render_threads_count)
 			total.resize(this->integrators[render_method]->render_threads_count);
 
+		if (per.size() != this->integrators[render_method]->render_threads_count)
+			per.resize(this->integrators[render_method]->render_threads_count);
+
 		for (int i = 0; i < now.size(); ++i) {
 			now[i] = this->integrators[render_method]->render_progress_now[i];
-		}
-
-		for (int i = 0; i < total.size(); ++i) {
 			total[i] = this->integrators[render_method]->render_progress_total[i];
+			per[i] = float(now[i]) / total[i];
 		}
 	}
 	else {

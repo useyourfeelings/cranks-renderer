@@ -64,7 +64,7 @@ int PBR_API_set_perspective_camera(const CameraSetting &s);
 int PBR_API_get_camera_setting(CameraSetting &s);
 int PBR_API_get_defualt_camera_setting(CameraSetting& s);
 int PBR_API_save_setting();
-int PBR_API_get_render_progress(int * status, std::vector<int>& now, std::vector<int>& total, int* has_new_photo);
+int PBR_API_get_render_progress(int * status, std::vector<int>& now, std::vector<int>& total, std::vector<float>& per, int* has_new_photo);
 int PBR_API_get_new_image(unsigned char* dst);
 int PBR_API_make_test_mipmap(const std::string& name);
 int PBR_API_get_mipmap_image(int index, std::vector<unsigned char>& data, int& x, int& y);

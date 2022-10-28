@@ -618,7 +618,8 @@ public:
 		//int progress_now, progress_total,
 		static int render_status, has_new_photo;
 		static std::vector<int> progress_now, progress_total;
-		PBR_API_get_render_progress(&render_status, progress_now, progress_total, &has_new_photo);
+		static std::vector<float> progress_per;
+		PBR_API_get_render_progress(&render_status, progress_now, progress_total, progress_per, &has_new_photo);
 
 		if (has_new_photo) {
 			std::vector<unsigned char> image_data(cs.resolution[0] * cs.resolution[1] * 4);
@@ -1964,25 +1965,20 @@ public:
 					cameraChanged = true;
 				}
 
+				ImGui::PushStyleColor(ImGuiCol_PlotHistogram, (ImVec4)ImColor(0.2f, 0.8f, 0.3f));
+				ImGui::PushStyleColor(ImGuiCol_PlotHistogramHovered, (ImVec4)ImColor(0.2f, 0.8f, 0.3f));
+				
+				ImGui::PlotHistogram("render progress", progress_per.data(), progress_per.size(), 0, NULL, 0.0f, 1.0f, ImVec2(0, 100.0f));
+
+				ImGui::PopStyleColor(2);
+				//ImGui::SameLine();
+
 				if (cameraChanged) {
 					Log("cameraChanged");
 					PBR_API_set_perspective_camera(cs);
 				}
 
-				//ImGui::Checkbox("Demo Window", &show_demo_window);      // Edit bools storing our window open/close state
-				//ImGui::Checkbox("Another Window", &show_another_window);
-
-				//ImGui::SliderFloat("float", &f, 0.0f, 1.0f);            // Edit 1 float using a slider from 0.0f to 1.0f
-				//ImGui::ColorEdit3("clear color", (float*)&clear_color); // Edit 3 floats representing a color
-
-				//ImGui::SameLine();
-				//ImGui::Text("counter = %d", counter);
-
-				//ImGui::Text("Application average %.3f ms/frame (%.1f FPS)", 1000.0f / ImGui::GetIO().Framerate, ImGui::GetIO().Framerate);
-
-				//ImGui::Dummy(ImVec2(30, 30));
 				ImGui::Separator();
-
 
 				ImGui::Text("Scene Setting");
 				ImGui::Text("Nodes structure:");
@@ -2141,11 +2137,11 @@ public:
 					}
 				}
 
-				for (int i = 0; i < progress_now.size(); ++i) {
+				/*for (int i = 0; i < progress_now.size(); ++i) {
 					char buf[32];
 					sprintf(buf, "%d/%d", progress_now[i], progress_total[i]);
 					ImGui::ProgressBar(float(progress_now[i]) / progress_total[i], ImVec2(0.f, 0.f), buf);
-				}
+				}*/
 
 				if (ImGui::Button("Render", ImVec2(200, 120))) {
 
