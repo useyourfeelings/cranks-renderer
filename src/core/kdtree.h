@@ -26,7 +26,7 @@ struct KDTNode {
 struct NodeInfo
 {
 	float distance2;
-	int index;
+	size_t index;
 	bool operator<(const NodeInfo& rhs) const {
 		return distance2 < rhs.distance2;
 	}
@@ -48,12 +48,12 @@ struct KNNResult {
 };
 
 struct BuildTask {
-	int start;
-	int end;
+	size_t start;
+	size_t end;
 	int level; // from 0
 	int kdtree_index; // where to put the median
 
-	BuildTask(int start, int end, int level, int kdtree_index) :
+	BuildTask(size_t start, size_t end, int level, int kdtree_index) :
 		start(start),
 		end(end),
 		level(level),
@@ -75,7 +75,7 @@ public:
 
 	void Build(const std::vector<T>& points, int test = 0);
 
-	int Size() {
+	size_t Size() {
 		return nodesCount;
 	}
 
@@ -84,10 +84,10 @@ private:
 
 	// levels = int(log2(input_nodes_count + 1))
 	// vector reserve = pow(2, levels) - 1
-	int nodesCount;
+	size_t nodesCount;
 	int levels;
 	
-	void KNNQuery(KNNInfo& info, int currentIndex, int level);
+	void KNNQuery(KNNInfo& info, size_t currentIndex, int level);
 	
 	// for testing
 	void KNN(Point3f point, int k, const std::vector<float> testResult);
@@ -103,10 +103,10 @@ void KDTree<T>::Test() {
 
 	std::vector<T> input_points;
 
-	int pointsCount = 10000;
-	int testCount = 100;
+	size_t pointsCount = 10000;
+	size_t testCount = 100;
 
-	for (int i = 0; i < pointsCount; ++i) {
+	for (size_t i = 0; i < pointsCount; ++i) {
 		float x = dis(gen) * 2000 - 1000;
 		float y = dis(gen) * 2000 - 1000;
 		float z = dis(gen) * 2000 - 1000;
@@ -131,6 +131,7 @@ void KDTree<T>::Build(const std::vector<T>& input_points, int test) {
 	nodesCount = points.size();
 
 	levels = int(std::ceil(std::log2(nodesCount + 1)));
+	nodes.clear();
 	nodes.resize(size_t(std::pow(2, levels)) - 1);
 
 	std::cout << "nodesCount = " << nodesCount << " levels = " << levels << " nodes.size() = " << nodes.size() << std::endl;
@@ -146,11 +147,11 @@ void KDTree<T>::Build(const std::vector<T>& input_points, int test) {
 
 		int axis = build_task.level % 3;
 
-		int index_to_find = (build_task.start + build_task.end) / 2; // find median
+		size_t index_to_find = (build_task.start + build_task.end) / 2; // find median
 		//std::cout << "index_to_find = " << index_to_find << std::endl;
 
-		int start = build_task.start;
-		int end = build_task.end;
+		size_t start = build_task.start;
+		size_t end = build_task.end;
 		for (;;) {
 			//std::cout << "find median " << start << " " << end << std::endl;
 			/*if (start == end) {
@@ -159,8 +160,8 @@ void KDTree<T>::Build(const std::vector<T>& input_points, int test) {
 				break;
 			}*/
 
-			int random_index = start + int(float(dis(gen)) * (end - start)); // choose random pivot
-			int pivot = points[random_index].pos[axis];
+			size_t random_index = start + int(float(dis(gen)) * (end - start)); // choose random pivot
+			size_t pivot = points[random_index].pos[axis];
 
 			//std::cout << "random_index = " << random_index << std::endl;
 
@@ -168,8 +169,8 @@ void KDTree<T>::Build(const std::vector<T>& input_points, int test) {
 			std::swap(points[end], points[random_index]);
 
 			// partition
-			int i = start - 1;
-			for (int j = start; j < end; ++j) {
+			size_t i = start - 1;
+			for (size_t j = start; j < end; ++j) {
 				if (points[j].pos[axis] <= pivot) {
 					++i;
 
@@ -250,7 +251,7 @@ void KDTree<T>::Build(const std::vector<T>& input_points, int test) {
 			if (p.pos.z > maxZ) maxZ = p.pos.z;
 		}
 
-		for (int i = 0; i < test; ++i) {
+		for (size_t i = 0; i < test; ++i) {
 			auto rand = dis(gen);
 			auto k = int(1 + dis(gen) * 100); // int(1 + dis(e) * input_points.size()) / 10;
 
@@ -291,7 +292,7 @@ void KDTree<T>::KNN(Point3f point, int k, const std::vector<float> testResult) {
 
 	//std::cout << "---\n";
 
-	int index = info.result.size() - 1;
+	int index = int(info.result.size()) - 1;
 	while (!info.result.empty()) {
 		//std::cout << info.result.top().distance << " " << info.result.top().index << std::endl;
 
@@ -354,7 +355,7 @@ KNNResult<T> KDTree<T>::KNN(Point3f point, int k, float maxDistance2Limit) {
 }
 
 template <typename T>
-void KDTree<T>::KNNQuery(KNNInfo& info, int currentIndex, int level) {
+void KDTree<T>::KNNQuery(KNNInfo& info, size_t currentIndex, int level) {
 
 	float distance2 = DistanceSquared(info.point, nodes[currentIndex].point);
 

@@ -10,6 +10,7 @@
 #include"vulkan_swapchain.h"
 #include"vulkan_tool.h"
 #include"../tool/json.h"
+#include"../base/events.h"
 
 class VulkanUI;
 
@@ -104,6 +105,6 @@ public:
 
 inline VulkanApp vulkan_app;
 
-void vulkan_main(const json& args);
+void vulkan_main(const MultiTaskArg& args);
 
 #endif

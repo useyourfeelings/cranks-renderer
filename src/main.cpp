@@ -19,7 +19,6 @@ int main(int, char**)
 {
     std::cout << "Cranks Renderer main" << std::endl;
 
-    //EventLoop(gui_main);
     EventLoop(vulkan_main);
 
     std::cout << "Cranks Renderer over" << std::endl;

@@ -4,6 +4,7 @@
 #include <string>
 #include <tuple>
 #include"../tool/json.h"
+#include"../base/events.h"
 // api for client
 
 struct CameraSetting {
@@ -23,12 +24,12 @@ struct CameraSetting {
 
 struct SceneOptions {
 	int nodes_structure = 1; // bvh
-	int render_method = 2; // 0-whitted 1-path tracing 2-photon mapping
+	int render_method = 2; // 0-whitted 1-path tracing 2-photon mapping 3-ppm
 
 	// pm
-	int totalPhotons = 3000;
-	int gatherPhotons = 50;
-	float gatherPhotonsR = 0.1;
+	int emitPhotons = 5000;
+	int gatherPhotons = 30;
+	float gatherPhotonsR = 0.1f;
 	int gatherMethod = 0;
 	float energyScale = 10000;
 	bool reemitPhotons = 1;
@@ -42,11 +43,16 @@ struct SceneOptions {
 	int filter = 1;
 	int specularMethod = 0;
 	int specularRTSamples = 5;
+
+	// ppm
+	int maxIterations = 100;
+	float initalRadius = 20;
+	float alpha = 0.5;
 };
 
 int PBR_API_hi();
 int PBR_API_print_scene();
-void PBR_API_render(const json&);
+void PBR_API_render(const MultiTaskArg&);
 int PBR_API_stop_rendering();
 int PBR_API_save_project(const std::string& path, const std::string& name);
 int PBR_API_load_project(const std::string& path);
@@ -64,7 +70,7 @@ int PBR_API_set_perspective_camera(const CameraSetting &s);
 int PBR_API_get_camera_setting(CameraSetting &s);
 int PBR_API_get_defualt_camera_setting(CameraSetting& s);
 int PBR_API_save_setting();
-int PBR_API_get_render_progress(int * status, std::vector<int>& now, std::vector<int>& total, std::vector<float>& per, int* has_new_photo);
+int PBR_API_get_render_progress(int * status, std::vector<int>& now, std::vector<int>& total, std::vector<float>& per, int* has_new_photo, json& render_status_info);
 int PBR_API_get_new_image(unsigned char* dst);
 int PBR_API_make_test_mipmap(const std::string& name);
 int PBR_API_get_mipmap_image(int index, std::vector<unsigned char>& data, int& x, int& y);

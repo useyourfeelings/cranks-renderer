@@ -6,6 +6,7 @@
 #include "geometry.h"
 #include "spectrum.h"
 #include "setting.h"
+#include "../base/events.h"
 
 int PBR_API_hi() {
 	app.SayHi();
@@ -159,14 +160,14 @@ int PBR_API_get_defualt_camera_setting(CameraSetting& s) {
 		return 0;
 }
 
-void PBR_API_render(const json& args) {
+void PBR_API_render(const MultiTaskArg& args) {
 	Log("PBR_API_render");
 	app.RenderScene();
 	Log("PBR_API_render over");
 }
 
-int PBR_API_get_render_progress(int* status, std::vector<int>& now, std::vector<int>& total, std::vector<float>& per, int * has_new_photo) {
-	app.GetRenderProgress(status, now, total, per, has_new_photo);
+int PBR_API_get_render_progress(int* status, std::vector<int>& now, std::vector<int>& total, std::vector<float>& per, int * has_new_photo, json & render_status_info) {
+	app.GetRenderProgress(status, now, total, per, has_new_photo, render_status_info);
 	return 0;
 }
 

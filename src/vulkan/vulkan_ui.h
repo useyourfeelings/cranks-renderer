@@ -515,7 +515,7 @@ public:
 
 		//ImGui::ShowDemoWindow();
 
-		RendererUI();
+		RendererUI(lastFPS);
 
 		//ImGui::PushStyleVar(ImGuiStyleVar_WindowRounding, 0);
 		/*ImGui::SetNextWindowPos(ImVec2(10, 10));
@@ -563,15 +563,17 @@ public:
 		ImGui::End();
 	}
 
-	void RendererUI() {
-		static int registered = 0;
+	void RendererUI(uint32_t lastFPS) {
+		static uint32_t currentFrame = 0;
+		static uint32_t lastProgressUpdatingFrame = 0;
+		//static int registered = 0;
 
-		if (registered == 0) {
+		if (currentFrame == 0) {
 			RENDER_TASK_ID = RegisterEvent(PBR_API_render);
-			registered = 1;
+			//registered = 1;
 		}
 
-		static int init_status = 0;
+		//static int init_status = 0;
 
 		static CameraSetting cs;
 		static SceneOptions scene_options;
@@ -581,10 +583,10 @@ public:
 
 		std::string hdr_file = "crosswalk_1k.hdr"; // alps_field_1k.hdr crosswalk_1k.hdr tv_studio_1k delta_2_1k
 
-		if (init_status == 0) {
+		if (currentFrame == 0) {
 			PBR_API_get_camera_setting(cs);
 			PBR_API_set_perspective_camera(cs);
-			init_status = 1;
+			//init_status = 1;
 
 			// hdr test. mipmap test.
 			//int res_x, res_y;
@@ -615,16 +617,26 @@ public:
 			app->BuildTestImage(res_x, res_y, image_data.data(), 5);
 		}
 
-		//int progress_now, progress_total,
+		currentFrame++;
+
+		static json render_status_info({ {"currentIteration", 1}, {"render_duration", 0} });
 		static int render_status, has_new_photo;
 		static std::vector<int> progress_now, progress_total;
 		static std::vector<float> progress_per;
-		PBR_API_get_render_progress(&render_status, progress_now, progress_total, progress_per, &has_new_photo);
+		static float render_duaration;
+
+		// 不用每帧都更新
+		if (currentFrame == 0 ||
+			currentFrame > (lastProgressUpdatingFrame + lastFPS / 20)) {
+			PBR_API_get_render_progress(&render_status, progress_now, progress_total, progress_per, &has_new_photo, render_status_info);
+			lastProgressUpdatingFrame = currentFrame;
+		}
 
 		if (has_new_photo) {
 			std::vector<unsigned char> image_data(cs.resolution[0] * cs.resolution[1] * 4);
 			PBR_API_get_new_image(image_data.data());
 			app->BuildImage(cs.resolution[0], cs.resolution[1], image_data.data());
+			has_new_photo = 0;
 		}
 
 		// ui
@@ -957,7 +969,7 @@ public:
 		static std::map<std::string, int> material_type_id_map = { {"matte", 0}, {"glass", 1}, {"mirror", 2}, {"plastic", 3}, {"metal", 4} };
 
 		const auto dump_node_to_buffer = [&](const json& node) -> void {
-			sprintf(object_name_buffer, "%s", (std::string(node["name"])).c_str());
+			sprintf_s(object_name_buffer, "%s", (std::string(node["name"])).c_str());
 
 			pos[0] = node["world_pos"][0];
 			pos[1] = node["world_pos"][1];
@@ -968,7 +980,7 @@ public:
 			
 
 			if (type == 0) {
-				sprintf(file_name_buffer, "%s", (std::string(node["file_name"])).c_str());
+				sprintf_s(file_name_buffer, "%s", (std::string(node["file_name"])).c_str());
 			}
 			else if (type == 1) {
 				radius = node["radius"];
@@ -979,7 +991,7 @@ public:
 				power[2] = node["power"][2];
 			}
 			else if (type == 3) {
-				sprintf(file_name_buffer, "%s", (std::string(node["file_name"])).c_str());
+				sprintf_s(file_name_buffer, "%s", (std::string(node["file_name"])).c_str());
 
 				power[0] = node["power"][0];
 				power[1] = node["power"][1];
@@ -993,7 +1005,7 @@ public:
 		};
 
 		const auto dump_material_node_to_buffer = [&](const json& node) -> void {
-			sprintf(material_name_buffer, "%s", (std::string(node["name"])).c_str());
+			sprintf_s(material_name_buffer, "%s", (std::string(node["name"])).c_str());
 
 			//pos[0] = node["world_pos"][0];
 			//pos[1] = node["world_pos"][1];
@@ -1272,7 +1284,7 @@ public:
 									//std::cout << "name 22\n";
 									auto new_name = PBR_API_rename_object(node["id"], object_name_buffer);
 
-									sprintf(object_name_buffer, "%s", new_name.c_str());
+									sprintf_s(object_name_buffer, "%s", new_name.c_str());
 
 									need_to_update_scene_tree = 1;
 								}
@@ -1584,7 +1596,7 @@ public:
 									//std::cout << "name 22\n";
 									auto new_name = PBR_API_rename_material(node["id"], material_name_buffer);
 
-									sprintf(material_name_buffer, "%s", new_name.c_str());
+									sprintf_s(material_name_buffer, "%s", new_name.c_str());
 
 									need_to_update_material_tree = 1;
 								}
@@ -1944,7 +1956,7 @@ public:
 
 				//ImGui::PopItemWidth();
 
-				ImGui::SliderInt("ray_sample_no", &cs.ray_sample_no, 1, 500);
+				ImGui::SliderInt("ray_sample_no", &cs.ray_sample_no, 1, 5000);
 				if (ImGui::IsItemDeactivatedAfterEdit()) {
 					cameraChanged = true;
 				}
@@ -1954,13 +1966,13 @@ public:
 					cameraChanged = true;
 				}
 
-				if (ImGui::SliderInt("scale", &cs.image_scale, 1, 16)) {
+				if (ImGui::SliderInt("scale", &cs.image_scale, 1, 100)) {
 					cs.resolution[0] = cs.image_scale * 128;
 					cs.resolution[1] = cs.image_scale * 128;
 					cameraChanged = true;
 				}
 
-				ImGui::SliderInt("render_threads", &cs.render_threads_count, 1, 6);
+				ImGui::SliderInt("render_threads", &cs.render_threads_count, 1, 32);
 				if (ImGui::IsItemDeactivatedAfterEdit()) {
 					cameraChanged = true;
 				}
@@ -1968,10 +1980,15 @@ public:
 				ImGui::PushStyleColor(ImGuiCol_PlotHistogram, (ImVec4)ImColor(0.2f, 0.8f, 0.3f));
 				ImGui::PushStyleColor(ImGuiCol_PlotHistogramHovered, (ImVec4)ImColor(0.2f, 0.8f, 0.3f));
 				
-				ImGui::PlotHistogram("render progress", progress_per.data(), progress_per.size(), 0, NULL, 0.0f, 1.0f, ImVec2(0, 100.0f));
+				std::string progressString = std::format("render progress\n\nrender duration: \n{}s", float(render_status_info["render_duration"]) / 1000);
+				
+				ImGui::PlotHistogram(progressString.c_str(), progress_per.data(), int(progress_per.size()), 0, NULL, 0.0f, 1.0f, ImVec2(0, 100.0f));
 
 				ImGui::PopStyleColor(2);
-				//ImGui::SameLine();
+
+				if (scene_options.render_method == 3) {
+					ImGui::Text("current iteration: %d", int(render_status_info["currentIteration"]));
+				}
 
 				if (cameraChanged) {
 					Log("cameraChanged");
@@ -2013,9 +2030,15 @@ public:
 					PbrApiSelectIntegrator(scene_options.render_method);
 				}
 
+				ImGui::SameLine();
+
+				if (ImGui::RadioButton("ppm", &scene_options.render_method, 3)) {
+					PbrApiSelectIntegrator(scene_options.render_method);
+				}
+
 				if (scene_options.render_method == 2) {
 					bool integrator_changed = false;
-					ImGui::SliderInt("total photons", &scene_options.totalPhotons, 0, 100000);
+					ImGui::SliderInt("emit photons", &scene_options.emitPhotons, 0, 100000);
 					if (ImGui::IsItemDeactivatedAfterEdit()) {
 						integrator_changed = true;
 					}
@@ -2082,13 +2105,13 @@ public:
 
 					ImGui::SameLine();
 
-					if (ImGui::RadioButton("Monte Carlo", &scene_options.specularMethod, 0)) {
+					if (ImGui::RadioButton("Monte Carlo##1", &scene_options.specularMethod, 0)) {
 						integrator_changed = true;
 					}
 
 					ImGui::SameLine();
 
-					if (ImGui::RadioButton("whitted", &scene_options.specularMethod, 1)) {
+					if (ImGui::RadioButton("whitted##", &scene_options.specularMethod, 1)) {
 						integrator_changed = true;
 					}
 
@@ -2110,10 +2133,14 @@ public:
 						integrator_changed = true;
 					}
 
+					ImGui::SliderInt("max iterations", &scene_options.maxIterations, 1, 200);
+					if (ImGui::IsItemDeactivatedAfterEdit()) {
+						integrator_changed = true;
+					}
 
 					if (integrator_changed) {
 						json integrator_info;
-						integrator_info["totalPhotons"] = scene_options.totalPhotons;
+						integrator_info["emitPhotons"] = scene_options.emitPhotons;
 						integrator_info["gatherPhotons"] = scene_options.gatherPhotons;
 						integrator_info["gatherPhotonsR"] = scene_options.gatherPhotonsR;
 						integrator_info["gatherMethod"] = scene_options.gatherMethod;
@@ -2130,8 +2157,136 @@ public:
 						integrator_info["specularMethod"] = scene_options.specularMethod;
 						integrator_info["specularRTSamples"] = scene_options.specularRTSamples;
 
+						integrator_info["maxIterations"] = scene_options.maxIterations;
+						
+
 						json data;
-						data["pm"] = integrator_info;
+						if(scene_options.render_method == 2)
+							data["pm"] = integrator_info;
+						else if (scene_options.render_method == 3)
+							data["ppm"] = integrator_info;
+
+						PbrApiSetIntegrator(data);
+					}
+				}
+
+				if (scene_options.render_method == 3) {
+
+					bool integrator_changed = false;
+					ImGui::SliderInt("emit photons", &scene_options.emitPhotons, 0, 100000);
+					if (ImGui::IsItemDeactivatedAfterEdit()) {
+						integrator_changed = true;
+					}
+
+					ImGui::SliderFloat("alpha", &scene_options.alpha, 0, 1);
+					if (ImGui::IsItemDeactivatedAfterEdit()) {
+						integrator_changed = true;
+					}
+
+					ImGui::SliderFloat("initial radius", &scene_options.initalRadius, 0, 10);
+					if (ImGui::IsItemDeactivatedAfterEdit()) {
+						integrator_changed = true;
+					}
+
+					ImGui::InputFloat("energy scale", &scene_options.energyScale);
+					//ImGui::SliderFloat("energy scale", &scene_options.energyScale, 0, 200000);
+					if (ImGui::IsItemDeactivatedAfterEdit()) {
+						integrator_changed = true;
+					}
+
+					ImGui::Text("filter:");
+					ImGui::SameLine();
+
+					if (ImGui::RadioButton("None", &scene_options.filter, 0)) {
+						integrator_changed = true;
+					}
+
+					ImGui::SameLine();
+
+					if (ImGui::RadioButton("Cone", &scene_options.filter, 1)) {
+						integrator_changed = true;
+					}
+
+					ImGui::SameLine();
+
+					if (ImGui::RadioButton("Gaussian", &scene_options.filter, 2)) {
+						integrator_changed = true;
+					}
+
+					/*if (ImGui::Checkbox("reemit photons", &scene_options.reemitPhotons)) {
+						integrator_changed = true;
+					}*/
+
+					if (ImGui::Checkbox("render direct", &scene_options.renderDirect)) {
+						integrator_changed = true;
+					}
+
+					/*if (ImGui::Checkbox("render specular", &scene_options.renderSpecular)) {
+						integrator_changed = true;
+					}
+
+					ImGui::SameLine();
+
+					if (ImGui::RadioButton("Monte Carlo", &scene_options.specularMethod, 0)) {
+						integrator_changed = true;
+					}
+
+					ImGui::SameLine();
+
+					if (ImGui::RadioButton("whitted", &scene_options.specularMethod, 1)) {
+						integrator_changed = true;
+					}
+
+					//ImGui::SameLine();
+
+					if (ImGui::SliderInt("samples", &scene_options.specularRTSamples, 1, 50)) {
+						integrator_changed = true;
+					}*/
+
+					if (ImGui::Checkbox("render caustic", &scene_options.renderCaustic)) {
+						integrator_changed = true;
+					}
+
+					if (ImGui::Checkbox("render diffuse", &scene_options.renderDiffuse)) {
+						integrator_changed = true;
+					}
+
+					if (ImGui::Checkbox("render global", &scene_options.renderGlobal)) {
+						integrator_changed = true;
+					}
+
+					ImGui::SliderInt("max iterations", &scene_options.maxIterations, 1, 200);
+					if (ImGui::IsItemDeactivatedAfterEdit()) {
+						integrator_changed = true;
+					}
+
+					if (integrator_changed) {
+						json integrator_info;
+						integrator_info["emitPhotons"] = scene_options.emitPhotons;
+						integrator_info["alpha"] = scene_options.alpha;
+						integrator_info["initalRadius"] = scene_options.initalRadius;
+						//integrator_info["gatherMethod"] = scene_options.gatherMethod;
+						integrator_info["filter"] = scene_options.filter;
+						integrator_info["energyScale"] = scene_options.energyScale;
+						//integrator_info["reemitPhotons"] = scene_options.reemitPhotons;
+
+						integrator_info["renderDirect"] = scene_options.renderDirect;
+						//integrator_info["renderSpecular"] = scene_options.renderSpecular;
+						integrator_info["renderCaustic"] = scene_options.renderCaustic;
+						integrator_info["renderDiffuse"] = scene_options.renderDiffuse;
+						integrator_info["renderGlobal"] = scene_options.renderGlobal;
+
+						//integrator_info["specularMethod"] = scene_options.specularMethod;
+						//integrator_info["specularRTSamples"] = scene_options.specularRTSamples;
+
+						integrator_info["maxIterations"] = scene_options.maxIterations;
+
+
+						json data;
+						if (scene_options.render_method == 2)
+							data["pm"] = integrator_info;
+						else if (scene_options.render_method == 3)
+							data["ppm"] = integrator_info;
 
 						PbrApiSetIntegrator(data);
 					}

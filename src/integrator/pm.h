@@ -8,11 +8,11 @@
 #include "../core/camera.h"
 #include "../core/film.h"
 
-struct Photon {
-    Point3f pos; // position
-    Vector3f dir; // incident dir
-    Spectrum energy;
-};
+//struct Photon {
+//    Point3f pos; // position
+//    Vector3f dir; // incident dir
+//    Spectrum energy;
+//};
 
 class PMIntegrator : public Integrator {
 public:
@@ -22,13 +22,14 @@ public:
         //const std::string& lightSampleStrategy = "uniform"
     );
 
-    void Render(const Scene& scene);
+    void Render(Scene& scene);
     void SetOptions(const json& data);
 
 private:
-    void EmitPhoton(const Scene& scene);
-    void RenderPhoton(const Scene& scene);
-    Spectrum Li(const RayDifferential& ray, const Scene& scene, int depth);
+    json GetRenderStatus();
+    void EmitPhoton(Scene& scene);
+    void RenderPhoton(Scene& scene);
+    Spectrum Li(MemoryBlock& mb, const RayDifferential& ray, Scene& scene, int depth, int samplingFlag = 0);
 
     std::shared_ptr<Camera> camera;
     std::shared_ptr<Sampler> sampler;
@@ -38,7 +39,7 @@ private:
     int maxDepth = 10;
 
     int filter; // 0-none 1-cone 2-gaussian
-    int totalPhotons;
+    int emitPhotons;
     int gatherPhotons;
     float gatherPhotonsR;
     int gatherMethod;

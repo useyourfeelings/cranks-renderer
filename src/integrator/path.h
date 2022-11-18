@@ -14,7 +14,7 @@ public:
 
     void Preprocess(const Scene& scene, Sampler& sampler);
 
-    Spectrum Li(const RayDifferential& ray, const Scene& scene, Sampler& sampler, int depth = 0) const;
+    Spectrum Li(MemoryBlock& mb, const RayDifferential& ray, Scene& scene, Sampler& sampler, int pool_id = 0, int depth = 0) ;
 
 private:
     const float rrThreshold;

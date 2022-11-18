@@ -5,10 +5,14 @@
 #include "../tool/logger.h"
 #include "../tool/json.h"
 #include "../base/events.h"
+#include "../base/memory.h"
 
-void SamplerIntegrator::Render(const Scene& scene) {
+void SamplerIntegrator::Render(Scene& scene) {
+    std::cout << std::format("SamplerIntegrator::Render\n");
+
     Log("Render");
     render_status = 1;
+    render_start_time = std::chrono::high_resolution_clock::now();
     has_new_photo = 0;
     Preprocess(scene, *sampler);
     // Render image tiles in parallel
@@ -26,15 +30,17 @@ void SamplerIntegrator::Render(const Scene& scene) {
         render_progress_now[i] = 0;
     }
 
-    json tast_args({ 
-        { "task_count", render_threads_count },
-        { "x_start",sampleBounds.pMin.x },
-        { "y_start",sampleBounds.pMin.y },
-        { "x_end",sampleBounds.pMax.x - 1 },
-        { "y_end",sampleBounds.pMax.y - 1 }
-    });
+    MultiTaskArg tast_args;
+    tast_args.task_count = render_threads_count;
+    tast_args.x_start = sampleBounds.pMin.x;
+    tast_args.y_start = sampleBounds.pMin.y;
+    tast_args.x_end = sampleBounds.pMax.x - 1;
+    tast_args.y_end = sampleBounds.pMax.y - 1;
 
-    //json manager_func(int task_index, const json & args) {
+    //tast_args.x_start = 0;
+    //tast_args.x_end = 100000000; // max int 2147483647    100000000
+    //tast_args.y_start = 0;
+    //tast_args.y_end = 10;
 
     // https://stackoverflow.com/questions/4324763/can-we-have-functions-inside-functions-in-c
     // https://en.cppreference.com/w/cpp/language/lambda
@@ -57,7 +63,7 @@ void SamplerIntegrator::Render(const Scene& scene) {
     };*/
 
     // 改为竖着分像素。一般会更均匀。
-    auto manager_func = [&](int task_index, const json& args) {
+    /*auto manager_func = [&](int task_index, json args) {
         int x_interval = (int(args["x_end"]) - args["x_start"] + 1) / args["task_count"];
         if ((int(args["x_end"]) - args["x_start"] + 1) % args["task_count"] != 0)
             x_interval++;
@@ -72,120 +78,108 @@ void SamplerIntegrator::Render(const Scene& scene) {
             { "x_start", x_start },
             { "y_end", args["y_end"] },
             { "x_end", x_end} });
+    };*/
+
+    auto manager_func = [](int task_index, MultiTaskArg args) {
+        int x_interval = (args.x_end - args.x_start + 1) / args.task_count;
+        if ((args.x_end - args.x_start + 1) % args.task_count != 0)
+            x_interval++;
+
+        int x_start = args.x_start + x_interval * task_index;
+        int x_end = std::min(args.x_end, __int64(x_start + x_interval - 1));
+
+        args.task_index = task_index;
+        args.task_progress_total = (x_end - x_start + 1) * args.y_end - args.y_start + 1;
+        args.y_start = args.y_start;
+        args.x_start = x_start;
+        args.y_end = args.y_end;
+        args.x_end = x_end;
+
+        return args;
     };
 
-    auto render_task = [&](const json& args) {
-        int i = args["x_start"];
-        int j = args["y_start"];
-        int task_index = args["task_index"];
+    auto render_task_lambda = [&](MultiTaskArg args) {
+        int i = args.x_start;
+        int j = args.y_start;
+        int task_index = args.task_index;
 
-        std::cout << "--- render_task "<< args["task_index"] << " " << i << " " << j << std::endl;
-        std::cout << args << std::endl;
+        std::cout << std::format("--- render_task {} i {} j {}\n", task_index, i, j);
+
+        MemoryBlock mb;
+
+        // 之后的计算存在多处内存分配(计算bsdf等环节)。非常卡。
+        // 可以做共用的memory block来复用，避免频繁申请/释放内存。
+        // 同一个线程中流程是顺序执行的，可以不考虑同步问题。
+        // 一个线程只申请一组block。比如一次Li()有10个操作，那么第一次会实际申请10次。
+        // 第一次Li()完成后，10个block中的数据就没用了。所有block标记为可用。
+        // 进行第二次Li()，如果第二次的10个操作中需要的内存可被之前申请的block满足，那么可以复用，否则申请新的block。依此类推。
+        // 如果各个操作需要的内存大小处在一个较小范围内。就能高效复用。
 
         std::unique_ptr<Sampler> local_sampler = sampler->Clone();
 
-        this->render_progress_total[task_index] = args["task_progress_total"];
+        this->render_progress_total[task_index] = args.task_progress_total;
 
-        // Loop over pixels in tile to render them
-        //while (i < sampleBounds.pMax.x && j < sampleBounds.pMax.y) {
-        for (int j = args["y_start"]; j <= args["y_end"]; ++j) {
-            for (int i = args["x_start"]; i <= args["x_end"]; ++i) {
+        int progress_interval = args.task_progress_total / 40; // 分xx级
+        int progress = 0;
+        int next_progress_to_report = progress_interval;
+
+        for (int j = args.y_start; j <= args.y_end; ++j) {
+            for (int i = args.x_start; i <= args.x_end; ++i) {
 
                 if (render_status == 0)
                     break;
 
-                Log("Render %d %d", i, j);
-                //std::cout << "Render " << i << " " << j << std::endl;
-                Point2i pixel(i, j);
+                progress++;
 
-                if (i == 200 && j == 64) {
-                    static int gg = 0;
-                    gg++;
-
-                    //break;
+                if (progress > next_progress_to_report) {
+                    this->render_progress_now[task_index] = progress;
+                    next_progress_to_report += progress_interval;
                 }
 
-                //this->sampler->StartPixel(pixel);
+                Point2i pixel(i, j);
+
                 local_sampler->StartPixel(pixel);
 
-                this->render_progress_now[task_index]++;
-
-                // Do this check after the StartPixel() call; this keeps
-                // the usage of RNG values from (most) Samplers that use
-                // RNGs consistent, which improves reproducability /
-                // debugging.
-                //if (!InsideExclusive(pixel, pixelBounds))
-                //    continue;
-
                 do {
-                    // Initialize _CameraSample_ for current sample
                     CameraSample cameraSample = local_sampler->GetCameraSample(pixel);
 
-                    // Generate camera ray for current sample
                     RayDifferential ray;
                     float rayWeight = camera->GenerateRayDifferential(cameraSample, &ray);
                     ray.ScaleDifferentials(1 / std::sqrt((float)local_sampler->samplesPerPixel));
 
-                    //++nCameraRays;
-
-                    // Evaluate radiance along camera ray
                     Spectrum L(0.f);
                     if (rayWeight > 0)
-                        L = Li(ray, scene, *local_sampler);
-
-                    // Issue warning if unexpected radiance value returned
-                    /* if (L.HasNaNs()) {
-                        LOG(ERROR) << StringPrintf(
-                            "Not-a-number radiance value returned "
-                            "for pixel (%d, %d), sample %d. Setting to black.",
-                            pixel.x, pixel.y,
-                            (int)tileSampler->CurrentSampleNumber());
-                        L = Spectrum(0.f);
-                    }
-                    else if (L.y() < -1e-5) {
-                        LOG(ERROR) << StringPrintf(
-                            "Negative luminance value, %f, returned "
-                            "for pixel (%d, %d), sample %d. Setting to black.",
-                            L.y(), pixel.x, pixel.y,
-                            (int)tileSampler->CurrentSampleNumber());
-                        L = Spectrum(0.f);
-                    }
-                    else if (std::isinf(L.y())) {
-                        LOG(ERROR) << StringPrintf(
-                            "Infinite luminance value returned "
-                            "for pixel (%d, %d), sample %d. Setting to black.",
-                            pixel.x, pixel.y,
-                            (int)tileSampler->CurrentSampleNumber());
-                        L = Spectrum(0.f);
-                    }
-                    VLOG(1) << "Camera sample: " << cameraSample << " -> ray: " <<
-                        ray << " -> L = " << L;
-                    */
-
-                    // Add camera ray's contribution to image
-                    //filmTile->AddSample(cameraSample.pFilm, L, rayWeight);
+                        L = Li(mb, ray, scene, *local_sampler, task_index);
 
                     camera->AddSample(Point2f(pixel.x, pixel.y), L, rayWeight, local_sampler->samplesPerPixel);
 
-                    // Free _MemoryArena_ memory from computing image sample
-                    // value
-                    //arena.Reset();
+                    mb.Reset();
                 } while (local_sampler->StartNextSample());
             }
         }
+
+        this->render_progress_now[task_index] = args.task_progress_total;
     };
 
-    StartMultiTask(render_task, manager_func, tast_args);
+    auto start_time = std::chrono::high_resolution_clock::now();
+
+    StartMultiTask(render_task_lambda, manager_func, tast_args);
+
+    float duration = (float)(std::chrono::duration<double, std::milli>(std::chrono::high_resolution_clock::now() - start_time).count());
+    std::cout << std::format("----------- task_count = {} duration = {}\n", int(tast_args.task_count), duration);
 
     // Save final image after rendering
     camera->film->WriteImage();
+    camera->films.push_back(camera->film);
+    camera->film.reset();
     render_status = 0;
     has_new_photo = 1;
 }
 
 Spectrum SamplerIntegrator::SpecularReflect(
+    MemoryBlock& mb,
     const RayDifferential& ray, const SurfaceInteraction& isect,
-    const Scene& scene, Sampler& sampler, int depth) const {
+    Scene& scene, Sampler& sampler, int depth) {
 
     Log("SpecularReflect");
 
@@ -225,15 +219,16 @@ Spectrum SamplerIntegrator::SpecularReflect(
         //}
 
         // 下一轮Li
-        return f * Li(rd, scene, sampler, depth + 1) * std::abs(Dot(wi, ns)) / pdf;
+        return f * Li(mb, rd, scene, sampler, depth + 1) * std::abs(Dot(wi, ns)) / pdf;
     }
     else
         return Spectrum(0.f);
 }
 
 Spectrum SamplerIntegrator::SpecularTransmit(
+    MemoryBlock& mb, 
     const RayDifferential& ray, const SurfaceInteraction& isect,
-    const Scene& scene, Sampler& sampler, int depth) const {
+    Scene& scene, Sampler& sampler, int depth)  {
     Vector3f wo = isect.wo, wi;
     float pdf;
     const Point3f& p = isect.p;
@@ -309,7 +304,7 @@ Spectrum SamplerIntegrator::SpecularTransmit(
                 wi - eta * dwody + Vector3f(mu * dndy + dmudy * ns);
         }
 #endif
-        L = f * Li(rd, scene, sampler, depth + 1) * AbsDot(wi, ns) / pdf;
+        L = f * Li(mb, rd, scene, sampler, depth + 1) * AbsDot(wi, ns) / pdf;
     }
     return L;
 }
@@ -318,17 +313,17 @@ Spectrum SamplerIntegrator::SpecularTransmit(
 ////////////////////
 
 // 对全局的光源进行平均采样。选出一个光源。
-Spectrum UniformSampleOneLight(const Interaction& it, const Scene& scene,
-    Sampler& sampler,
+Spectrum UniformSampleOneLight(const Interaction& it, Scene& scene,
+    Sampler& sampler, int pool_id,
     bool handleMedia, const Distribution1D* lightDistrib) {
 
-    int nLights = scene.lights.size();
+    int nLights = int(scene.lights.size());
 
     if (nLights == 0)
         return Spectrum(0.f);
 
-    int lightIndex;
-    float lightPdf;
+    int lightIndex = 0;
+    float lightPdf = 1;
 
     // 随机采样一个灯
     if (lightDistrib) {
@@ -344,13 +339,13 @@ Spectrum UniformSampleOneLight(const Interaction& it, const Scene& scene,
     const std::shared_ptr<Light>& light = scene.lights[lightIndex];
     Point2f uLight = sampler.Get2D();
     Point2f uScattering = sampler.Get2D();
-    return EstimateDirect(it, uScattering, *light, uLight, scene, sampler, handleMedia) / lightPdf;
+    return EstimateDirect(it, uScattering, *light, uLight, scene, sampler, pool_id, handleMedia) / lightPdf;
 }
 
 // 计算一个直接光源作用于交点，产生的光能。
 Spectrum EstimateDirect(const Interaction& it, const Point2f& uScattering,
     const Light& light, const Point2f& uLight,
-    const Scene& scene, Sampler& sampler,
+    Scene& scene, Sampler& sampler, int pool_id,
     bool handleMedia, bool specular) {
 
     BxDFType bsdfFlags = specular ? BSDF_ALL : BxDFType(BSDF_ALL & ~BSDF_SPECULAR);
@@ -396,7 +391,7 @@ Spectrum EstimateDirect(const Interaction& it, const Point2f& uScattering,
 
                 SurfaceInteraction temp_isect;
                 float temp_t;
-                auto ires = scene.Intersect(temp_ray, &temp_t, &temp_isect);
+                auto ires = scene.Intersect(temp_ray, &temp_t, &temp_isect, pool_id);
                 if (ires) {
                     Li = Spectrum(0.f);
                 }

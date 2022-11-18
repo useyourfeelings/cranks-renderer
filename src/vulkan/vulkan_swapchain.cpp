@@ -29,7 +29,7 @@ VulkanSwapchain::VulkanSwapchain(std::shared_ptr<VulkanDevice> device, VkInstanc
         // 这里估计一般是support的，刚好能成功。正规的需要遍历queue来挑选。
         // 所以graphicsQueue == presentQueue
         VkBool32 support;
-        vkGetPhysicalDeviceSurfaceSupportKHR(device->physicalDevice, device->queueFamily, surface, &support);
+        err = vkGetPhysicalDeviceSurfaceSupportKHR(device->physicalDevice, device->queueFamily, surface, &support);
         if (support != VK_TRUE) {
             throw std::runtime_error("Error no WSI support on physical device");
         }

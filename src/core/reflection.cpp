@@ -43,8 +43,12 @@ Spectrum BSDF::f(const Vector3f& woW, const Vector3f& wiW, BxDFType flags) const
     
     Spectrum f(0.f);
 
-    for (auto bxdf : bxdfs) {
+    /*for (auto bxdf : bxdfs) {
         f += bxdf->f(wo, wi);
+    }*/
+
+    for (int i = 0; i < nBxDFs; ++i) {
+        f += bxdfs[i]->f(wo, wi);
     }
 
 
@@ -73,8 +77,8 @@ Spectrum BSDF::Sample_f(const Vector3f& woWorld, Vector3f* wiWorld, const Point2
     int comp = std::min((int)std::floor(u.x * matchingComps), matchingComps - 1); // min([0, matchingComps), matchingComps-1)
 
     // Get _BxDF_ pointer for chosen component
-    //BxDF* bxdf = nullptr;
-    std::shared_ptr<BxDF> bxdf = nullptr;
+    BxDF* bxdf = nullptr;
+    //std::shared_ptr<BxDF> bxdf = nullptr;
     int count = comp;
     for (int i = 0; i < nBxDFs; ++i)
         if (bxdfs[i]->MatchesFlags(type) && count-- == 0) {

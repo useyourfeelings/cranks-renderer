@@ -2,6 +2,7 @@
 #define CORE_CAMERA_H
 
 #include<memory>
+#include<list>
 #include "pbr.h"
 #include "transform.h"
 #include "spectrum.h"
@@ -27,12 +28,16 @@ public:
 
     void AddSample(const Point2f& pixel, Spectrum L, float sampleWeight, int samplesPerPixel);
 
-    void SetFilm(std::shared_ptr<Film> film) {
+    /*void SetFilm(std::shared_ptr<Film> film) {
         this->film = film;
-    };
+    };*/
+
+    void SetFilm();
 
     Transform CameraToWorld;
     std::shared_ptr<Film> film;
+
+    std::list<std::shared_ptr<Film>> films;
 
     int resolutionX, resolutionY;
 };

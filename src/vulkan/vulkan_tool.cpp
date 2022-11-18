@@ -245,7 +245,7 @@ int VulkanImage::BuildImage(std::shared_ptr<VulkanDevice> device, uint32_t width
 	//	}
 	//}
 
-	VkResult err;
+	// VkResult err;
 
 	// Create the Image:
 	{

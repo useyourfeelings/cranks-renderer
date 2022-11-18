@@ -9,6 +9,7 @@
 #include "../integrator/whitted.h"
 #include "../integrator/path.h"
 #include "../integrator/pm.h"
+#include "../integrator/ppm.h"
 #include "texture.h"
 #include "../tool/logger.h"
 #include "../tool/image.h"
@@ -205,7 +206,7 @@ void PbrApp::PrintScene() {
 	scene->PrintScene();
 }
 
-void PbrApp::GetRenderProgress(int* status, std::vector<int>& now, std::vector<int>& total, std::vector<float>& per, int * has_new_photo) {
+void PbrApp::GetRenderProgress(int* status, std::vector<int>& now, std::vector<int>& total, std::vector<float>& per, int * has_new_photo, json& render_status_info) {
 	if (this->integrators[render_method] != nullptr) {
 		*status = this->integrators[render_method]->render_status;
 		//*now = this->integrator->GetRenderProgress();
@@ -226,6 +227,10 @@ void PbrApp::GetRenderProgress(int* status, std::vector<int>& now, std::vector<i
 			total[i] = this->integrators[render_method]->render_progress_total[i];
 			per[i] = float(now[i]) / total[i];
 		}
+
+		//render_status_info = this->integrators[render_method]->GetRenderStatus();
+		render_status_info.merge_patch(this->integrators[render_method]->GetRenderStatus());
+		
 	}
 	else {
 		*status = 0;
@@ -241,6 +246,7 @@ void PbrApp::StopRendering() {
 }
 
 void PbrApp::RenderScene() {
+	std::cout << std::format("PbrApp::RenderScene()\n");
 	//std::string str = GetCurrentWorkingDir();
 
 	Log("RenderScene");
@@ -264,9 +270,8 @@ void PbrApp::RenderScene() {
 			setting.Get("ray_sample_no"), setting.Get("ray_bounce_no"), setting.Get("render_threads_count"));
 	}
 
-	SetFilm(camera->resolutionX, camera->resolutionY);
-
-	//SetIntegrator();
+	//SetFilm(camera->resolutionX, camera->resolutionY);
+	camera->SetFilm();
 
 	scene->InitBVH();
 
@@ -275,8 +280,8 @@ void PbrApp::RenderScene() {
 
 void PbrApp::SetFilm(int width, int height) {
 	Log("SetFilm");
-	film_list.push_back(std::make_shared<Film>(Point2i(width, height)));
-	camera->SetFilm(film_list.back());
+	//film_list.push_back(std::make_shared<Film>(Point2i(width, height)));
+	//camera->SetFilm(film_list.back());
 }
 
 void PbrApp::SetCamera(Point3f pos, Point3f look, Vector3f up) {
@@ -332,7 +337,7 @@ void PbrApp::InitIntegrator() {
 	//if (this->integrator != nullptr)
 	//	return;
 
-	integrators.resize(3);
+	integrators.resize(4);
 
 	// whitted
 	int maxDepth = 1;
@@ -348,6 +353,9 @@ void PbrApp::InitIntegrator() {
 
 	// pm
 	integrators[2].reset(new PMIntegrator(camera, sampler));
+
+	// ppm
+	integrators[3].reset(new PPMIntegrator(camera, sampler));
 }
 
 void PbrApp::SelectIntegrator(int method) {
@@ -355,46 +363,15 @@ void PbrApp::SelectIntegrator(int method) {
 }
 
 int PbrApp::SetIntegrator(const json& info) {
+	std::cout << std::format("PbrApp::SetIntegrator()\n");
 	if (info.contains("pm")) {
 		integrators[2]->SetOptions(info["pm"]);
+	} else if (info.contains("ppm")) {
+		integrators[3]->SetOptions(info["ppm"]);
 	}
 
 	return 0;
 }
-
-/*
-int PbrApp::EmitPhoton() {
-	if (render_method == 2) {
-		// https://stackoverflow.com/questions/26377430/how-to-perform-a-dynamic-cast-with-a-unique-ptr
-		dynamic_cast<PMIntegrator*>(integrators[2].get())->EmitPhoton(*scene);
-	}
-
-	return 0;
-}
-
-void PbrApp::SetWhittedIntegrator() {
-	//Log("SetWhittedIntegrator");
-
-	int maxDepth = 1;
-	BBox2i bounds(Point2i(0, 0), Point2i(camera->resolutionX, camera->resolutionY));
-
-	this->integrator.reset(new WhittedIntegrator(maxDepth, camera, sampler, bounds));
-}
-
-void PbrApp::SetPathIntegrator() {
-	//Log("SetPathIntegrator");
-
-	int maxDepth = 3;
-	BBox2i bounds(Point2i(0, 0), Point2i(camera->resolutionX, camera->resolutionY));
-	float rrThreshold = 0;
-
-	this->integrator.reset(new PathIntegrator(maxDepth, camera, sampler, bounds, rrThreshold, "uniform"));
-}
-
-void PbrApp::SetPMIntegrator() {
-
-	this->integrator.reset(new PMIntegrator(camera));
-}*/
 
 void PbrApp::SaveSetting() {
 	setting.SaveFile();
@@ -409,7 +386,10 @@ int PbrApp::SendNewImage(unsigned char* dst) {
 
 	this->integrators[render_method]->has_new_photo = 0;
 
-	this->camera->film->WriteVector(dst);
+	// todo: lock film
+
+	//this->camera->film->WriteVector(dst);
+	this->camera->films.back()->WriteVector(dst);
 
 	return 0;
 }

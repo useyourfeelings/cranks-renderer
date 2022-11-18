@@ -46,7 +46,7 @@ public:
 	//
 
 	void RenderScene();
-	void GetRenderProgress(int* status, std::vector<int>& now, std::vector<int>& total, std::vector<float>& per, int* has_new_photo);
+	void GetRenderProgress(int* status, std::vector<int>& now, std::vector<int>& total, std::vector<float>& per, int* has_new_photo, json& render_status_info);
 	void StopRendering();
 	//
 	
@@ -77,7 +77,7 @@ public:
 	std::shared_ptr<Scene> scene;
 	std::shared_ptr<Camera> camera;
 	std::shared_ptr<Sampler> sampler;
-	std::vector<std::shared_ptr<Film>> film_list;
+	//std::vector<std::shared_ptr<Film>> film_list;
 	std::unique_ptr<MIPMap<RGBSpectrum>> test_mipmap = nullptr;
 	std::mutex image_mutex;
 	std::shared_ptr<std::map<int, std::shared_ptr<Material>>> material_list;

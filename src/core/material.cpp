@@ -72,7 +72,7 @@ std::shared_ptr<Material> GenMaterial(const json& material_config, int keep_id, 
     return material;
 }
 
-void MatteMaterial::ComputeScatteringFunctions(SurfaceInteraction* si, TransportMode mode, bool allowMultipleLobes) const {
+void MatteMaterial::ComputeScatteringFunctions(MemoryBlock& mb, SurfaceInteraction* si, TransportMode mode, bool allowMultipleLobes) const {
     // Perform bump mapping with _bumpMap_, if present
     //if (bumpMap) Bump(bumpMap, si);
 
@@ -99,18 +99,20 @@ void MatteMaterial::ComputeScatteringFunctions(SurfaceInteraction* si, Transport
 
     float sig = Clamp(sigma->Evaluate(*si), 0, 90);
 
-    si->bsdf = std::make_shared<BSDF>(*si);
+    //si->bsdf = std::make_shared<BSDF>(*si);
+    si->bsdf = MB_ALLOC(mb, BSDF)(*si);
 
-    if (sig)
-        ;
+    //if (sig)
+    //    ; // OrenNayar
 
-    si->bsdf->Add(std::make_shared<LambertianReflection>(r));
+    //si->bsdf->Add(std::make_shared<LambertianReflection>(r));
+    si->bsdf->Add(MB_ALLOC(mb, LambertianReflection)(r));
 
 }
 
 //////////////////////////////////
 
-void GlassMaterial::ComputeScatteringFunctions(SurfaceInteraction* si, TransportMode mode, bool allowMultipleLobes) const {
+void GlassMaterial::ComputeScatteringFunctions(MemoryBlock& mb, SurfaceInteraction* si, TransportMode mode, bool allowMultipleLobes) const {
     // Perform bump mapping with _bumpMap_, if present
     if (bumpMap) Bump(bumpMap, si);
     float eta = index->Evaluate(*si);
@@ -119,7 +121,8 @@ void GlassMaterial::ComputeScatteringFunctions(SurfaceInteraction* si, Transport
     Spectrum R = Kr->Evaluate(*si).Clamp();
     Spectrum T = Kt->Evaluate(*si).Clamp();
     // Initialize _bsdf_ for smooth or rough dielectric
-    si->bsdf = std::make_shared<BSDF>(*si);
+    //si->bsdf = std::make_shared<BSDF>(*si);
+    si->bsdf = MB_ALLOC(mb, BSDF)(*si);
 
     if (R.IsBlack() && T.IsBlack()) return;
 
@@ -144,7 +147,8 @@ void GlassMaterial::ComputeScatteringFunctions(SurfaceInteraction* si, Transport
 
             if (isSpecular) {
                 //si->bsdf->Add(ARENA_ALLOC(arena, SpecularReflection)(R, fresnel));
-                si->bsdf->Add(std::make_shared<SpecularReflection>(R, fresnel));
+                //si->bsdf->Add(std::make_shared<SpecularReflection>(R, fresnel));
+                si->bsdf->Add(MB_ALLOC(mb, SpecularReflection)(R, fresnel));
             }
             //else
             //    si->bsdf->Add(ARENA_ALLOC(arena, MicrofacetReflection)(R, distrib, fresnel));
@@ -152,7 +156,8 @@ void GlassMaterial::ComputeScatteringFunctions(SurfaceInteraction* si, Transport
 
         if (!T.IsBlack()) {
             if (isSpecular) {
-                si->bsdf->Add(std::make_shared<SpecularTransmission>(T, 1.f, eta, mode));
+                //si->bsdf->Add(std::make_shared<SpecularTransmission>(T, 1.f, eta, mode));
+                si->bsdf->Add(MB_ALLOC(mb, SpecularTransmission)(T, 1.f, eta, mode));
             }
                 
             
@@ -164,17 +169,19 @@ void GlassMaterial::ComputeScatteringFunctions(SurfaceInteraction* si, Transport
 
 //////////////////////////////
 
-void MirrorMaterial::ComputeScatteringFunctions(SurfaceInteraction* si, TransportMode mode, bool allowMultipleLobes) const {
+void MirrorMaterial::ComputeScatteringFunctions(MemoryBlock& mb, SurfaceInteraction* si, TransportMode mode, bool allowMultipleLobes) const {
     // Perform bump mapping with _bumpMap_, if present
     if (bumpMap) Bump(bumpMap, si);
     //si->bsdf = ARENA_ALLOC(arena, BSDF)(*si);
 
-    si->bsdf = std::make_shared<BSDF>(*si);
+    //si->bsdf = std::make_shared<BSDF>(*si);
+    si->bsdf = MB_ALLOC(mb, BSDF)(*si);
 
     Spectrum R = Kr->Evaluate(*si).Clamp();
     if (!R.IsBlack())
         //si->bsdf->Add(ARENA_ALLOC(arena, SpecularReflection)(R, ARENA_ALLOC(arena, FresnelNoOp)()));
-        si->bsdf->Add(std::make_shared<SpecularReflection>(R, std::make_shared<FresnelNoOp>()));
+        //si->bsdf->Add(std::make_shared<SpecularReflection>(R, std::make_shared<FresnelNoOp>()));
+        si->bsdf->Add(MB_ALLOC(mb, SpecularReflection)(R, std::make_shared<FresnelNoOp>()));
 }
 
 //////////////////////////////
@@ -220,17 +227,21 @@ void Material::Update(const json& new_config) { // update whole material
 
 
 void PlasticMaterial::ComputeScatteringFunctions(
+    MemoryBlock& mb, 
     SurfaceInteraction* si, TransportMode mode,
     bool allowMultipleLobes) const {
     // Perform bump mapping with _bumpMap_, if present
     if (bumpMap)
         Bump(bumpMap, si);
 
-    si->bsdf = std::make_shared<BSDF>(*si);
+    //si->bsdf = std::make_shared<BSDF>(*si);
+    si->bsdf = MB_ALLOC(mb, BSDF)(*si);
+
     // Initialize diffuse component of plastic material
     Spectrum kd = Kd->Evaluate(*si).Clamp();
     if (!kd.IsBlack())
-        si->bsdf->Add(std::make_shared<LambertianReflection>(kd));
+        //si->bsdf->Add(std::make_shared<LambertianReflection>(kd));
+        si->bsdf->Add(MB_ALLOC(mb, LambertianReflection)(kd));
 
     // Initialize specular component of plastic material
     Spectrum ks = Ks->Evaluate(*si).Clamp();
@@ -244,18 +255,20 @@ void PlasticMaterial::ComputeScatteringFunctions(
 
         auto distrib = std::make_shared<GGXDistribution>(rough, rough);
         //auto spec = std::make_shared <MicrofacetReflection>(ks, distrib, fresnel);
-        si->bsdf->Add(std::make_shared<MicrofacetReflection>(ks, distrib, fresnel));
+        //si->bsdf->Add(std::make_shared<MicrofacetReflection>(ks, distrib, fresnel));
+        si->bsdf->Add(MB_ALLOC(mb, MicrofacetReflection)(ks, distrib, fresnel));
     }
 }
 
 //////////////////////////////
 
-void MetalMaterial::ComputeScatteringFunctions(SurfaceInteraction* si, TransportMode mode, bool allowMultipleLobes) const {
+void MetalMaterial::ComputeScatteringFunctions(MemoryBlock& mb, SurfaceInteraction* si, TransportMode mode, bool allowMultipleLobes) const {
     // Perform bump mapping with _bumpMap_, if present
     if (bumpMap)
         Bump(bumpMap, si);
 
-    si->bsdf = std::make_shared<BSDF>(*si);
+    //si->bsdf = std::make_shared<BSDF>(*si);
+    si->bsdf = MB_ALLOC(mb, BSDF)(*si);
 
     float rough = roughness->Evaluate(*si);
 
@@ -272,5 +285,6 @@ void MetalMaterial::ComputeScatteringFunctions(SurfaceInteraction* si, Transport
 
     auto distrib = std::make_shared<GGXDistribution>(rough, rough);
     
-    si->bsdf->Add(std::make_shared<MicrofacetReflection>(1, distrib, fresnel));
+    //si->bsdf->Add(std::make_shared<MicrofacetReflection>(1, distrib, fresnel));
+    si->bsdf->Add(MB_ALLOC(mb, MicrofacetReflection)(1, distrib, fresnel));
 }

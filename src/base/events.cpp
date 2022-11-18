@@ -26,18 +26,18 @@
 
 static bool got_events = 0;
 std::vector<int> events;
-std::vector<std::function<void(const json&)>> events_map;
+std::vector<std::function<void(const MultiTaskArg&)>> events_map;
 std::mutex events_mutex, test_mutex;
 std::condition_variable events_cv;
 
-int RegisterEvent(std::function<void(const json&)> f) {
+int RegisterEvent(std::function<void(const MultiTaskArg&)> f) {
     std::lock_guard<std::mutex> lk(events_mutex);
 
     std::cout << "register_event" << std::endl;
 
     events_map.push_back(f);
 
-    return events_map.size() - 1 + int(EVENT_END);
+    return int(events_map.size() - 1 + int(EVENT_END));
 }
 
 int SendEvent(int id) {
@@ -50,10 +50,19 @@ int SendEvent(int id) {
     return 0;
 }
 
-int EventLoop(std::function<void(const json&)> init_func) {
+/*
+
+主循环
+
+启动init_func，等待消息。可注册消息，然后发消息创建新线程。
+
+threads存放线程。
+
+*/ 
+int EventLoop(std::function<void(const MultiTaskArg&)> init_func) {
     std::lock_guard<std::mutex> guard(test_mutex);
     
-    std::cout << "event_loop" << std::endl << "core number: " << std::thread::hardware_concurrency() << std::endl;
+    std::cout << "EventLoop" << std::endl << "core number: " << std::thread::hardware_concurrency() << std::endl;
 
     std::list<Thread> threads;
 
@@ -64,7 +73,11 @@ int EventLoop(std::function<void(const json&)> init_func) {
         std::unique_lock<std::mutex> lock(events_mutex);
         //std::cout << "events_cv.wait_for start" << std::endl;
 
+        // https://en.cppreference.com/w/cpp/thread/condition_variable/wait_for
         // 阻塞等各种消息
+        // got_events用于区分收到事件和wait超时
+        // wait_for等notify或超时，然后检查是否got_events。
+        // 必须先争events_mutex，否则是UB。
         if (events_cv.wait_for(lock, std::chrono::seconds(5), [] { return got_events; })) {
             // got events
             std::cout << "got events" << std::endl;
@@ -87,46 +100,52 @@ int EventLoop(std::function<void(const json&)> init_func) {
                 }
             }
 
+            // 删除所有消息
             if (events.size())
                 events.clear();
+        }
+        else {
+            // timeout
         }
 
         //std::cout << "events_cv.wait_for end" << std::endl;
 
+        // check threads
         auto t = threads.begin();
         while (t != threads.end()) {
             if (t->IsDone()) {
                 t->Join();
                 t = threads.erase(t);
             }
-
-            ++t;
+            else {
+                ++t;
+            }
         }
 
+        // all dead
         if (threads.empty()) {
-            std::cout << "event_loop no running threads" << std::endl;
+            std::cout << "EventLoop no running threads" << std::endl;
             break;
         }
 
         got_events = false;
     }
 
-    std::cout << "event_loop over" << std::endl;
+    std::cout << "EventLoop over" << std::endl;
 
     return 0;
 }
 
-
-void StartMultiTask(std::function<void(const json&)> thread_func,
-    std::function<json(int, const json&)> manager_func,
-    const json& args) {
+// 阻塞执行多线程任务
+void StartMultiTask(std::function<void(MultiTaskArg)> thread_func,
+    std::function<MultiTaskArg(int, MultiTaskArg)> manager_func,
+    MultiTaskArg args) {
 
     std::vector<Thread> threads;
 
     std::cout << "StartMultiTask" << std::endl;
-    std::cout << args << std::endl;
 
-    for (int i = 0; i < args["task_count"]; ++ i) {
+    for (int i = 0; i < args.task_count; ++ i) {
         threads.push_back(Thread(thread_func, manager_func(i, args)));
 
         // https://stackoverflow.com/questions/31071761/why-only-last-thread-executing

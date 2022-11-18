@@ -6,6 +6,7 @@
 
 #include "material.h"
 #include<memory>
+#include "../base/memory.h"
 
 class Interaction {
 public:
@@ -72,6 +73,7 @@ public:
 	void ComputeDifferentials(const RayDifferential& r) const;
 
 	void ComputeScatteringFunctions(
+		MemoryBlock& mb,
 		const RayDifferential& ray,
 		TransportMode mode = TransportMode::Radiance);
 
@@ -91,8 +93,8 @@ public:
 	const Shape* shape = nullptr;
 	const Primitive* primitive = nullptr;
 
-	//BSDF* bsdf = nullptr;
-	std::shared_ptr<BSDF> bsdf = nullptr;
+	BSDF* bsdf = nullptr;
+	//std::shared_ptr<BSDF> bsdf = nullptr;
 
 	mutable Vector3f dpdx, dpdy;
 	mutable float dudx = 0, dvdx = 0, dudy = 0, dvdy = 0;

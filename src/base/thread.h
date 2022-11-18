@@ -1,3 +1,6 @@
+#ifndef THREAD_H
+#define THREAD_H
+
 #include<iostream>
 #include<thread>
 #include <functional>
@@ -12,7 +15,7 @@ enum ThreadStatus {
 
 class Thread {
 public:
-    Thread(std::function<void(const json&)> f, json args = json()) :
+    Thread(std::function<void(MultiTaskArg)> f, MultiTaskArg args = MultiTaskArg()) :
         thread_function(f),
         args(args),
         status(THREAD_NEW) {
@@ -30,6 +33,8 @@ public:
 
     void Start() {
         //std::cout << "start ..." << std::endl;
+
+        // https://en.cppreference.com/w/cpp/thread/thread/thread
         system_thread = std::thread(&Thread::thread_wrapper, this);
     }
 
@@ -65,12 +70,14 @@ private:
     }
 
     //int (*thread_function)();
-    std::function<void(const json&)> thread_function;
+    std::function<void(MultiTaskArg)> thread_function;
 
-    json args;
+    MultiTaskArg args;
     //std::mutex thread_mutex;
 
     ThreadStatus status;
 
     std::thread system_thread;
 };
+
+#endif

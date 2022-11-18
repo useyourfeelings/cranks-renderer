@@ -487,21 +487,33 @@ BBox3<T> Union(const BBox3<T>& b1, const BBox3<T>& b2) {
 template <typename T>
 inline bool BBox3<T>::Intersect(const Ray& ray, const Vector3f& invDir, const int dirIsNeg[3], float* t) const {
 	const BBox3& bounds = *this;
+	
 	// Check for ray intersection against $x$ and $y$ slabs
 	// 算x和y轴
 	float tMin = (bounds[dirIsNeg[0]].x - ray.o.x) * invDir.x;
+	float tyMax = (bounds[1 - dirIsNeg[1]].y - ray.o.y) * invDir.y;
+
+	// 加上误差
+	tyMax *= 1 + 2 * gamma(3);
+	// 如果无交集返回false
+	if (tMin > tyMax) return false;
+
 	float tMax = (bounds[1 - dirIsNeg[0]].x - ray.o.x) * invDir.x;
 	float tyMin = (bounds[dirIsNeg[1]].y - ray.o.y) * invDir.y;
-	float tyMax = (bounds[1 - dirIsNeg[1]].y - ray.o.y) * invDir.y;
+
+	// 加上误差
+	tMax *= 1 + 2 * gamma(3);
+	// 如果无交集返回false
+	if (tyMin > tMax) return false;
 
 	// Update _tMax_ and _tyMax_ to ensure robust bounds intersection
 	// 加上误差
-	tMax *= 1 + 2 * gamma(3);
-	tyMax *= 1 + 2 * gamma(3);
+	//tMax *= 1 + 2 * gamma(3);
+	//tyMax *= 1 + 2 * gamma(3);
 
 	// 如果无交集返回false
-	if (tMin > tyMax || tyMin > tMax) return false;
-
+	//if (tMin > tyMax || tyMin > tMax) return false;
+	
 	// 取交集
 	if (tyMin > tMin) tMin = tyMin;
 	if (tyMax < tMax) tMax = tyMax;
@@ -509,13 +521,16 @@ inline bool BBox3<T>::Intersect(const Ray& ray, const Vector3f& invDir, const in
 	// Check for ray intersection against $z$ slab
 	// 算z轴
 	float tzMin = (bounds[dirIsNeg[2]].z - ray.o.z) * invDir.z;
+	if (tzMin > tMax) return false;
+
+	// 算z轴
 	float tzMax = (bounds[1 - dirIsNeg[2]].z - ray.o.z) * invDir.z;
 
 	// Update _tzMax_ to ensure robust bounds intersection
 	tzMax *= 1 + 2 * gamma(3);
 
 	// 判断交集
-	if (tMin > tzMax || tzMin > tMax) return false;
+	if (tMin > tzMax) return false;
 	if (tzMin > tMin) tMin = tzMin;
 	if (tzMax < tMax) tMax = tzMax;
 

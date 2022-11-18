@@ -105,7 +105,7 @@ int VulkanApp::init() {
 
         if(extensions.size() > 0)
         {
-            instanceCreateInfo.enabledExtensionCount = extensions.size();// extensions_count;//(uint32_t)instanceExtensions.size();
+            instanceCreateInfo.enabledExtensionCount = uint32_t(extensions.size());// extensions_count;//(uint32_t)instanceExtensions.size();
             instanceCreateInfo.ppEnabledExtensionNames = extensions.data();// instanceExtensions.data();
         }
 
@@ -838,7 +838,7 @@ VKAPI_ATTR VkBool32 VKAPI_CALL VulkanApp::debugCallback(
 }
 
 
-void vulkan_main(const json& args)
+void vulkan_main(const MultiTaskArg& args)
 {
     std::cout<<"vulkan_main start"<<std::endl;
 

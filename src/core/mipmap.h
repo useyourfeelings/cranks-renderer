@@ -38,7 +38,7 @@ public:
 	T Lookup(const Point2f& st, float width = 0.f) const;
 
 	int Levels() const {
-		return pyramid.size();
+		return int(pyramid.size());
 	}
 
 	Point2i resolution;

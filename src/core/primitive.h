@@ -23,7 +23,7 @@ public:
     virtual bool Intersect(const Ray& r) const = 0;
     //virtual const AreaLight* GetAreaLight() const = 0; // pbrt page 249 如果此物体发光，会带一个AreaLight。
     //virtual const Material* GetMaterial() const = 0;
-    virtual void ComputeScatteringFunctions(SurfaceInteraction* isect,
+    virtual void ComputeScatteringFunctions(MemoryBlock& mb, SurfaceInteraction* isect,
         //const std::map<int, std::shared_ptr<Material>>& material_list,
         TransportMode mode) const = 0;
 
@@ -57,7 +57,9 @@ public:
 
     //const AreaLight* GetAreaLight() const;
     //const Material* GetMaterial() const;
-    void ComputeScatteringFunctions(SurfaceInteraction* isect,
+    void ComputeScatteringFunctions(
+        MemoryBlock& mb,
+        SurfaceInteraction* isect,
         //const std::map<int, std::shared_ptr<Material>>& material_list,
         TransportMode mode) const;
 

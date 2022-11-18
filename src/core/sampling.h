@@ -43,7 +43,7 @@ public:
     // 找出落在哪一区间，返回前一个index。
     // 如果相等，比如0.5，返回0的index。
     int GetSampleIndex(float u) const {
-        int start = 0, end = cdf.size() - 1;
+        int start = 0, end = int(cdf.size()) - 1;
         int mid;
         for (;;) {
             if (start == end)

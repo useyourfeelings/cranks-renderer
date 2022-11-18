@@ -49,7 +49,7 @@ VulkanDevice::VulkanDevice(VkInstance instance) {
         vkGetPhysicalDeviceMemoryProperties(physicalDevice, &memoryProperties);
 
         std::cout << "memoryProperties:" << std::endl;
-        for (int i = 0; i < memoryProperties.memoryTypeCount; ++i) {
+        for (uint32_t i = 0; i < memoryProperties.memoryTypeCount; ++i) {
             std::cout << memoryProperties.memoryTypes[i].propertyFlags << std::endl;
         }
     }

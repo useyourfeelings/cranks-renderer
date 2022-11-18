@@ -6,6 +6,7 @@
 #include "transform.h"
 #include "spectrum.h"
 #include "../tool/json.h"
+#include"../base/memory.h"
 
 inline std::unordered_set<std::string> material_name_set;
 inline int latest_material_id = 0;
@@ -61,7 +62,7 @@ public:
     }
 
     // Material Interface
-    virtual void ComputeScatteringFunctions(SurfaceInteraction* si, TransportMode mode, bool allowMultipleLobes = false) const = 0;
+    virtual void ComputeScatteringFunctions(MemoryBlock& mb, SurfaceInteraction* si, TransportMode mode, bool allowMultipleLobes = false) const = 0;
     
     static void Bump(const std::shared_ptr<Texture<float>>& d, SurfaceInteraction* si);
     const json& GetJson() const;
@@ -95,7 +96,7 @@ public:
 
         config["type"] = "matte";
     }
-    void ComputeScatteringFunctions(SurfaceInteraction* si, TransportMode mode, bool allowMultipleLobes = false) const;
+    void ComputeScatteringFunctions(MemoryBlock& mb, SurfaceInteraction* si, TransportMode mode, bool allowMultipleLobes = false) const;
 
 private:
     // MatteMaterial Private Data
@@ -128,7 +129,7 @@ public:
         remapRoughness(remapRoughness) {
         config["type"] = "glass";
     }
-    void ComputeScatteringFunctions(SurfaceInteraction* si, TransportMode mode, bool allowMultipleLobes = false) const;
+    void ComputeScatteringFunctions(MemoryBlock& mb, SurfaceInteraction* si, TransportMode mode, bool allowMultipleLobes = false) const;
 
 private:
     // GlassMaterial Private Data
@@ -155,7 +156,7 @@ public:
 
         config["type"] = "mirror";
     }
-    void ComputeScatteringFunctions(SurfaceInteraction* si, TransportMode mode, bool allowMultipleLobes) const;
+    void ComputeScatteringFunctions(MemoryBlock& mb, SurfaceInteraction* si, TransportMode mode, bool allowMultipleLobes) const;
 
 private:
     // MirrorMaterial Private Data
@@ -183,7 +184,7 @@ public:
         remapRoughness(remapRoughness) {
         config["type"] = "plastic";
     }
-    void ComputeScatteringFunctions(SurfaceInteraction* si, TransportMode mode, bool allowMultipleLobes) const;
+    void ComputeScatteringFunctions(MemoryBlock& mb, SurfaceInteraction* si, TransportMode mode, bool allowMultipleLobes) const;
 
 private:
     // PlasticMaterial Private Data
@@ -217,7 +218,7 @@ public:
         config["type"] = "metal";
     }
 
-    void ComputeScatteringFunctions(SurfaceInteraction* si, TransportMode mode, bool allowMultipleLobes) const;
+    void ComputeScatteringFunctions(MemoryBlock& mb, SurfaceInteraction* si, TransportMode mode, bool allowMultipleLobes) const;
 
 private:
     // MetalMaterial Private Data

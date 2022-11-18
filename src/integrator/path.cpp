@@ -15,7 +15,7 @@ void PathIntegrator::Preprocess(const Scene& scene, Sampler& sampler) {
     lightDistribution = CreateLightSampleDistribution(lightSampleStrategy, scene);
 }
 
-Spectrum PathIntegrator::Li(const RayDifferential& r, const Scene& scene, Sampler& sampler, int depth) const {
+Spectrum PathIntegrator::Li(MemoryBlock& mb, const RayDifferential& r, Scene& scene, Sampler& sampler, int pool_id, int depth)  {
     Spectrum L(0.f), beta(1.f);
     RayDifferential ray(r);
     bool specularBounce = false;
@@ -25,8 +25,11 @@ Spectrum PathIntegrator::Li(const RayDifferential& r, const Scene& scene, Sample
         //std::cout << "bounce " << bounces << std::endl;
         SurfaceInteraction isect;
         float tHit;
-        bool hitScene = scene.Intersect(ray, &tHit, &isect);
+        
+        bool hitScene = scene.Intersect(ray, &tHit, &isect, pool_id);
 
+        //break; // 多线程到此有损失 2线程1.85。4线程3.x。8线程6。
+        
         //std::cout << "hitScene " << hitScene << std::endl;
 
         // Possibly add emitted light at intersection
@@ -63,7 +66,7 @@ Spectrum PathIntegrator::Li(const RayDifferential& r, const Scene& scene, Sample
         }
 
         // 根据material添加bxdf
-        isect.ComputeScatteringFunctions(ray);
+        isect.ComputeScatteringFunctions(mb, ray);
 
         auto distrib = lightDistribution->Lookup(isect.p);
 
@@ -74,11 +77,8 @@ Spectrum PathIntegrator::Li(const RayDifferential& r, const Scene& scene, Sample
 
             // 计算直接光。
             // 对所有光源采样，选出一个光源，计算bsdf。得到最后的光能。
-            Spectrum Ld = beta * UniformSampleOneLight(isect, scene, sampler, false, distrib);
+            Spectrum Ld = beta * UniformSampleOneLight(isect, scene, sampler, pool_id, false, distrib);
 
-            //VLOG(2) << "Sampled direct lighting Ld = " << Ld;
-            //if (Ld.IsBlack()) ++zeroRadiancePaths;
-            //CHECK_GE(Ld.y(), 0.f);
             L += Ld;
         }
 

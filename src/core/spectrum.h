@@ -14,15 +14,17 @@ enum class SpectrumType {
 class CoefficientSpectrum {
 public:
     CoefficientSpectrum(float v = 0.f):
-        nSpectrumSamples(3),
-        c(nSpectrumSamples) {
+        nSpectrumSamples(3)
+        //c(nSpectrumSamples) 
+    {
 
         for (int i = 0; i < nSpectrumSamples; ++i) c[i] = v;
     }
 
     CoefficientSpectrum(float r, float g, float b) :
-        nSpectrumSamples(3),
-        c(nSpectrumSamples) {
+        nSpectrumSamples(3)
+        //c(nSpectrumSamples) {
+    {
 
         c[0] = r;
         c[1] = g;
@@ -134,7 +136,9 @@ public:
     }
 
     int nSpectrumSamples;
-    std::vector<float> c;
+    //std::vector<float> c; // very lagging
+
+    float c[3];
 };
 
 class RGBSpectrum : public CoefficientSpectrum {
@@ -165,7 +169,11 @@ inline RGBSpectrum Lerp(float t, const RGBSpectrum& s1, const RGBSpectrum& s2) {
 typedef RGBSpectrum Spectrum;
 
 
-
+struct Photon {
+    Point3f pos; // position
+    Vector3f dir; // incident dir
+    Spectrum energy;
+};
 
 
 #endif

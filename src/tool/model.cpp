@@ -63,7 +63,7 @@ int LoadGLTF(const std::string& file_name, int* tri_count, int* vertex_count, in
 
 		//std::cout << uri_string.c_str() + comma_index + 1 << std::endl;
 
-		unsigned char* mesh_bytes = unbase64(uri_string.c_str() + comma_index + 1, uri_string.length() - comma_index - 1, &out_len);
+		unsigned char* mesh_bytes = unbase64(uri_string.c_str() + comma_index + 1, int(uri_string.length() - comma_index - 1), &out_len);
 
 		std::cout << out_len << std::endl;
 		std::cout << mesh_bytes << std::endl;

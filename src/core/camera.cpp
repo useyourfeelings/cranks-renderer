@@ -14,6 +14,10 @@ void Camera::AddSample(const Point2f& pixel, Spectrum L, float sampleWeight, int
     film->pixels[pixel_index] += L * sampleWeight / samplesPerPixel;
 }
 
+void Camera::SetFilm() {
+    this->film.reset(new Film(Point2i(resolutionX, resolutionY)));
+};
+
 PerspectiveCamera::PerspectiveCamera() {
     dxCamera = (RasterToCamera(Point3f(1, 0, 0)) - RasterToCamera(Point3f(0, 0, 0)));
     dyCamera = (RasterToCamera(Point3f(0, 1, 0)) - RasterToCamera(Point3f(0, 0, 0)));

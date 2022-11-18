@@ -18,8 +18,8 @@ class Scene : public std::enable_shared_from_this<Scene> {
 public:
 	Scene(std::shared_ptr<std::map<int, std::shared_ptr<Material>>> material_list);
 
-	bool Intersect(const Ray& ray, float* tHit, SurfaceInteraction* isect) const;
-	bool Intersect(const Ray& ray, int except_id) const;
+	bool Intersect(const Ray& ray, float* tHit, SurfaceInteraction* isect, int pool_id = 0);
+	bool Intersect(const Ray& ray, int except_id);
 
 	//void AddLight(std::shared_ptr<Light>, const std::string& name);
 	//void AddInfiniteLight(std::shared_ptr<Light> light, const std::string& name);
@@ -29,7 +29,7 @@ public:
 	int DeleteObject(const json& obj_info);
 	int UpdateObject(const json& obj_info);
 	std::string RenameObject(int obj_id, const std::string& new_name);
-	void PrintScene();
+	void PrintScene() const;
 	void InitBVH();
 	void RebuildBVH();
 
@@ -83,6 +83,8 @@ private:
 	int nodes_structure; // 0-brute force 1-bvh
 	int latest_obj_id;
 	int latest_tree_node_id;
+
+	std::mutex mutex;
 };
 
 

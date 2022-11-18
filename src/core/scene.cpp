@@ -61,9 +61,9 @@ void Scene::RebuildBVH() {
 
 }
 
-void Scene::PrintScene() {
-	Log("PrintScene");
-	Log("latest_obj_id %d", latest_obj_id);
+void Scene::PrintScene() const {
+	//Log("PrintScene");
+	//Log("latest_obj_id %d", latest_obj_id);
 	for (auto p : primitives) {
 		//Log("id = %d, name = %s", p->Id(), p->Name().c_str());
 	}
@@ -413,9 +413,13 @@ int Scene::Reload(const json& load_scene_tree) {
 	return 0;
 }
 
-bool Scene::Intersect(const Ray& ray, float* tHit, SurfaceInteraction* isect) const {
+bool Scene::Intersect(const Ray& ray, float* tHit, SurfaceInteraction* isect, int pool_id) {
+	//mutex.lock();
+	//std::cout << "Scene::Intersect pool_id " << pool_id << " thread id " << std::this_thread::get_id() << std::endl;
+	//mutex.unlock();
+
 	if(nodes_structure == 1)
-		return bvh->Intersect(ray, tHit, isect);
+		return bvh->Intersect(ray, tHit, isect, pool_id);
 
 	// 遍历所有。找最小的t。
 
@@ -443,7 +447,7 @@ bool Scene::Intersect(const Ray& ray, float* tHit, SurfaceInteraction* isect) co
 	return true;
 }
 
-bool Scene::Intersect(const Ray& ray, int except_id) const {
+bool Scene::Intersect(const Ray& ray, int except_id)  {
 	/*for (auto p : primitives) {
 		if (p->Id() == except_id)
 			continue;

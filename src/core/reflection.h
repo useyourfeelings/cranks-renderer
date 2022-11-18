@@ -101,7 +101,7 @@ class BSDF {
 public:
     // BSDF Public Methods
     BSDF(const SurfaceInteraction& si, float eta = 1):
-        bxdfs(0),
+        //bxdfs(0),
         eta(eta),
         ns(si.shading.n),
         ng(si.n),
@@ -110,15 +110,14 @@ public:
 
     ~BSDF() {}
 
-    //void Add(BxDF* b) {
-    //    //CHECK_LT(nBxDFs, MaxBxDFs);
-    //    bxdfs[nBxDFs++] = b;
-    //}
-
-    void Add(std::shared_ptr<BxDF> bxdf) {
-        bxdfs.push_back(bxdf);
-        nBxDFs = bxdfs.size();
+    void Add(BxDF* b) {
+        //CHECK_LT(nBxDFs, MaxBxDFs);
+        bxdfs[nBxDFs++] = b;
     }
+
+    /*void Add(std::shared_ptr<BxDF> bxdf) {
+        bxdfs[nBxDFs++] = bxdf;
+    }*/
 
     int NumComponents(BxDFType flags = BSDF_ALL) const;
 
@@ -158,9 +157,10 @@ private:
     const Vector3f ss, ts;
     int nBxDFs = 0;
     static const int MaxBxDFs = 8;
-    //BxDF* bxdfs[MaxBxDFs];
+    BxDF* bxdfs[MaxBxDFs];
+    //std::shared_ptr<BxDF> bxdfs[MaxBxDFs];
 
-    std::vector<std::shared_ptr<BxDF>> bxdfs;
+    //std::vector<std::shared_ptr<BxDF>> bxdfs;
     friend class MixMaterial;
 };
 

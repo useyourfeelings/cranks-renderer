@@ -79,11 +79,11 @@ void SurfaceInteraction::ComputeDifferentials( const RayDifferential& ray) const
     }
 }
 
-void SurfaceInteraction::ComputeScatteringFunctions(const RayDifferential& ray, 
+void SurfaceInteraction::ComputeScatteringFunctions(MemoryBlock& mb, const RayDifferential& ray,
     TransportMode mode) {
     ComputeDifferentials(ray);
 
-    primitive->ComputeScatteringFunctions(this, mode);
+    primitive->ComputeScatteringFunctions(mb, this, mode);
 }
 
 //Spectrum SurfaceInteraction::Le(const Vector3f& w) const {

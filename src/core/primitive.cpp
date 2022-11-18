@@ -19,6 +19,7 @@ bool GeometricPrimitive::Intersect(const Ray& r) const {
 }
 
 void GeometricPrimitive::ComputeScatteringFunctions(
+    MemoryBlock& mb, 
     SurfaceInteraction* isect, 
     //const std::map<int, std::shared_ptr<Material>>& material_list,
     TransportMode mode) const {
@@ -38,7 +39,7 @@ void GeometricPrimitive::ComputeScatteringFunctions(
         auto material = parent->GetMaterial();
 
         if (material) {
-            material->ComputeScatteringFunctions(isect, mode);
+            material->ComputeScatteringFunctions(mb, isect, mode);
             //std::cout << "GeometricPrimitive::ComputeScatteringFunctions has material" << std::endl;
         }
         else {

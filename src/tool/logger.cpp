@@ -200,11 +200,10 @@ void LoggerUI()
 //}
 
 void Log(const char* fmt, ...) {
-
-    std::lock_guard<std::mutex> guard(renderer_log.logger_mutex);
-
     if (renderer_log.status == 0)
         return;
+
+    std::lock_guard<std::mutex> guard(renderer_log.logger_mutex);
 
     int old_size = renderer_log.Buf.size();
     va_list args;

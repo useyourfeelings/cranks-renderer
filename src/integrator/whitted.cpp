@@ -3,7 +3,7 @@
 #include "../core/reflection.h"
 #include "../tool/logger.h"
 
-Spectrum WhittedIntegrator::Li(const RayDifferential& ray, const Scene& scene, Sampler& sampler, int depth) const {
+Spectrum WhittedIntegrator::Li(MemoryBlock& mb, const RayDifferential& ray, Scene& scene, Sampler& sampler, int pool_id, int depth) {
     Log("WhittedIntegrator::Li depth = %d", depth);
 
     ray.LogSelf();
@@ -49,7 +49,7 @@ Spectrum WhittedIntegrator::Li(const RayDifferential& ray, const Scene& scene, S
     // Compute scattering functions for surface interaction
     // 根据材质添加BxDF。一个材质可能包含多种bxdf。
     // isect.bsdf最终可包含多个bxdf。
-    isect.ComputeScatteringFunctions(ray);
+    isect.ComputeScatteringFunctions(mb, ray);
     
     //if (!isect.bsdf)
     //    return Li(isect.SpawnRay(ray.d), scene, sampler, arena, depth);
@@ -117,11 +117,11 @@ Spectrum WhittedIntegrator::Li(const RayDifferential& ray, const Scene& scene, S
 
         // WhittedIntegrator 只能处理 BxDFType(BSDF_REFLECTION | BSDF_SPECULAR)
         // 反射光进行下一层Li
-        auto reflect = SpecularReflect(ray, isect, scene, sampler, depth);
+        auto reflect = SpecularReflect(mb, ray, isect, scene, sampler, depth);
         L += reflect;
 
         // 传输光进行下一层Li
-        L += SpecularTransmit(ray, isect, scene, sampler, depth);
+        L += SpecularTransmit(mb, ray, isect, scene, sampler, depth);
     }
 
     // L的三个部分。直接光，反射光。传输光。
