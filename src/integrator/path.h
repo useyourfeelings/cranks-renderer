@@ -13,7 +13,7 @@ public:
         const std::string& lightSampleStrategy = "uniform");
 
     void Preprocess(const Scene& scene, Sampler& sampler);
-
+    void SetOptions(const json& data);
     Spectrum Li(MemoryBlock& mb, const RayDifferential& ray, Scene& scene, Sampler& sampler, int pool_id = 0, int depth = 0) ;
 
 private:

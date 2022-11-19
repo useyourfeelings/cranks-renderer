@@ -1906,9 +1906,10 @@ public:
 					PBR_API_save_setting();
 				}
 
-				//ImGui::PushItemWidth(400);
-
 				bool cameraChanged = false;
+
+				static bool integrator_changed = true;
+
 				ImGui::SliderFloat3("pos", cs.pos, -100, 100);
 				if (ImGui::IsItemDeactivatedAfterEdit()) {
 					cameraChanged = true;
@@ -1954,27 +1955,25 @@ public:
 					cameraChanged = true;
 				}
 
-				//ImGui::PopItemWidth();
-
-				ImGui::SliderInt("ray_sample_no", &cs.ray_sample_no, 1, 5000);
-				if (ImGui::IsItemDeactivatedAfterEdit()) {
-					cameraChanged = true;
-				}
-
-				ImGui::SliderInt("ray_bounce_no", &cs.ray_bounce_no, 0, 10);
-				if (ImGui::IsItemDeactivatedAfterEdit()) {
-					cameraChanged = true;
-				}
-
-				if (ImGui::SliderInt("scale", &cs.image_scale, 1, 100)) {
+				if (ImGui::SliderInt("scale", &cs.image_scale, 1, 10)) {
 					cs.resolution[0] = cs.image_scale * 128;
 					cs.resolution[1] = cs.image_scale * 128;
 					cameraChanged = true;
 				}
 
-				ImGui::SliderInt("render_threads", &cs.render_threads_count, 1, 32);
+				ImGui::SliderInt("ray_sample_no", &scene_options.ray_sample_no, 1, 500);
 				if (ImGui::IsItemDeactivatedAfterEdit()) {
-					cameraChanged = true;
+					integrator_changed = true;
+				}
+
+				ImGui::SliderInt("ray_bounce_no", &scene_options.ray_bounce_no, 0, 16);
+				if (ImGui::IsItemDeactivatedAfterEdit()) {
+					integrator_changed = true;
+				}
+
+				ImGui::SliderInt("render_threads", &scene_options.render_threads_no, 1, 16);
+				if (ImGui::IsItemDeactivatedAfterEdit()) {
+					integrator_changed = true;
 				}
 
 				ImGui::PushStyleColor(ImGuiCol_PlotHistogram, (ImVec4)ImColor(0.2f, 0.8f, 0.3f));
@@ -2014,30 +2013,62 @@ public:
 				ImGui::Text("Method:");
 				ImGui::SameLine();
 
+				
+
 				if (ImGui::RadioButton("whitted", &scene_options.render_method, 0)) {
 					PbrApiSelectIntegrator(scene_options.render_method);
+					integrator_changed = true;
 				}
 
 				ImGui::SameLine();
 
 				if (ImGui::RadioButton("path tracing", &scene_options.render_method, 1)) {
 					PbrApiSelectIntegrator(scene_options.render_method);
+					integrator_changed = true;
 				}
 
 				ImGui::SameLine();
 
 				if (ImGui::RadioButton("photon mapping", &scene_options.render_method, 2)) {
 					PbrApiSelectIntegrator(scene_options.render_method);
+					integrator_changed = true;
 				}
 
 				ImGui::SameLine();
 
 				if (ImGui::RadioButton("ppm", &scene_options.render_method, 3)) {
 					PbrApiSelectIntegrator(scene_options.render_method);
+					integrator_changed = true;
 				}
 
-				if (scene_options.render_method == 2) {
-					bool integrator_changed = false;
+				if (scene_options.render_method == 0) {
+					if (integrator_changed) {
+						json integrator_info;
+						integrator_info["ray_sample_no"] = scene_options.ray_sample_no;
+						integrator_info["ray_bounce_no"] = scene_options.ray_bounce_no;
+						integrator_info["render_threads_no"] = scene_options.render_threads_no;
+
+						json data;
+						data["whitted"] = integrator_info;
+						PbrApiSetIntegrator(data);
+						integrator_changed = false;
+					}
+				}
+				else if (scene_options.render_method == 1) {
+					if (integrator_changed) {
+						json integrator_info;
+						integrator_info["ray_sample_no"] = scene_options.ray_sample_no;
+						integrator_info["ray_bounce_no"] = scene_options.ray_bounce_no;
+						integrator_info["render_threads_no"] = scene_options.render_threads_no;
+
+						json data;
+						data["path"] = integrator_info;
+						PbrApiSetIntegrator(data);
+						integrator_changed = false;
+					}
+				}
+				else if (scene_options.render_method == 2) {
+					//bool integrator_changed = false;
 					ImGui::SliderInt("emit photons", &scene_options.emitPhotons, 0, 100000);
 					if (ImGui::IsItemDeactivatedAfterEdit()) {
 						integrator_changed = true;
@@ -2140,6 +2171,10 @@ public:
 
 					if (integrator_changed) {
 						json integrator_info;
+						integrator_info["ray_sample_no"] = scene_options.ray_sample_no;
+						integrator_info["ray_bounce_no"] = scene_options.ray_bounce_no;
+						integrator_info["render_threads_no"] = scene_options.render_threads_no;
+
 						integrator_info["emitPhotons"] = scene_options.emitPhotons;
 						integrator_info["gatherPhotons"] = scene_options.gatherPhotons;
 						integrator_info["gatherPhotonsR"] = scene_options.gatherPhotonsR;
@@ -2161,18 +2196,13 @@ public:
 						
 
 						json data;
-						if(scene_options.render_method == 2)
-							data["pm"] = integrator_info;
-						else if (scene_options.render_method == 3)
-							data["ppm"] = integrator_info;
-
+						data["pm"] = integrator_info;
 						PbrApiSetIntegrator(data);
+						integrator_changed = false;
 					}
-				}
+				} else if (scene_options.render_method == 3) {
 
-				if (scene_options.render_method == 3) {
-
-					bool integrator_changed = false;
+					//bool integrator_changed = false;
 					ImGui::SliderInt("emit photons", &scene_options.emitPhotons, 0, 100000);
 					if (ImGui::IsItemDeactivatedAfterEdit()) {
 						integrator_changed = true;
@@ -2262,6 +2292,10 @@ public:
 
 					if (integrator_changed) {
 						json integrator_info;
+						integrator_info["ray_sample_no"] = scene_options.ray_sample_no;
+						integrator_info["ray_bounce_no"] = scene_options.ray_bounce_no;
+						integrator_info["render_threads_no"] = scene_options.render_threads_no;
+
 						integrator_info["emitPhotons"] = scene_options.emitPhotons;
 						integrator_info["alpha"] = scene_options.alpha;
 						integrator_info["initalRadius"] = scene_options.initalRadius;
@@ -2283,12 +2317,9 @@ public:
 
 
 						json data;
-						if (scene_options.render_method == 2)
-							data["pm"] = integrator_info;
-						else if (scene_options.render_method == 3)
-							data["ppm"] = integrator_info;
-
+						data["ppm"] = integrator_info;
 						PbrApiSetIntegrator(data);
+						integrator_changed = false;
 					}
 				}
 

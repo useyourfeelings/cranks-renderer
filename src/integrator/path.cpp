@@ -15,6 +15,12 @@ void PathIntegrator::Preprocess(const Scene& scene, Sampler& sampler) {
     lightDistribution = CreateLightSampleDistribution(lightSampleStrategy, scene);
 }
 
+void PathIntegrator::SetOptions(const json& data) {
+    sampler->SetSamplesPerPixel(data["ray_sample_no"]);
+    SetRayBounceNo(data["ray_bounce_no"]);
+    SetRenderThreadsCount(data["render_threads_no"]);
+}
+
 Spectrum PathIntegrator::Li(MemoryBlock& mb, const RayDifferential& r, Scene& scene, Sampler& sampler, int pool_id, int depth)  {
     Spectrum L(0.f), beta(1.f);
     RayDifferential ray(r);

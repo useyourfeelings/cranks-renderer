@@ -21,7 +21,8 @@ static std::set<std::string> valid_setting_key{
 	"camera_resY",
 	"ray_sample_no"
 	"ray_bounce_no"
-	"render_threads_count"
+	"render_threads_no"
+	"image_scale"
 };
 
 class Setting {
@@ -47,8 +48,9 @@ public:
 		std::cout << "Setting.LoadDefaultSetting()" << std::endl;
 
 		j = json();
-		j["camera_resX"] = 768;
-		j["camera_resY"] = 768;
+		j["image_scale"] = 1;
+		j["camera_resX"] = j["image_scale"] * 128;
+		j["camera_resY"] = j["image_scale"] * 128;
 		j["camera_fov"] = 90.0;
 		j["camera_asp"] = 1.0;
 		j["camera_near"] = 0.1;
@@ -61,7 +63,8 @@ public:
 		j["ray_sample_no"] = 4;
 		j["ray_bounce_no"] = 4;
 
-		j["render_threads_count"] = 3;
+		j["render_threads_no"] = 4;
+		
 	}
 
 	int LoadFile() {

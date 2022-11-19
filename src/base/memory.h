@@ -23,10 +23,11 @@ private:
 
 	int align;
 	size_t blockSize;
+	size_t totalSize = 0;
 	std::list<std::pair<uint8_t*, size_t>> freeBlocks, busyBlocks;
 
 	size_t currentBlockSize = 0;
-	size_t currentBlockPos = 0;
+	size_t currentBlockStart = 0;
 	uint8_t* currentBlock = nullptr;
 };
 

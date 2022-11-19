@@ -16,9 +16,9 @@ class Integrator {
 public:
     // Integrator Interface
     Integrator() :
-        render_threads_count(3),
-        render_progress_now(render_threads_count, 0),
-        render_progress_total(render_threads_count, 0),
+        render_threads_no(3),
+        render_progress_now(render_threads_no, 0),
+        render_progress_total(render_threads_no, 0),
         render_status(0),
         render_duration(0),
         has_new_photo(0),
@@ -37,7 +37,7 @@ public:
     }
 
     void SetRenderThreadsCount(int c) {
-        render_threads_count = c;
+        render_threads_no = c;
 
         render_progress_now.resize(c);
         render_progress_total.resize(c);
@@ -83,7 +83,7 @@ public:
         return sky_spectrum;
     }
 
-    int render_threads_count; // order is important
+    int render_threads_no; // order is important
     std::vector<int> render_progress_now, render_progress_total;
     int render_status;// , render_progress_now, render_progress_total;
     int has_new_photo;
@@ -106,22 +106,21 @@ public:
 
     Spectrum SpecularReflect(MemoryBlock& mb, const RayDifferential& ray,
         const SurfaceInteraction& isect,
-        Scene& scene, Sampler& sampler, int depth);
+        Scene& scene, Sampler& sampler, int pool_id, int depth);
 
     Spectrum SpecularTransmit(MemoryBlock& mb, const RayDifferential& ray,
         const SurfaceInteraction& isect,
-        Scene& scene, Sampler& sampler, int depth);
+        Scene& scene, Sampler& sampler, int pool_id, int depth);
 
 protected:
     // SamplerIntegrator Protected Data
     std::shared_ptr<Camera> camera;
+    std::shared_ptr<Sampler> sampler;
 
 private:
     // SamplerIntegrator Private Data
-    std::shared_ptr<Sampler> sampler;
+    
     const BBox2i pixelBounds;
-
-    void render_task(MultiTaskArg args);
 };
 
 

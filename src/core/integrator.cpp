@@ -24,14 +24,14 @@ void SamplerIntegrator::Render(Scene& scene) {
 
     //this->render_progress_total = camera->resolutionX * camera->resolutionY;
     //this->render_progress_now = 0;
-    this->render_progress_now.resize(render_threads_count);
-    this->render_progress_total.resize(render_threads_count);
-    for (int i = 0; i < render_threads_count; ++ i) {
+    this->render_progress_now.resize(render_threads_no);
+    this->render_progress_total.resize(render_threads_no);
+    for (int i = 0; i < render_threads_no; ++ i) {
         render_progress_now[i] = 0;
     }
 
     MultiTaskArg tast_args;
-    tast_args.task_count = render_threads_count;
+    tast_args.task_count = render_threads_no;
     tast_args.x_start = sampleBounds.pMin.x;
     tast_args.y_start = sampleBounds.pMin.y;
     tast_args.x_end = sampleBounds.pMax.x - 1;
@@ -179,9 +179,9 @@ void SamplerIntegrator::Render(Scene& scene) {
 Spectrum SamplerIntegrator::SpecularReflect(
     MemoryBlock& mb,
     const RayDifferential& ray, const SurfaceInteraction& isect,
-    Scene& scene, Sampler& sampler, int depth) {
+    Scene& scene, Sampler& sampler, int pool_id, int depth) {
 
-    Log("SpecularReflect");
+    //Log("SpecularReflect");
 
     // Compute specular reflection direction _wi_ and BSDF value
     Vector3f wo = isect.wo;
@@ -195,7 +195,6 @@ Spectrum SamplerIntegrator::SpecularReflect(
     // Return contribution of specular reflection
     const Vector3f& ns = isect.shading.n;
     if (pdf > 0.f && !f.IsBlack() && std::abs(Dot(wi, ns)) != 0.f) {
-        Log("SpecularReflect continue");
 
         // Compute ray differential _rd_ for specular reflection
         RayDifferential rd = isect.SpawnRay(wi);
@@ -219,7 +218,7 @@ Spectrum SamplerIntegrator::SpecularReflect(
         //}
 
         // ÏÂÒ»ÂÖLi
-        return f * Li(mb, rd, scene, sampler, depth + 1) * std::abs(Dot(wi, ns)) / pdf;
+        return f * Li(mb, rd, scene, sampler, pool_id, depth + 1) * std::abs(Dot(wi, ns)) / pdf;
     }
     else
         return Spectrum(0.f);
@@ -228,7 +227,7 @@ Spectrum SamplerIntegrator::SpecularReflect(
 Spectrum SamplerIntegrator::SpecularTransmit(
     MemoryBlock& mb, 
     const RayDifferential& ray, const SurfaceInteraction& isect,
-    Scene& scene, Sampler& sampler, int depth)  {
+    Scene& scene, Sampler& sampler, int pool_id, int depth)  {
     Vector3f wo = isect.wo, wi;
     float pdf;
     const Point3f& p = isect.p;
@@ -304,7 +303,7 @@ Spectrum SamplerIntegrator::SpecularTransmit(
                 wi - eta * dwody + Vector3f(mu * dndy + dmudy * ns);
         }
 #endif
-        L = f * Li(mb, rd, scene, sampler, depth + 1) * AbsDot(wi, ns) / pdf;
+        L = f * Li(mb, rd, scene, sampler, pool_id, depth + 1) * AbsDot(wi, ns) / pdf;
     }
     return L;
 }

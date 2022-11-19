@@ -19,11 +19,13 @@ MemoryBlock::~MemoryBlock() {
 }
 
 void MemoryBlock::Reset() {
-	currentBlockPos = 0;
+	currentBlockStart = 0;
 	freeBlocks.splice(freeBlocks.end(), busyBlocks); // fast
 	//freeBlocks.splice(freeBlocks.begin(), busyBlocks); // slow
 
 	//std::cout << "freeBlocks = " << freeBlocks.size() << std::endl;
+	//std::cout << "totalSize = " << totalSize << std::endl;
+	
 }
 
 void* MemoryBlock::Alloc(size_t nBytes) {
@@ -31,7 +33,7 @@ void* MemoryBlock::Alloc(size_t nBytes) {
 
 	//std::cout << "Alloc = " << nBytes << std::endl;
 
-	if (currentBlockPos + nBytes > currentBlockSize) { // test current
+	if (currentBlockStart + nBytes > currentBlockSize) { // test current
 		if (currentBlock) { // push current
 			busyBlocks.push_back(std::make_pair(currentBlock, currentBlockSize));
 			currentBlock = nullptr;
@@ -51,13 +53,15 @@ void* MemoryBlock::Alloc(size_t nBytes) {
 			currentBlockSize = std::max(nBytes, blockSize);
 			currentBlock = (uint8_t*)(_aligned_malloc(currentBlockSize, 64));
 			//std::cout << "Alloc real = " << nBytes << std::endl;
+
+			totalSize += currentBlockSize;
 		}
 
-		currentBlockPos = 0;
+		currentBlockStart = 0;
 	} 
 
-	void* start = currentBlock + currentBlockPos;
-	currentBlockPos += nBytes;
+	void* start = currentBlock + currentBlockStart;
+	currentBlockStart += nBytes;
 
 	return start;
 }

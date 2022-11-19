@@ -14,22 +14,22 @@ struct CameraSetting {
 	float fov = 90;
 	float asp = 1.2f;
 	float near_far[2] = { 2, 200 };
-	int ray_sample_no = 1;
-	int ray_bounce_no = 1;
-	int image_scale = 6;
+	int image_scale = 1;
 	int resolution[2] = { image_scale * 128, image_scale * 128 };
-
-	int render_threads_count = 3;
 };
 
 struct SceneOptions {
 	int nodes_structure = 1; // bvh
 	int render_method = 2; // 0-whitted 1-path tracing 2-photon mapping 3-ppm
 
+	int ray_sample_no = 1;
+	int ray_bounce_no = 5;
+	int render_threads_no = 4;
+
 	// pm
-	int emitPhotons = 5000;
+	int emitPhotons = 2000;
 	int gatherPhotons = 30;
-	float gatherPhotonsR = 0.1f;
+	float gatherPhotonsR = 0.f;
 	int gatherMethod = 0;
 	float energyScale = 10000;
 	bool reemitPhotons = 1;

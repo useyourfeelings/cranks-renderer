@@ -3,37 +3,23 @@
 #include "../core/reflection.h"
 #include "../tool/logger.h"
 
-Spectrum WhittedIntegrator::Li(MemoryBlock& mb, const RayDifferential& ray, Scene& scene, Sampler& sampler, int pool_id, int depth) {
-    Log("WhittedIntegrator::Li depth = %d", depth);
+void WhittedIntegrator::SetOptions(const json& data) {
+    sampler->SetSamplesPerPixel(data["ray_sample_no"]);
+    SetRayBounceNo(data["ray_bounce_no"]);
+    SetRenderThreadsCount(data["render_threads_no"]);
+}
 
-    ray.LogSelf();
+Spectrum WhittedIntegrator::Li(MemoryBlock& mb, const RayDifferential& ray, Scene& scene, Sampler& sampler, int pool_id, int depth) {
+    //Log("WhittedIntegrator::Li depth = %d", depth);
+
+    //ray.LogSelf();
 
     Spectrum L(0.);
     // Find closest ray intersection or return background radiance
     SurfaceInteraction isect;
     float tHit;
-    if (!scene.Intersect(ray, & tHit, &isect)) {
+    if (!scene.Intersect(ray, & tHit, &isect, pool_id)) {
         return GetFakeSky(ray.d.z);
-    }
-
-    Log("scene Intersect");
-    //isect.p.LogSelf();
-    //Log("primitive = %s", isect.primitive->name.c_str());
-    isect.LogSelf();
-
-
-    if (0) {
-        // draw normal
-
-        Spectrum test_spectrum;
-
-        isect.n.LogSelf();
-
-        test_spectrum.c[0] = 0.5 * (isect.n.x + 1); // map to [0, 1]
-        test_spectrum.c[1] = 0.5 * (isect.n.y + 1);
-        test_spectrum.c[2] = 0.5 * (isect.n.z + 1);
-
-        return test_spectrum;
     }
 
     // Compute emitted and reflected light at ray intersection point
@@ -42,9 +28,6 @@ Spectrum WhittedIntegrator::Li(MemoryBlock& mb, const RayDifferential& ray, Scen
     //const Normal3f& n = isect.shading.n;
     const Vector3f& n = isect.n;
     Vector3f wo = isect.wo;
-
-    isect.n.LogSelf("n");
-
 
     // Compute scattering functions for surface interaction
     // 根据材质添加BxDF。一个材质可能包含多种bxdf。
@@ -67,13 +50,7 @@ Spectrum WhittedIntegrator::Li(MemoryBlock& mb, const RayDifferential& ray, Scen
         // 光源的基本值
         Spectrum Li = light->Sample_Li(isect, sampler.Get2D(), &wi, &pdf); // for point light
 
-
-        Log("base Li %f %f %f pdf = %f", Li.c[0], Li.c[1], Li.c[2], pdf);
-
-        
-        wo.LogSelf("wo");
-        wi.LogSelf("wi");
-        
+        //Log("base Li %f %f %f pdf = %f", Li.c[0], Li.c[1], Li.c[2], pdf);
 
         // 为0的话直接跳过
         if (Li.IsBlack() || pdf == 0)
@@ -83,10 +60,9 @@ Spectrum WhittedIntegrator::Li(MemoryBlock& mb, const RayDifferential& ray, Scen
         // 即光打在点上，对wo方向的贡献。
         Spectrum f = isect.bsdf-> f(wo, wi);
 
-        Log("bsdf f = %f %f %f", f.c[0], f.c[1], f.c[2]);
+        //Log("bsdf f = %f %f %f", f.c[0], f.c[1], f.c[2]);
 
         // 交点到光源之间是否有阻挡
-
         if (!f.IsBlack()) {
             //Ray temp_ray(isect.p, wi);
 
@@ -96,12 +72,11 @@ Spectrum WhittedIntegrator::Li(MemoryBlock& mb, const RayDifferential& ray, Scen
 
             Ray temp_ray = isect.SpawnRayTo(light->pos);
 
-            Log("temp_ray");
-            temp_ray.LogSelf();
+            //temp_ray.LogSelf();
 
             SurfaceInteraction temp_isect;
             float temp_t;
-            auto ires = scene.Intersect(temp_ray, &temp_t, &temp_isect);
+            auto ires = scene.Intersect(temp_ray, &temp_t, &temp_isect, pool_id);
 
             if (!ires) {
                 L += f * Li * std::abs(Dot(wi, n)) / pdf;
@@ -112,16 +87,16 @@ Spectrum WhittedIntegrator::Li(MemoryBlock& mb, const RayDifferential& ray, Scen
         }
             
     }
+
     if (depth + 1 < maxDepth) {
         // Trace rays for specular reflection and refraction
 
         // WhittedIntegrator 只能处理 BxDFType(BSDF_REFLECTION | BSDF_SPECULAR)
         // 反射光进行下一层Li
-        auto reflect = SpecularReflect(mb, ray, isect, scene, sampler, depth);
-        L += reflect;
+        L += SpecularReflect(mb, ray, isect, scene, sampler, pool_id, depth);
 
         // 传输光进行下一层Li
-        L += SpecularTransmit(mb, ray, isect, scene, sampler, depth);
+        L += SpecularTransmit(mb, ray, isect, scene, sampler, pool_id, depth);
     }
 
     // L的三个部分。直接光，反射光。传输光。

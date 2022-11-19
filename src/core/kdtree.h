@@ -137,7 +137,9 @@ void KDTree<T>::Build(const std::vector<T>& input_points, int test) {
 	std::cout << "nodesCount = " << nodesCount << " levels = " << levels << " nodes.size() = " << nodes.size() << std::endl;
 
 	std::vector<BuildTask> build_tasks; // start end level
-	build_tasks.push_back(BuildTask(0, points.size() - 1, 0, 0));
+
+	if(!points.empty())
+		build_tasks.push_back(BuildTask(0, points.size() - 1, 0, 0));
 
 	while (!build_tasks.empty()) { // pick median in [start, end], set kdtree_index.
 		BuildTask build_task = build_tasks.back();

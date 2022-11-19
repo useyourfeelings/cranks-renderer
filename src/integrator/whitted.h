@@ -11,6 +11,7 @@ public:
         const BBox2i& pixelBounds)
         : SamplerIntegrator(camera, sampler, pixelBounds) {}
 
+    void SetOptions(const json& data);
     Spectrum Li(MemoryBlock& mb, const RayDifferential& ray, Scene& scene, Sampler& sampler, int pool_id = 0, int depth = 0);
 
 private:

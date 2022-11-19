@@ -55,7 +55,7 @@ public:
 	void SetCamera(Point3f pos, Point3f look, Vector3f up);
 	void SetPerspectiveCamera(Point3f pos, Point3f look, Vector3f up, 
 		float fov, float aspect_ratio, float near, float far, 
-		int resX, int resY, int ray_sample_no, int ray_bounce_no, int render_threads_count);
+		int resX, int resY);
 
 	void SetSceneOptions(int nodes_structure);
 

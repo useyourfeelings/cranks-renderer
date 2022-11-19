@@ -30,6 +30,10 @@ PPMIntegrator::PPMIntegrator(std::shared_ptr<Camera> camera,
     }
 
 void PPMIntegrator::SetOptions(const json& data) {
+    sampler->SetSamplesPerPixel(data["ray_sample_no"]);
+    SetRayBounceNo(data["ray_bounce_no"]);
+    SetRenderThreadsCount(data["render_threads_no"]);
+
     emitPhotons = data["emitPhotons"];
     filter = data["filter"];
     energyScale = data["energyScale"];
@@ -78,14 +82,14 @@ void PPMIntegrator::TraceRay(Scene& scene, std::vector<MemoryBlock> &mbs) {
     BBox2i sampleBounds = BBox2i(Point2i(0, 0), Point2i(camera->resolutionX, camera->resolutionY));
     // sampleBounds ÀàËÆ600 400
 
-    this->render_progress_now.resize(render_threads_count);
-    this->render_progress_total.resize(render_threads_count);
-    for (int i = 0; i < render_threads_count; ++i) {
+    this->render_progress_now.resize(render_threads_no);
+    this->render_progress_total.resize(render_threads_no);
+    for (int i = 0; i < render_threads_no; ++i) {
         render_progress_now[i] = 0;
     }
 
     json tast_args0({
-        { "task_count", render_threads_count },
+        { "task_count", render_threads_no },
         { "x_start",sampleBounds.pMin.x },
         { "y_start",sampleBounds.pMin.y },
         { "x_end",sampleBounds.pMax.x - 1 },
@@ -93,7 +97,7 @@ void PPMIntegrator::TraceRay(Scene& scene, std::vector<MemoryBlock> &mbs) {
         });
 
     MultiTaskArg tast_args;
-    tast_args.task_count = render_threads_count;
+    tast_args.task_count = render_threads_no;
     tast_args.x_start = sampleBounds.pMin.x;
     tast_args.y_start = sampleBounds.pMin.y;
     tast_args.x_end = sampleBounds.pMax.x - 1;
@@ -437,20 +441,20 @@ void PPMIntegrator::EmitPhoton(Scene& scene) {
 void PPMIntegrator::RenderPhoton(Scene& scene) {
     std::cout << "PPMIntegrator::RenderPhoton() emitPhotons = " << emitPhotons << std::endl;
 
-    this->render_progress_now.resize(render_threads_count);
-    this->render_progress_total.resize(render_threads_count);
-    for (int i = 0; i < render_threads_count; ++i) {
+    this->render_progress_now.resize(render_threads_no);
+    this->render_progress_total.resize(render_threads_no);
+    for (int i = 0; i < render_threads_no; ++i) {
         render_progress_now[i] = 0;
     }
 
     json tast_args0({
-        { "task_count", render_threads_count },
+        { "task_count", render_threads_no },
         { "start", 0 },
         { "end", hitpoints.size() - 1}
         });
 
     MultiTaskArg tast_args;
-    tast_args.task_count = render_threads_count;
+    tast_args.task_count = render_threads_no;
     tast_args.x_start = 0;
     //tast_args.y_start = sampleBounds.pMin.y;
     tast_args.x_end = hitpoints.size() - 1;

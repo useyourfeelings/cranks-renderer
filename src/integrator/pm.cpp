@@ -26,6 +26,10 @@ PMIntegrator::PMIntegrator(std::shared_ptr<Camera> camera,
     }
 
 void PMIntegrator::SetOptions(const json& data) {
+    sampler->SetSamplesPerPixel(data["ray_sample_no"]);
+    SetRayBounceNo(data["ray_bounce_no"]);
+    SetRenderThreadsCount(data["render_threads_no"]);
+
     emitPhotons = data["emitPhotons"];
     gatherPhotons = data["gatherPhotons"];
     gatherPhotonsR = data["gatherPhotonsR"];
@@ -192,14 +196,14 @@ void PMIntegrator::RenderPhoton(Scene& scene) {
     BBox2i sampleBounds = BBox2i(Point2i(0, 0), Point2i(camera->resolutionX, camera->resolutionY));
     // sampleBounds ÀàËÆ600 400
 
-    this->render_progress_now.resize(render_threads_count);
-    this->render_progress_total.resize(render_threads_count);
-    for (int i = 0; i < render_threads_count; ++i) {
+    this->render_progress_now.resize(render_threads_no);
+    this->render_progress_total.resize(render_threads_no);
+    for (int i = 0; i < render_threads_no; ++i) {
         render_progress_now[i] = 0;
     }
 
     MultiTaskArg tast_args;
-    tast_args.task_count = render_threads_count;
+    tast_args.task_count = render_threads_no;
     tast_args.x_start = sampleBounds.pMin.x;
     tast_args.y_start = sampleBounds.pMin.y;
     tast_args.x_end = sampleBounds.pMax.x - 1;
