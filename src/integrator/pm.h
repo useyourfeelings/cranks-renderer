@@ -29,7 +29,7 @@ private:
     json GetRenderStatus();
     void EmitPhoton(Scene& scene);
     void RenderPhoton(Scene& scene);
-    Spectrum Li(MemoryBlock& mb, const RayDifferential& ray, Scene& scene, int depth, int samplingFlag = 0);
+    Spectrum Li(MemoryBlock& mb, const RayDifferential& ray, Scene& scene, int pool_id, int depth, int samplingFlag = 0);
 
     std::shared_ptr<Camera> camera;
     std::shared_ptr<Sampler> sampler;

@@ -72,7 +72,7 @@ private:
     void TraceRay(Scene& scene, std::vector<MemoryBlock>& mbs);
     void TraceARay(MemoryBlock& mb, const RayDifferential& ray, Scene& scene, Point2i pixel, Point2i resolution, int depth, Spectrum energyWeight, int pool_id);
 
-    void UpdateHitpoint(Scene& scene, int i);
+    void UpdateHitpoint(Scene& scene, int i, int pool_id);
 
     std::vector<Hitpoint> hitpoints; // x * y pixels
 

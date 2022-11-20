@@ -2148,7 +2148,8 @@ public:
 
 					//ImGui::SameLine();
 
-					if (ImGui::SliderInt("samples", &scene_options.specularRTSamples, 1, 50)) {
+					ImGui::SliderInt("samples", &scene_options.specularRTSamples, 1, 50);
+					if (ImGui::IsItemDeactivatedAfterEdit()) {
 						integrator_changed = true;
 					}
 

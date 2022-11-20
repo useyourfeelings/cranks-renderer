@@ -7,8 +7,6 @@
 
 PMIntegrator::PMIntegrator(std::shared_ptr<Camera> camera,
     std::shared_ptr<Sampler> sampler
-    //const BBox2i& pixelBounds, float rrThreshold,
-    //const std::string& lightSampleStrategy
 )
     : camera(camera),
     sampler(sampler),
@@ -20,8 +18,6 @@ PMIntegrator::PMIntegrator(std::shared_ptr<Camera> camera,
     energyScale(10000),
     reemitPhotons(1),
     renderDirect(1)
-    //rrThreshold(rrThreshold),
-    //lightSampleStrategy(lightSampleStrategy) 
     {
     }
 
@@ -137,12 +133,6 @@ void PMIntegrator::EmitPhoton(Scene& scene) {
                     caustic = false; // 重新开始
                 }
 
-                //if (sampler->Get1D() < 0.1667) {
-                //    //std::cout << "rr break" << std::endl;
-                //    break;
-                //}
-                    
-
                 Vector3f wo = -ray.d, wi;
                 float pdf;
                 BxDFType flags;
@@ -188,10 +178,8 @@ void PMIntegrator::EmitPhoton(Scene& scene) {
 void PMIntegrator::RenderPhoton(Scene& scene) {
     std::cout << "PMIntegrator::RenderPhoton() emitPhotons = " << emitPhotons << " gatherPhotons = " << gatherPhotons << std::endl;
 
-    //Log("Render");
     render_status = 1;
     has_new_photo = 0;
-    //Preprocess(scene, *sampler);
 
     BBox2i sampleBounds = BBox2i(Point2i(0, 0), Point2i(camera->resolutionX, camera->resolutionY));
     // sampleBounds 类似600 400
@@ -246,14 +234,6 @@ void PMIntegrator::RenderPhoton(Scene& scene) {
         args.x_end = x_end;
 
         return args;
-
-        /*return json({
-            { "task_index", task_index },
-            { "task_progress_total", (x_end - x_start + 1) * (int(args["y_end"]) - args["y_start"] + 1)},
-            { "y_start", args["y_start"]},
-            { "x_start", x_start },
-            { "y_end", args["y_end"] },
-            { "x_end", x_end} });*/
     };
 
     auto render_task = [&](MultiTaskArg args) {
@@ -262,19 +242,14 @@ void PMIntegrator::RenderPhoton(Scene& scene) {
         int task_index = args.task_index;
 
         std::cout << "--- render_task " << task_index << " " << i << " " << j << std::endl;
-        //std::cout << args << std::endl;
 
         MemoryBlock mb;
 
         this->render_progress_total[task_index] = args.task_progress_total;
 
-        //RandomSampler sampler(1);
-
         int progress_interval = args.task_progress_total / 100;
         int progress = 0;
 
-        // Loop over pixels in tile to render them
-        //while (i < sampleBounds.pMax.x && j < sampleBounds.pMax.y) {
         for (int j = args.y_start; j <= args.y_end; ++j) {
             for (int i = args.x_start; i <= args.x_end; ++i) {
 
@@ -283,8 +258,6 @@ void PMIntegrator::RenderPhoton(Scene& scene) {
 
                 progress++;
 
-                //Log("Render %d %d", i, j);
-                //std::cout << "Render " << i << " " << j << std::endl;
                 Point2i pixel(i, j);
 
                 sampler->StartPixel(pixel);
@@ -294,17 +267,15 @@ void PMIntegrator::RenderPhoton(Scene& scene) {
                 }
 
                 do {
-                    // Initialize _CameraSample_ for current sample
                     CameraSample cameraSample = sampler->GetCameraSample(pixel);
 
-                    // Generate camera ray for current sample
                     RayDifferential ray;
                     float rayWeight = camera->GenerateRayDifferential(cameraSample, &ray);
                     //ray.ScaleDifferentials(1 / std::sqrt((float)local_sampler->samplesPerPixel));
 
                     Spectrum L(0.f);
                     if (rayWeight > 0)
-                        L = Li(mb, ray, scene, 0);
+                        L = Li(mb, ray, scene, task_index, 0);
 
                     camera->AddSample(Point2f(pixel.x, pixel.y), L, rayWeight, sampler->samplesPerPixel);
 
@@ -314,9 +285,13 @@ void PMIntegrator::RenderPhoton(Scene& scene) {
         }
     };
 
+    auto start_time = std::chrono::high_resolution_clock::now();
+
     StartMultiTask(render_task, manager_func, tast_args);
 
-    // Save final image after rendering
+    float duration = (float)(std::chrono::duration<double, std::milli>(std::chrono::high_resolution_clock::now() - start_time).count());
+    std::cout << std::format("----------- task_count = {} duration = {}\n", tast_args.task_count, duration);
+
     camera->film->WriteImage();
     camera->films.push_back(camera->film);
     render_status = 0;
@@ -324,20 +299,18 @@ void PMIntegrator::RenderPhoton(Scene& scene) {
 }
 
 
-Spectrum PMIntegrator::Li(MemoryBlock &mb, const RayDifferential& ray, Scene& scene, int depth, int samplingFlag) {
+Spectrum PMIntegrator::Li(MemoryBlock &mb, const RayDifferential& ray, Scene& scene, int pool_id, int depth, int samplingFlag) {
     Spectrum L(0.f);
 
     SurfaceInteraction isect;
     float tHit;
-    bool hitScene = scene.Intersect(ray, &tHit, &isect);
-
+    bool hitScene = scene.Intersect(ray, &tHit, &isect, pool_id);
+    
     if (hitScene) {
         isect.ComputeScatteringFunctions(mb, ray);
 
         // direct
         if (renderDirect) {
-            // Sample illumination from lights to find path contribution.
-            // (But skip this for perfectly specular BSDFs.)
             if (isect.bsdf->NumComponents(BxDFType(BSDF_ALL & ~(BSDF_SPECULAR | BSDF_GLOSSY))) > 0) {
                 // 计算直接光。
                 // 对所有光源采样，选出一个光源，计算bsdf。得到最后的光能。
@@ -349,8 +322,8 @@ Spectrum PMIntegrator::Li(MemoryBlock &mb, const RayDifferential& ray, Scene& sc
         }
 
         // specular
-        if (renderSpecular && depth < maxDepth) { // && sampler->Get1D() > 0.1667
-            if (specularMethod == 0 && depth >= 3) {
+        if (renderSpecular && depth < maxDepth) {
+            if (specularMethod == 0 && depth >= 2) {
                 if (isect.bsdf->NumComponents(BxDFType(BSDF_SPECULAR | BSDF_REFLECTION)) > 0 ||
                     isect.bsdf->NumComponents(BxDFType(BSDF_GLOSSY | BSDF_REFLECTION)) > 0 ||
                     isect.bsdf->NumComponents(BxDFType(BSDF_SPECULAR | BSDF_TRANSMISSION))
@@ -371,7 +344,7 @@ Spectrum PMIntegrator::Li(MemoryBlock &mb, const RayDifferential& ray, Scene& sc
                             if (f.IsBlack() || pdf == 0.f) {
                             }
                             else {
-                                Ls += f * AbsDot(wi, isect.shading.n) * Li(mb, isect.SpawnRay(wi), scene, depth + 1, 1) / pdf;
+                                Ls += f * AbsDot(wi, isect.shading.n) * Li(mb, isect.SpawnRay(wi), scene, pool_id, depth + 1, 1) / pdf;
                             }
                         }
 
@@ -379,13 +352,13 @@ Spectrum PMIntegrator::Li(MemoryBlock &mb, const RayDifferential& ray, Scene& sc
                     }
                     else {
                         // 以wo采一束入射光，算出f。
-                            // 同时得到一个随机方向，作为下一层的path。
+                        // 同时得到一个随机方向，作为下一层的path。
                         Spectrum f = isect.bsdf->Sample_f(wo, &wi, sampler->Get2D(), &pdf, BxDFType(BSDF_ALL), &flags);
 
                         if (f.IsBlack() || pdf == 0.f) {
                         }
                         else {
-                            Ls += f * AbsDot(wi, isect.shading.n) * Li(mb, isect.SpawnRay(wi), scene, depth + 1, 1) / pdf;
+                            Ls += f * AbsDot(wi, isect.shading.n) * Li(mb, isect.SpawnRay(wi), scene, pool_id, depth + 1, 1) / pdf;
                         }
 
                         L += Ls;
@@ -409,7 +382,7 @@ Spectrum PMIntegrator::Li(MemoryBlock &mb, const RayDifferential& ray, Scene& sc
                     if (f.IsBlack() || pdf == 0.f) {
                     }
                     else {
-                        Ls = f * AbsDot(wi, isect.shading.n) * Li(mb, isect.SpawnRay(wi), scene, depth + 1, samplingFlag) / pdf;
+                        Ls = f * AbsDot(wi, isect.shading.n) * Li(mb, isect.SpawnRay(wi), scene, pool_id, depth + 1, samplingFlag) / pdf;
                     }
 
                     L += Ls;
@@ -430,7 +403,7 @@ Spectrum PMIntegrator::Li(MemoryBlock &mb, const RayDifferential& ray, Scene& sc
                     if (f.IsBlack() || pdf == 0.f) {
                     }
                     else {
-                        Ls = f * AbsDot(wi, isect.shading.n) * Li(mb, isect.SpawnRay(wi), scene, depth + 1, samplingFlag) / pdf;
+                        Ls = f * AbsDot(wi, isect.shading.n) * Li(mb, isect.SpawnRay(wi), scene, pool_id, depth + 1, samplingFlag) / pdf;
                     }
 
                     L += Ls;
@@ -451,13 +424,16 @@ Spectrum PMIntegrator::Li(MemoryBlock &mb, const RayDifferential& ray, Scene& sc
                     if (f.IsBlack() || pdf == 0.f) {
                     }
                     else {
-                        Ls = f * AbsDot(wi, isect.shading.n) * Li(mb, isect.SpawnRay(wi), scene, depth + 1, samplingFlag) / pdf;
+                        Ls = f * AbsDot(wi, isect.shading.n) * Li(mb, isect.SpawnRay(wi), scene, pool_id, depth + 1, samplingFlag) / pdf;
                     }
 
                     L += Ls;
                 }
             }
         }
+
+        KNNResult<Photon> knnResult;
+        knnResult.payloads.reserve(1000);
 
         // caustic
         if (renderCaustic) {
@@ -467,10 +443,11 @@ Spectrum PMIntegrator::Li(MemoryBlock &mb, const RayDifferential& ray, Scene& sc
             if (gatherMethod == 1)
                 near = int(float(near) * causticPhotonMap.Size() / 1000);
 
-            auto knnResult = causticPhotonMap.KNN(isect.p, near, gatherPhotonsR * gatherPhotonsR);
+            knnResult.payloads.clear();
+            causticPhotonMap.KNN(isect.p, near, gatherPhotonsR * gatherPhotonsR, pool_id, knnResult);
 
             // for cone filter
-            float r = std::sqrt(knnResult.resultMaxDistance2);
+            float r = std::sqrt(knnResult.maxDistance2);
             float k = 1.1f;
 
             for (auto photon : knnResult.payloads) {
@@ -493,10 +470,10 @@ Spectrum PMIntegrator::Li(MemoryBlock &mb, const RayDifferential& ray, Scene& sc
             }
 
             if (filter == 0) {
-                L_caustic /= (Pi * knnResult.resultMaxDistance2);
+                L_caustic /= (Pi * knnResult.maxDistance2);
             }
             else if (filter == 1) {
-                L_caustic /= (Pi * knnResult.resultMaxDistance2 * (1.f - 2.f / (k * 3)));
+                L_caustic /= (Pi * knnResult.maxDistance2 * (1.f - 2.f / (k * 3)));
             }
 
             L += L_caustic;
@@ -511,12 +488,13 @@ Spectrum PMIntegrator::Li(MemoryBlock &mb, const RayDifferential& ray, Scene& sc
 
                 int near = gatherPhotons;
                 if (gatherMethod == 1)
-                    near = int(float(near) * causticPhotonMap.Size() / 1000);
+                    near = int(float(near) * diffusePhotonMap.Size() / 1000);
 
-                auto knnResult = diffusePhotonMap.KNN(isect.p, near, gatherPhotonsR * gatherPhotonsR);
+                knnResult.payloads.clear();
+                diffusePhotonMap.KNN(isect.p, near, gatherPhotonsR * gatherPhotonsR, pool_id, knnResult);
 
                 // for cone filter
-                float r = std::sqrt(knnResult.resultMaxDistance2);
+                float r = std::sqrt(knnResult.maxDistance2);
                 float k = 1.1f;
 
                 for (auto photon : knnResult.payloads) {
@@ -539,10 +517,10 @@ Spectrum PMIntegrator::Li(MemoryBlock &mb, const RayDifferential& ray, Scene& sc
                 }
 
                 if (filter == 0) {
-                    L_caustic /= (Pi * knnResult.resultMaxDistance2);
+                    L_caustic /= (Pi * knnResult.maxDistance2);
                 }
                 else if (filter == 1) {
-                    L_caustic /= (Pi * knnResult.resultMaxDistance2 * (1.f - 2.f / (k * 3)));
+                    L_caustic /= (Pi * knnResult.maxDistance2 * (1.f - 2.f / (k * 3)));
                 }
 
                 L += L_caustic;
@@ -557,12 +535,13 @@ Spectrum PMIntegrator::Li(MemoryBlock &mb, const RayDifferential& ray, Scene& sc
 
                 int near = gatherPhotons;
                 if (gatherMethod == 1)
-                    near = int(float(near) * causticPhotonMap.Size() / 1000);
+                    near = int(float(near) * globalPhotonMap.Size() / 1000);
 
-                auto knnResult = globalPhotonMap.KNN(isect.p, near, gatherPhotonsR * gatherPhotonsR);
+                knnResult.payloads.clear();
+                globalPhotonMap.KNN(isect.p, near, gatherPhotonsR * gatherPhotonsR, pool_id, knnResult);
 
                 // for cone filter
-                float r = std::sqrt(knnResult.resultMaxDistance2);
+                float r = std::sqrt(knnResult.maxDistance2);
                 float k = 1.1f;
 
                 //std::cout << knnResult.payloads.size() << " "<< knnResult.resultMaxDistance2<< std::endl;
@@ -587,10 +566,10 @@ Spectrum PMIntegrator::Li(MemoryBlock &mb, const RayDifferential& ray, Scene& sc
                 }
 
                 if (filter == 0) {
-                    L_caustic /= (Pi * knnResult.resultMaxDistance2);
+                    L_caustic /= (Pi * knnResult.maxDistance2);
                 }
                 else if (filter == 1) {
-                    L_caustic /= (Pi * knnResult.resultMaxDistance2 * (1.f - 2.f / (k * 3)));
+                    L_caustic /= (Pi * knnResult.maxDistance2 * (1.f - 2.f / (k * 3)));
                 }
 
                 L += L_caustic;

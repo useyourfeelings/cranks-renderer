@@ -120,17 +120,17 @@ float PerspectiveCamera::GenerateRayDifferential(const CameraSample& sample,
     // perspective转换的ndc坐标系是yup。但场景是zup。所以直接交换一下yz。
     Point3f pCamera(pCamera_zfront.x, pCamera_zfront.z, pCamera_zfront.y);
 
-    Log("GenerateRayDifferential RasterToCamera");
-    pFilm.LogSelf();
-    Log("screen to camera");
-    pCamera.LogSelf();
+    //Log("GenerateRayDifferential RasterToCamera");
+    //pFilm.LogSelf();
+    //Log("screen to camera");
+    //pCamera.LogSelf();
 
     // 相机空间里相机就在原点。pCamera-0即可得到光的方向。
     Vector3f dir = Normalize(Vector3f(pCamera.x, pCamera.y, pCamera.z));
 
     *ray = RayDifferential(Point3f(0, 0, 0), dir); // 相机空间的光
-    Log("ray init");
-    ray->LogSelf();
+    //Log("ray init");
+    //ray->LogSelf();
     
     /* 暂时忽略
     // Modify ray for depth of field
@@ -176,9 +176,9 @@ float PerspectiveCamera::GenerateRayDifferential(const CameraSample& sample,
 
     *ray = CameraToWorld(*ray); // 回到world
 
-    Log("ray to world");
-    CameraToWorld.LogSelf();
-    ray->LogSelf();
+    //Log("ray to world");
+    //CameraToWorld.LogSelf();
+    //ray->LogSelf();
 
     ray->hasDifferentials = true;
     return 1;

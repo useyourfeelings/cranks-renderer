@@ -7,25 +7,17 @@
 
 PPMIntegrator::PPMIntegrator(std::shared_ptr<Camera> camera,
     std::shared_ptr<Sampler> sampler
-    //const BBox2i& pixelBounds, float rrThreshold,
-    //const std::string& lightSampleStrategy
 )
     : camera(camera),
     sampler(sampler),
     filter(1),
     emitPhotons(5000),
-    //gatherPhotons(30),
-    //gatherPhotonsR(0.1),
-    //gatherMethod(0),
     energyScale(10000),
-    //reemitPhotons(1),
     renderDirect(1),
     currentIteration(0),
     maxIterations(10),
     alpha(0.5),
     initalRadius(20)
-    //rrThreshold(rrThreshold),
-    //lightSampleStrategy(lightSampleStrategy) 
     {
     }
 
@@ -37,17 +29,11 @@ void PPMIntegrator::SetOptions(const json& data) {
     emitPhotons = data["emitPhotons"];
     filter = data["filter"];
     energyScale = data["energyScale"];
-    //reemitPhotons = data["reemitPhotons"];
 
     renderDirect = data["renderDirect"];
-    //renderSpecular = data["renderSpecular"];
     renderCaustic = data["renderCaustic"];
     renderDiffuse = data["renderDiffuse"];
     renderGlobal = data["renderGlobal"];
-
-    //specularMethod = data["specularMethod"];
-    //specularRTSamples = data["specularRTSamples"];
-
 
     // ppm
     maxIterations = data["maxIterations"];
@@ -74,10 +60,8 @@ void PPMIntegrator::TraceRay(Scene& scene, std::vector<MemoryBlock> &mbs) {
     render_status = 1;
     has_new_photo = 0;
     totalPhotons = 0;
-    //Preprocess(scene, *sampler);
 
     hitpoints.clear();
-    //hitpoints.resize(camera->resolutionX * camera->resolutionY);
 
     BBox2i sampleBounds = BBox2i(Point2i(0, 0), Point2i(camera->resolutionX, camera->resolutionY));
     // sampleBounds 类似600 400
@@ -87,14 +71,6 @@ void PPMIntegrator::TraceRay(Scene& scene, std::vector<MemoryBlock> &mbs) {
     for (int i = 0; i < render_threads_no; ++i) {
         render_progress_now[i] = 0;
     }
-
-    json tast_args0({
-        { "task_count", render_threads_no },
-        { "x_start",sampleBounds.pMin.x },
-        { "y_start",sampleBounds.pMin.y },
-        { "x_end",sampleBounds.pMax.x - 1 },
-        { "y_end",sampleBounds.pMax.y - 1 }
-        });
 
     MultiTaskArg tast_args;
     tast_args.task_count = render_threads_no;
@@ -140,14 +116,6 @@ void PPMIntegrator::TraceRay(Scene& scene, std::vector<MemoryBlock> &mbs) {
         args.x_end = x_end;
 
         return args;
-
-        /*return json({
-            { "task_index", task_index },
-            { "task_progress_total", (x_end - x_start + 1) * (int(args["y_end"]) - args["y_start"] + 1)},
-            { "y_start", args["y_start"]},
-            { "x_start", x_start },
-            { "y_end", args["y_end"] },
-            { "x_end", x_end} });*/
     };
 
     auto render_task = [&](MultiTaskArg args) {
@@ -156,12 +124,9 @@ void PPMIntegrator::TraceRay(Scene& scene, std::vector<MemoryBlock> &mbs) {
         int task_index = args.task_index;
 
         std::cout << "--- render_task " << args.task_index << " " << i << " " << j << std::endl;
-        //std::cout << args << std::endl;
 
         this->render_progress_total[task_index] = args.task_progress_total;
 
-        // Loop over pixels in tile to render them
-        //while (i < sampleBounds.pMax.x && j < sampleBounds.pMax.y) {
         for (int j = args.y_start; j <= args.y_end; ++j) {
             for (int i = args.x_start; i <= args.x_end; ++i) {
 
@@ -172,13 +137,11 @@ void PPMIntegrator::TraceRay(Scene& scene, std::vector<MemoryBlock> &mbs) {
                 //std::cout << "Render " << i << " " << j << std::endl;
                 Point2i pixel(i, j);
 
-                //this->sampler->StartPixel(pixel);
                 sampler->StartPixel(pixel);
 
                 this->render_progress_now[task_index]++;
 
                 do {
-                    // Initialize _CameraSample_ for current sample
                     CameraSample cameraSample = sampler->GetCameraSample(pixel);
 
                     // Generate camera ray for current sample
@@ -186,7 +149,6 @@ void PPMIntegrator::TraceRay(Scene& scene, std::vector<MemoryBlock> &mbs) {
                     float rayWeight = camera->GenerateRayDifferential(cameraSample, &ray);
                     //ray.ScaleDifferentials(1 / std::sqrt((float)local_sampler->samplesPerPixel));
 
-                    //Spectrum L(0.f);
                     if (rayWeight > 0)
                         TraceARay(mbs[task_index], ray, scene, Point2i(i, j), Point2i(camera->resolutionX, camera->resolutionY), 0, Spectrum(1.f), task_index);
 
@@ -235,8 +197,6 @@ void PPMIntegrator::TraceARay(MemoryBlock& mb, const RayDifferential& ray, Scene
             hitpoint.isect = isect;
 
             hitpoints.push_back(hitpoint);
-
-            //return;
         }
 
         // specular
@@ -477,13 +437,6 @@ void PPMIntegrator::RenderPhoton(Scene& scene) {
         args.x_end = end;
 
         return args;
-
-        /*return json({
-            { "task_index", task_index },
-            { "task_progress_total", (end - start + 1) },
-            { "start", start },
-            { "end", end }
-        });*/
     };
 
     auto render_task = [&](MultiTaskArg args) {
@@ -491,7 +444,6 @@ void PPMIntegrator::RenderPhoton(Scene& scene) {
         int task_index = args.task_index;
 
         std::cout << "--- render_task " << args.task_index << " " << i << std::endl;
-        //std::cout << args << std::endl;
 
         this->render_progress_total[task_index] = args.task_progress_total;
 
@@ -500,7 +452,7 @@ void PPMIntegrator::RenderPhoton(Scene& scene) {
             if (render_status == 0)
                 break;
 
-            UpdateHitpoint(scene, i);
+            UpdateHitpoint(scene, i, task_index);
             this->render_progress_now[task_index]++;
         }
     };
@@ -519,20 +471,25 @@ void PPMIntegrator::RenderPhoton(Scene& scene) {
     has_new_photo = 1;
 }
 
-void PPMIntegrator::UpdateHitpoint(Scene& scene, int i) {
+void PPMIntegrator::UpdateHitpoint(Scene& scene, int i, int pool_id) {
     Spectrum L(0.f);
+
+    Hitpoint & hitpoint = hitpoints[i];
 
     // direct
     if (renderDirect) {
         
-        auto distrib = lightDistribution->Lookup(hitpoints[i].isect->p);
-        Spectrum Ld = UniformSampleOneLight(*hitpoints[i].isect, scene, *(sampler->Clone()), false, distrib);
+        auto distrib = lightDistribution->Lookup(hitpoint.isect->p);
+        Spectrum Ld = UniformSampleOneLight(*hitpoint.isect, scene, *(sampler->Clone()), false, distrib);
         L += Ld;
 
-        L *= hitpoints[i].energyWeight;
+        L *= hitpoint.energyWeight;
 
-        camera->AddSample(Point2f(hitpoints[i].x, hitpoints[i].y), L, 1, 1);
+        camera->AddSample(Point2f(hitpoint.x, hitpoint.y), L, 1, 1);
     }
+
+    KNNResult<Photon> knnResult;
+    knnResult.payloads.reserve(1000);
 
     // caustic
     if (renderCaustic) {
@@ -540,10 +497,10 @@ void PPMIntegrator::UpdateHitpoint(Scene& scene, int i) {
 
         int near = emitPhotons; // take all
 
-        auto knnResult = causticPhotonMap.KNN(hitpoints[i].isect->p, near, hitpoints[i].r[0] * hitpoints[i].r[0]);
+        causticPhotonMap.KNN(hitpoint.isect->p, near, hitpoint.r[0] * hitpoint.r[0], pool_id, knnResult); //, info);
 
         // for cone filter
-        float r = hitpoints[i].r[0]; // std::sqrt(knnResult.resultMaxDistance2);
+        float r = hitpoint.r[0]; // std::sqrt(knnResult.resultMaxDistance2);
         float k = 1.1f;
 
         for (auto photon : knnResult.payloads) {
@@ -551,15 +508,15 @@ void PPMIntegrator::UpdateHitpoint(Scene& scene, int i) {
             float pdf;
             BxDFType flags;
 
-            Spectrum f = hitpoints[i].isect->bsdf->Sample_f(wo, &wi, sampler->Get2D(), &pdf, BxDFType(BSDF_ALL & ~(BSDF_SPECULAR | BSDF_GLOSSY)), &flags); // BSDF_ALL
+            Spectrum f = hitpoint.isect->bsdf->Sample_f(wo, &wi, sampler->Get2D(), &pdf, BxDFType(BSDF_ALL & ~(BSDF_SPECULAR | BSDF_GLOSSY)), &flags); // BSDF_ALL
 
             if (f.IsBlack() || pdf == 0.f)
                 continue;
 
-            auto photonEnergy = f * AbsDot(wi, hitpoints[i].isect->shading.n) * photon.energy * energyScale / pdf;
+            auto photonEnergy = f * AbsDot(wi, hitpoint.isect->shading.n) * photon.energy * energyScale / pdf;
 
             if (filter == 1) {
-                photonEnergy *= (1.f - Distance(photon.pos, hitpoints[i].isect->p) / (k * r));
+                photonEnergy *= (1.f - Distance(photon.pos, hitpoint.isect->p) / (k * r));
             }
 
             L_caustic += photonEnergy;
@@ -578,32 +535,33 @@ void PPMIntegrator::UpdateHitpoint(Scene& scene, int i) {
 
         size_t newPhotonNum = knnResult.payloads.size();
 
-        Spectrum newEnergy = (hitpoints[i].energy[0] + L_caustic) * 
-            (hitpoints[i].photonCount[0] + newPhotonNum * alpha) / 
-            (hitpoints[i].photonCount[0] + newPhotonNum);
+        Spectrum newEnergy = (hitpoint.energy[0] + L_caustic) *
+            (hitpoint.photonCount[0] + newPhotonNum * alpha) /
+            (hitpoint.photonCount[0] + newPhotonNum);
 
-        camera->AddSample(Point2f(hitpoints[i].x, hitpoints[i].y), newEnergy * hitpoints[i].energyWeight / totalPhotons, 1, 1);
+        camera->AddSample(Point2f(hitpoint.x, hitpoint.y), newEnergy * hitpoint.energyWeight / totalPhotons, 1, 1);
 
-        hitpoints[i].energy[0] = newEnergy;
-        hitpoints[i].r[0] *= std::sqrt(
-            (hitpoints[i].photonCount[0] + newPhotonNum * alpha) /
-            (hitpoints[i].photonCount[0] + newPhotonNum));
-        hitpoints[i].photonCount[0] += newPhotonNum * alpha;
+        hitpoint.energy[0] = newEnergy;
+        hitpoint.r[0] *= std::sqrt(
+            (hitpoint.photonCount[0] + newPhotonNum * alpha) /
+            (hitpoint.photonCount[0] + newPhotonNum));
+        hitpoint.photonCount[0] += newPhotonNum * alpha;
 
     }
 
     // diffuse
     if (renderDiffuse) {
-        if (hitpoints[i].isect->bsdf->NumComponents(BxDFType(BSDF_ALL & ~(BSDF_SPECULAR | BSDF_GLOSSY))) > 0) {
+        if (hitpoint.isect->bsdf->NumComponents(BxDFType(BSDF_ALL & ~(BSDF_SPECULAR | BSDF_GLOSSY))) > 0) {
 
             Spectrum L_caustic(0.f);
 
             int near = emitPhotons; // take all
 
-            auto knnResult = diffusePhotonMap.KNN(hitpoints[i].pos, near, hitpoints[i].r[1] * hitpoints[i].r[1]);
+            knnResult.payloads.clear();
+            diffusePhotonMap.KNN(hitpoint.pos, near, hitpoint.r[1] * hitpoint.r[1], pool_id, knnResult);
 
             // for cone filter
-            float r = hitpoints[i].r[1]; // std::sqrt(knnResult.resultMaxDistance2);
+            float r = hitpoint.r[1]; // std::sqrt(knnResult.resultMaxDistance2);
             float k = 1.1f;
 
             for (auto photon : knnResult.payloads) {
@@ -611,15 +569,15 @@ void PPMIntegrator::UpdateHitpoint(Scene& scene, int i) {
                 float pdf;
                 BxDFType flags;
 
-                Spectrum f = hitpoints[i].isect->bsdf->Sample_f(wo, &wi, sampler->Get2D(), &pdf, BSDF_ALL, &flags);
+                Spectrum f = hitpoint.isect->bsdf->Sample_f(wo, &wi, sampler->Get2D(), &pdf, BSDF_ALL, &flags);
 
                 if (f.IsBlack() || pdf == 0.f)
                     continue;
 
-                auto photonEnergy = f * AbsDot(wi, hitpoints[i].isect->shading.n) * photon.energy * energyScale / pdf;
+                auto photonEnergy = f * AbsDot(wi, hitpoint.isect->shading.n) * photon.energy * energyScale / pdf;
 
                 if (filter == 1) {
-                    photonEnergy *= (1.f - Distance(photon.pos, hitpoints[i].isect->p) / (k * r));
+                    photonEnergy *= (1.f - Distance(photon.pos, hitpoint.isect->p) / (k * r));
                 }
 
                 L_caustic += photonEnergy;
@@ -638,33 +596,34 @@ void PPMIntegrator::UpdateHitpoint(Scene& scene, int i) {
 
             size_t newPhotonNum = knnResult.payloads.size();
 
-            Spectrum newEnergy = (hitpoints[i].energy[1] + L_caustic) *
-                (hitpoints[i].photonCount[1] + newPhotonNum * alpha) /
-                (hitpoints[i].photonCount[1] + newPhotonNum);
+            Spectrum newEnergy = (hitpoint.energy[1] + L_caustic) *
+                (hitpoint.photonCount[1] + newPhotonNum * alpha) /
+                (hitpoint.photonCount[1] + newPhotonNum);
 
-            camera->AddSample(Point2f(hitpoints[i].x, hitpoints[i].y), newEnergy * hitpoints[i].energyWeight / totalPhotons, 1, 1);
+            camera->AddSample(Point2f(hitpoint.x, hitpoint.y), newEnergy * hitpoint.energyWeight / totalPhotons, 1, 1);
 
-            hitpoints[i].energy[1] = newEnergy;
-            hitpoints[i].r[1] *= std::sqrt(
-                (hitpoints[i].photonCount[1] + newPhotonNum * alpha) /
-                (hitpoints[i].photonCount[1] + newPhotonNum));
-            hitpoints[i].photonCount[1] += newPhotonNum * alpha;
+            hitpoint.energy[1] = newEnergy;
+            hitpoint.r[1] *= std::sqrt(
+                (hitpoint.photonCount[1] + newPhotonNum * alpha) /
+                (hitpoint.photonCount[1] + newPhotonNum));
+            hitpoint.photonCount[1] += newPhotonNum * alpha;
 
         }
     }
 
     // global
     if (renderGlobal) {
-        if (hitpoints[i].isect->bsdf->NumComponents(BxDFType(BSDF_ALL)) > 0) { //  & ~(BSDF_SPECULAR | BSDF_GLOSSY
+        if (hitpoint.isect->bsdf->NumComponents(BxDFType(BSDF_ALL)) > 0) { //  & ~(BSDF_SPECULAR | BSDF_GLOSSY
 
             Spectrum L_caustic(0.f);
 
             int near = emitPhotons; // take all
 
-            auto knnResult = globalPhotonMap.KNN(hitpoints[i].isect->p, near, hitpoints[i].r[2] * hitpoints[i].r[2]);
+            knnResult.payloads.clear();
+            globalPhotonMap.KNN(hitpoint.isect->p, near, hitpoint.r[2] * hitpoint.r[2], pool_id, knnResult);
 
             // for cone filter
-            float r = hitpoints[i].r[2]; // std::sqrt(knnResult.resultMaxDistance2);
+            float r = hitpoint.r[2]; // std::sqrt(knnResult.resultMaxDistance2);
             float k = 1.1f;
 
             //std::cout << knnResult.payloads.size() << " "<< knnResult.resultMaxDistance2<< std::endl;
@@ -674,15 +633,15 @@ void PPMIntegrator::UpdateHitpoint(Scene& scene, int i) {
                 float pdf;
                 BxDFType flags;
 
-                Spectrum f = hitpoints[i].isect->bsdf->Sample_f(wo, &wi, sampler->Get2D(), &pdf, BSDF_ALL, &flags);
+                Spectrum f = hitpoint.isect->bsdf->Sample_f(wo, &wi, sampler->Get2D(), &pdf, BSDF_ALL, &flags);
 
                 if (f.IsBlack() || pdf == 0.f)
                     continue;
 
-                auto photonEnergy = f * AbsDot(wi, hitpoints[i].isect->shading.n) * photon.energy * energyScale / pdf;
+                auto photonEnergy = f * AbsDot(wi, hitpoint.isect->shading.n) * photon.energy * energyScale / pdf;
 
                 if (filter == 1) {
-                    photonEnergy *= (1.f - Distance(photon.pos, hitpoints[i].isect->p) / (k * r));
+                    photonEnergy *= (1.f - Distance(photon.pos, hitpoint.isect->p) / (k * r));
                 }
 
                 L_caustic += photonEnergy;
@@ -701,17 +660,17 @@ void PPMIntegrator::UpdateHitpoint(Scene& scene, int i) {
 
             size_t newPhotonNum = knnResult.payloads.size();
 
-            Spectrum newEnergy = (hitpoints[i].energy[2] + L_caustic) *
-                (hitpoints[i].photonCount[2] + newPhotonNum * alpha) /
-                (hitpoints[i].photonCount[2] + newPhotonNum);
+            Spectrum newEnergy = (hitpoint.energy[2] + L_caustic) *
+                (hitpoint.photonCount[2] + newPhotonNum * alpha) /
+                (hitpoint.photonCount[2] + newPhotonNum);
 
-            camera->AddSample(Point2f(hitpoints[i].x, hitpoints[i].y), newEnergy* hitpoints[i].energyWeight / totalPhotons, 1, 1);
+            camera->AddSample(Point2f(hitpoint.x, hitpoint.y), newEnergy* hitpoint.energyWeight / totalPhotons, 1, 1);
 
-            hitpoints[i].energy[2] = newEnergy;
-            hitpoints[i].r[2] *= std::sqrt(
-                (hitpoints[i].photonCount[2] + newPhotonNum * alpha) /
-                (hitpoints[i].photonCount[2] + newPhotonNum));
-            hitpoints[i].photonCount[2] += newPhotonNum * alpha;
+            hitpoint.energy[2] = newEnergy;
+            hitpoint.r[2] *= std::sqrt(
+                (hitpoint.photonCount[2] + newPhotonNum * alpha) /
+                (hitpoint.photonCount[2] + newPhotonNum));
+            hitpoint.photonCount[2] += newPhotonNum * alpha;
         }
     }
 
@@ -729,7 +688,7 @@ void PPMIntegrator::Render(Scene& scene) {
 
     lightDistribution = CreateLightSampleDistribution("uniform", scene);
 
-    std::vector<MemoryBlock> mbs(8); // hispoints在TraceRay中计算。永久保持。
+    std::vector<MemoryBlock> mbs(16); // hispoints在TraceRay中计算。永久保持。
 
     TraceRay(scene, mbs);
 

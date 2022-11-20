@@ -2,13 +2,12 @@
 #define CORE_KDTREE_H
 
 #include <vector>
-#include <queue>
 #include <memory>
 #include <string>
 #include <random>
 #include <cmath>
 #include "geometry.h"
-
+#include "../base/priority_queue.h"
 
 // k-d tree
 // k = 3
@@ -30,20 +29,52 @@ struct NodeInfo
 	bool operator<(const NodeInfo& rhs) const {
 		return distance2 < rhs.distance2;
 	}
+
+	bool operator>(const NodeInfo& rhs) const {
+		return distance2 > rhs.distance2;
+	}
 };
 
-struct KNNInfo {
-	Point3f point; // to query
-	int k;
-	float resultMaxDistance2 = MaxFloat;
-	std::priority_queue<NodeInfo> result;
+class KNNQueryInfo {
+public:
 
-	int pointsPruned; // rough count
+	KNNQueryInfo() :
+		k(100),
+		result(100)
+	{}
+
+	KNNQueryInfo(int k):
+		k(k),
+		result(k)
+	{}
+
+	void Refresh(Point3f point, int k, float distance2Limit) {
+		this->point = point;
+		this->k = k;
+		currentMaxDistance2 = 0;
+		pointsPruned = 0;
+
+		if (distance2Limit == 0) // 不限范围
+			this->distance2Limit = MaxFloat;
+		else
+			this->distance2Limit = distance2Limit;
+
+		result.Clear(k);
+	}
+
+	Point3f point; // to query
+	size_t k;
+	float currentMaxDistance2 = 0;
+	float distance2Limit = 0;
+	//std::priority_queue<NodeInfo> result; // slow
+	PriorityQueue<NodeInfo> result;
+
+	size_t pointsPruned = 0; // rough count
 };
 
 template <typename T>
 struct KNNResult {
-	float resultMaxDistance2;
+	float maxDistance2;
 	std::vector<T> payloads;
 };
 
@@ -64,13 +95,16 @@ struct BuildTask {
 template <typename T>
 class KDTree {
 public:
-	KDTree() {}
+	KDTree():
+		levels(0),
+		nodesCount(0)
+	{}
 
 	KDTree(const std::vector<T> & input_points) {
 		Build(input_points, 0);
 	}
 
-	KNNResult<T> KNN(Point3f point, int k, float maxDistance2Limit = 0);
+	void KNN(Point3f point, int k, float distance2Limit, int pool_id, KNNResult<T>& result);// , KNNQueryInfo& info);
 	void Test();
 
 	void Build(const std::vector<T>& points, int test = 0);
@@ -87,10 +121,12 @@ private:
 	size_t nodesCount;
 	int levels;
 	
-	void KNNQuery(KNNInfo& info, size_t currentIndex, int level);
+	void KNNQuery(KNNQueryInfo& info, size_t currentIndex, int level);
 	
 	// for testing
 	void KNN(Point3f point, int k, const std::vector<float> testResult);
+
+	KNNQueryInfo infos[32];
 };
 
 template <typename T>
@@ -279,7 +315,7 @@ void KDTree<T>::Build(const std::vector<T>& input_points, int test) {
 template <typename T>
 void KDTree<T>::KNN(Point3f point, int k, const std::vector<float> testResult) {
 	std::cout << "test " << k << "NN " << point.x << " " << point.y << " " << point.z << std::endl;
-	KNNInfo info;
+	KNNQueryInfo info(k);
 	info.point = point;
 	info.k = k;
 	info.pointsPruned = 0;
@@ -294,11 +330,11 @@ void KDTree<T>::KNN(Point3f point, int k, const std::vector<float> testResult) {
 
 	//std::cout << "---\n";
 
-	int index = int(info.result.size()) - 1;
-	while (!info.result.empty()) {
+	int index = int(info.result.Size()) - 1;
+	while (!info.result.Empty()) {
 		//std::cout << info.result.top().distance << " " << info.result.top().index << std::endl;
 
-		if (testResult[index] != info.result.top().distance2) {
+		if (testResult[index] != info.result.Top().distance2) {
 			std::cout << "KNN test failed\n";
 			throw("KNN test failed");
 			return;
@@ -306,75 +342,51 @@ void KDTree<T>::KNN(Point3f point, int k, const std::vector<float> testResult) {
 
 		--index;
 
-		info.result.pop();
+		info.result.Pop();
 	}
 
 	std::cout << "KNN test ok\npoints pruned = " << info.pointsPruned << std::endl;
 }
 
 template <typename T>
-KNNResult<T> KDTree<T>::KNN(Point3f point, int k, float maxDistance2Limit) {
+void KDTree<T>::KNN(Point3f point, int k, float distance2Limit, int pool_id, KNNResult<T> &result){//}, KNNQueryInfo& info1) {
 	//std::cout << "KNN\n";
-	KNNInfo info;
-	info.point = point;
-	info.k = k;
-	info.pointsPruned = 0;
-
-	// todo 把maxDistance2Limit做到query里。提升效率。
-	if (maxDistance2Limit != 0)
-		info.resultMaxDistance2 = maxDistance2Limit;
+	KNNQueryInfo &info = infos[pool_id];
+	info.Refresh(point, k, distance2Limit);
 
 	KNNQuery(info, 0, 0);
 
-	KNNResult<T> result;
+	result.maxDistance2 = info.currentMaxDistance2;
+	result.payloads.reserve(info.result.Size());
 
-	//result.resultMaxDistance2 = info.resultMaxDistance2;
-
-	if (maxDistance2Limit == 0)
-		result.resultMaxDistance2 = info.resultMaxDistance2;
-	else
-		result.resultMaxDistance2 = -1;
-
-	//std::cout << "KNN over\n";
-	while (!info.result.empty()) {
-		if (maxDistance2Limit != 0) { // with limit
-			if (info.result.top().distance2 > maxDistance2Limit) {
-				info.result.pop();
-				continue;
-			}
-
-			if(result.resultMaxDistance2 == -1)
-				result.resultMaxDistance2 = info.result.top().distance2;
-		}
-
-		result.payloads.push_back(nodes[info.result.top().index].payload);
-
-		//std::cout << info.result.top().distance2 << " " << info.result.top().index << std::endl;
-		info.result.pop();
+	for (size_t i = 0; i < info.result.Size(); ++i) {
+		result.payloads.push_back(nodes[info.result.heap[i].index].payload);
 	}
-
-	return result;
 }
 
 template <typename T>
-void KDTree<T>::KNNQuery(KNNInfo& info, size_t currentIndex, int level) {
+void KDTree<T>::KNNQuery(KNNQueryInfo& info, size_t currentIndex, int level) {
 
 	float distance2 = DistanceSquared(info.point, nodes[currentIndex].point);
 
-	// not full or better distance
-	if (info.result.size() < info.k || distance2 < info.resultMaxDistance2) {
-		info.result.push(NodeInfo{ distance2, currentIndex });
-
-		if (info.result.size() > info.k) // at most k
-			info.result.pop();
-
-		info.resultMaxDistance2 = info.result.top().distance2;
+	if (distance2 <= info.distance2Limit) { // 限定范围
+		if (info.result.Size() < info.k) {
+			info.result.Push(NodeInfo{ distance2, currentIndex });
+			info.currentMaxDistance2 = info.result.Top().distance2;
+		}
+		else {
+			if (distance2 < info.currentMaxDistance2) {
+				info.result.Pop();
+				info.result.Push(NodeInfo{ distance2, currentIndex });
+				info.currentMaxDistance2 = info.result.Top().distance2;
+			}
+		}
 	}
 
 	if (nodes[currentIndex].hasLeft) {
 		// 如果候选已满，且resultMaxDistance比此分支还近，那么剪枝。
-		if (info.result.size() >= info.k &&
-			(info.point[level % 3] - nodes[currentIndex].point[level % 3]) > info.resultMaxDistance2) {
+		if (info.result.Size() >= info.k &&
+			(info.point[level % 3] - nodes[currentIndex].point[level % 3]) > info.currentMaxDistance2) {
 			//std::cout << " !!!!!!!!!!!!!!!!!!!!!! prune left level " << level + 1 << " total level = "<< levels <<std::endl;
 			//info.pointsPruned += int(std::pow(2, levels - level - 2)); // rough count
 		}
@@ -385,8 +397,8 @@ void KDTree<T>::KNNQuery(KNNInfo& info, size_t currentIndex, int level) {
 
 	if (nodes[currentIndex].hasRight) {
 		// 如果候选已满，且resultMaxDistance比此分支还近，那么剪枝。
-		if (info.result.size() >= info.k &&
-			(nodes[currentIndex].point[level % 3] - info.point[level % 3]) > info.resultMaxDistance2) {
+		if (info.result.Size() >= info.k &&
+			(nodes[currentIndex].point[level % 3] - info.point[level % 3]) > info.currentMaxDistance2) {
 			//std::cout << " !!!!!!!!!!!!!!!!!!!!!! prune right level " << level + 1 << " total level = " << levels << std::endl;
 			//info.pointsPruned += int(std::pow(2, levels - level - 2)); // rough count
 		}
