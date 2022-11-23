@@ -557,8 +557,8 @@ void VulkanApp::BuildCommandBuffers() {
     }
 }
 
-void VulkanApp::FrontendUI(uint32_t lastFPS, float frameDuration) {
-    ui->FrontendDraw(lastFPS, frameDuration, (void *)renderImage.descriptorSet);
+void VulkanApp::FrontendUI(MultiTaskCtx& thread_ctx, uint32_t lastFPS, float frameDuration) {
+    ui->FrontendDraw(thread_ctx, lastFPS, frameDuration, (void *)renderImage.descriptorSet);
 
     if (ui->UpdateBuffer()) {// || UIOverlay.updated) {
             
@@ -727,7 +727,7 @@ void VulkanApp::SetupFrameBuffer() {
     }
 }
 
-int VulkanApp::loop() {
+int VulkanApp::loop(MultiTaskCtx& thread_ctx) {
     auto lastTimestamp = std::chrono::high_resolution_clock::now();
     auto lastFrameTime = std::chrono::high_resolution_clock::now();
     uint32_t frameCounter = 0;
@@ -758,7 +758,7 @@ int VulkanApp::loop() {
         }
 
         // lastFPS是我们自己算的fps。把frameDuration喂给imgui，它也会自己算一个fps。
-        FrontendUI(lastFPS, frameDuration / 1000);
+        FrontendUI(thread_ctx, lastFPS, frameDuration / 1000);
 
         VulkanDraw();
 
@@ -838,12 +838,12 @@ VKAPI_ATTR VkBool32 VKAPI_CALL VulkanApp::debugCallback(
 }
 
 
-void vulkan_main(const MultiTaskArg& args)
+void vulkan_main(MultiTaskCtx& args)
 {
     std::cout<<"vulkan_main start"<<std::endl;
 
     vulkan_app.init();
-    vulkan_app.loop();
+    vulkan_app.loop(args);
     vulkan_app.clean();
 
     std::cout << "vulkan_main over" << std::endl;

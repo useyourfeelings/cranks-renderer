@@ -26,12 +26,12 @@ public:
     int DestroyCommandBuffers();
     int CreateCommandBuffers();
     void BuildCommandBuffers();
-    void FrontendUI(uint32_t lastFPS, float frameDuration);
+    void FrontendUI(MultiTaskCtx& thread_ctx, uint32_t lastFPS, float frameDuration);
     int VulkanDraw();
     void OnWindowResize();
     void DestroyFrameBuffer();
     void SetupFrameBuffer();
-    int loop();
+    int loop(MultiTaskCtx& thread_ctx);
     int clean();
 
     static VKAPI_ATTR VkBool32 VKAPI_CALL debugCallback(
@@ -105,6 +105,6 @@ public:
 
 inline VulkanApp vulkan_app;
 
-void vulkan_main(const MultiTaskArg& args);
+void vulkan_main(MultiTaskCtx& args);
 
 #endif

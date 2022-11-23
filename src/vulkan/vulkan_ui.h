@@ -493,7 +493,7 @@ public:
 		}
 	}
 
-	void FrontendDraw(uint32_t lastFPS, float frameDuration, void* renderImageID) {
+	void FrontendDraw(MultiTaskCtx& thread_ctx, uint32_t lastFPS, float frameDuration, void* renderImageID) {
 		ImGuiIO& io = ImGui::GetIO();
 
 		// Setup display size (every frame to accommodate for window resizing)
@@ -515,7 +515,7 @@ public:
 
 		//ImGui::ShowDemoWindow();
 
-		RendererUI(lastFPS);
+		RendererUI(thread_ctx, lastFPS);
 
 		//ImGui::PushStyleVar(ImGuiStyleVar_WindowRounding, 0);
 		/*ImGui::SetNextWindowPos(ImVec2(10, 10));
@@ -563,17 +563,13 @@ public:
 		ImGui::End();
 	}
 
-	void RendererUI(uint32_t lastFPS) {
+	void RendererUI(MultiTaskCtx & thread_ctx, uint32_t lastFPS) {
 		static uint32_t currentFrame = 0;
 		static uint32_t lastProgressUpdatingFrame = 0;
-		//static int registered = 0;
 
 		if (currentFrame == 0) {
-			RENDER_TASK_ID = RegisterEvent(PBR_API_render);
-			//registered = 1;
+			RENDER_TASK_ID = RegisterEvent(thread_ctx, PBR_API_render);
 		}
-
-		//static int init_status = 0;
 
 		static CameraSetting cs;
 		static SceneOptions scene_options;
@@ -586,7 +582,6 @@ public:
 		if (currentFrame == 0) {
 			PBR_API_get_camera_setting(cs);
 			PBR_API_set_perspective_camera(cs);
-			//init_status = 1;
 
 			// hdr test. mipmap test.
 			//int res_x, res_y;
@@ -977,8 +972,6 @@ public:
 
 			type = type_name_id_map[node["type"]];
 
-			
-
 			if (type == 0) {
 				sprintf_s(file_name_buffer, "%s", (std::string(node["file_name"])).c_str());
 			}
@@ -1301,8 +1294,6 @@ public:
 									set_focus = 1;
 								}
 							}
-
-							
 						}
 
 						if (!edit_obj_name_status) {
@@ -1366,8 +1357,6 @@ public:
 			if (open_new_object_dialog) {
 				new_object_popup(op_node);
 			}
-
-
 		}
 
 		// Property
@@ -1513,7 +1502,6 @@ public:
 					need_to_update_scene_tree = 1;
 				}
 			}
-
 		}
 		ImGui::End();
 		}
@@ -1858,8 +1846,6 @@ public:
 
 			}
 			ImGui::End();
-			
-			
 		}
 
 		{
@@ -2087,7 +2073,7 @@ public:
 						integrator_changed = true;
 					}
 
-					ImGui::InputInt("gather photons", &scene_options.gatherPhotons, 0, 500);
+					ImGui::SliderInt("gather photons", &scene_options.gatherPhotons, 0, 500);
 					if (ImGui::IsItemDeactivatedAfterEdit()) {
 						integrator_changed = true;
 					}
@@ -2324,21 +2310,14 @@ public:
 					}
 				}
 
-				/*for (int i = 0; i < progress_now.size(); ++i) {
-					char buf[32];
-					sprintf(buf, "%d/%d", progress_now[i], progress_total[i]);
-					ImGui::ProgressBar(float(progress_now[i]) / progress_total[i], ImVec2(0.f, 0.f), buf);
-				}*/
-
 				if (ImGui::Button("Render", ImVec2(200, 120))) {
 
 					static int set_default_scene = 1;
 					if (set_default_scene == 0) {
 						set_default_scene = 1;
-
 					}
 
-					SendEvent(RENDER_TASK_ID);
+					SendEvent(thread_ctx, RENDER_TASK_ID);
 				}
 
 				if (render_status == 1) {

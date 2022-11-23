@@ -190,8 +190,7 @@ void PMIntegrator::RenderPhoton(Scene& scene) {
         render_progress_now[i] = 0;
     }
 
-    MultiTaskArg tast_args;
-    tast_args.task_count = render_threads_no;
+    MultiTaskCtx tast_args(render_threads_no);
     tast_args.x_start = sampleBounds.pMin.x;
     tast_args.y_start = sampleBounds.pMin.y;
     tast_args.x_end = sampleBounds.pMax.x - 1;
@@ -218,16 +217,16 @@ void PMIntegrator::RenderPhoton(Scene& scene) {
             { "x_end", x_end} });
     };*/
 
-    auto manager_func = [](int task_index, MultiTaskArg args) {
+    auto manager_func = [](int task_index, MultiTaskCtx args) {
         int x_interval = (args.x_end - args.x_start + 1) / args.task_count;
         if ((args.x_end - args.x_start + 1) % args.task_count != 0)
             x_interval++;
 
         int x_start = args.x_start + x_interval * task_index;
-        int x_end = std::min(args.x_end, __int64(x_start + x_interval - 1));
+        int x_end = std::min(args.x_end, (x_start + x_interval - 1));
 
         args.task_index = task_index;
-        args.task_progress_total = (x_end - x_start + 1) * args.y_end - args.y_start + 1;
+        args.task_progress_total = (x_end - x_start + 1) * (args.y_end - args.y_start + 1);
         args.y_start = args.y_start;
         args.x_start = x_start;
         args.y_end = args.y_end;
@@ -236,7 +235,7 @@ void PMIntegrator::RenderPhoton(Scene& scene) {
         return args;
     };
 
-    auto render_task = [&](MultiTaskArg args) {
+    auto render_task = [&](MultiTaskCtx args) {
         int i = args.x_start;
         int j = args.y_start;
         int task_index = args.task_index;
@@ -246,12 +245,12 @@ void PMIntegrator::RenderPhoton(Scene& scene) {
         MemoryBlock mb;
 
         this->render_progress_total[task_index] = args.task_progress_total;
-
-        int progress_interval = args.task_progress_total / 100;
+        int progress_interval = args.task_progress_total / 40;
         int progress = 0;
+        int next_progress_to_report = progress_interval;
 
-        for (int j = args.y_start; j <= args.y_end; ++j) {
-            for (int i = args.x_start; i <= args.x_end; ++i) {
+        for (int i = args.x_start; i <= args.x_end; ++i) {
+            for (int j = args.y_start; j <= args.y_end; ++j) {
 
                 if (render_status == 0)
                     break;
@@ -262,8 +261,9 @@ void PMIntegrator::RenderPhoton(Scene& scene) {
 
                 sampler->StartPixel(pixel);
 
-                if (progress % progress_interval == 0) {
+                if (progress > next_progress_to_report) {
                     this->render_progress_now[task_index] = progress;
+                    next_progress_to_report += progress_interval;
                 }
 
                 do {
@@ -282,12 +282,40 @@ void PMIntegrator::RenderPhoton(Scene& scene) {
                     mb.Reset();
                 } while (sampler->StartNextSample());
             }
+
+            if (args.task_count > 1) {
+                if ((args.x_end - i > 10)){// && (float(i - args.x_start) / (args.x_end - args.x_start)) < 0.95) {
+                    int t = 0;
+                    for (; t < args.task_count; ++t) {
+                        if (t == task_index) // skip self
+                            continue;
+
+                        if (this->render_progress_total[t] == this->render_progress_now[t])
+                            break;
+                    }
+
+                    if (t < args.task_count) { // possible helper
+                        auto help_x_start = (i + args.x_end) / 2 + 1;
+                        auto help_x_end = args.x_end;
+                        int result = MultiTaskCallHelp(args, help_x_start, help_x_end);
+                        if (result == 1) {
+                            args.x_end = help_x_start - 1;
+
+                            args.task_progress_total = (args.x_end - args.x_start + 1) * (args.y_end - args.y_start + 1);
+                            this->render_progress_total[task_index] = args.task_progress_total;
+                            progress_interval = args.task_progress_total / 40;
+                        }
+                    }
+                }
+            }
         }
+
+        this->render_progress_now[task_index] = args.task_progress_total;
     };
 
     auto start_time = std::chrono::high_resolution_clock::now();
 
-    StartMultiTask(render_task, manager_func, tast_args);
+    StartMultiTask2(render_task, manager_func, tast_args);
 
     float duration = (float)(std::chrono::duration<double, std::milli>(std::chrono::high_resolution_clock::now() - start_time).count());
     std::cout << std::format("----------- task_count = {} duration = {}\n", tast_args.task_count, duration);

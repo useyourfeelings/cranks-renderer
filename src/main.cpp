@@ -19,7 +19,8 @@ int main(int, char**)
 {
     std::cout << "Cranks Renderer main" << std::endl;
 
-    EventLoop(vulkan_main);
+    MultiTaskCtx thread_ctx(1);
+    EventLoop(thread_ctx, vulkan_main);
 
     std::cout << "Cranks Renderer over" << std::endl;
 

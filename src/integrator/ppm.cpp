@@ -54,7 +54,7 @@ json PPMIntegrator::GetRenderStatus() {
 }
 
 void PPMIntegrator::TraceRay(Scene& scene, std::vector<MemoryBlock> &mbs) {
-    //std::cout << "PMIntegrator::RenderPhoton() emitPhotons = " << emitPhotons << " gatherPhotons = " << gatherPhotons << std::endl;
+    std::cout << "PMIntegrator::TraceRay()\n" << std::endl;
 
     //Log("Render");
     render_status = 1;
@@ -72,8 +72,7 @@ void PPMIntegrator::TraceRay(Scene& scene, std::vector<MemoryBlock> &mbs) {
         render_progress_now[i] = 0;
     }
 
-    MultiTaskArg tast_args;
-    tast_args.task_count = render_threads_no;
+    MultiTaskCtx tast_args(render_threads_no);
     tast_args.x_start = sampleBounds.pMin.x;
     tast_args.y_start = sampleBounds.pMin.y;
     tast_args.x_end = sampleBounds.pMax.x - 1;
@@ -100,16 +99,16 @@ void PPMIntegrator::TraceRay(Scene& scene, std::vector<MemoryBlock> &mbs) {
             { "x_end", x_end} });
     };*/
 
-    auto manager_func = [&](int task_index, MultiTaskArg args) {
+    auto manager_func = [](int task_index, MultiTaskCtx args) {
         int x_interval = (args.x_end - args.x_start + 1) / args.task_count;
         if ((args.x_end - args.x_start + 1) % args.task_count != 0)
             x_interval++;
 
         int x_start = args.x_start + x_interval * task_index;
-        int x_end = std::min(args.x_end, __int64(x_start + x_interval - 1));
+        int x_end = std::min(args.x_end, (x_start + x_interval - 1));
 
         args.task_index = task_index;
-        args.task_progress_total = (x_end - x_start + 1) * args.y_end - args.y_start + 1;
+        args.task_progress_total = (x_end - x_start + 1) * (args.y_end - args.y_start + 1);
         args.y_start = args.y_start;
         args.x_start = x_start;
         args.y_end = args.y_end;
@@ -118,7 +117,7 @@ void PPMIntegrator::TraceRay(Scene& scene, std::vector<MemoryBlock> &mbs) {
         return args;
     };
 
-    auto render_task = [&](MultiTaskArg args) {
+    auto render_task = [&](MultiTaskCtx args) {
         int i = args.x_start;
         int j = args.y_start;
         int task_index = args.task_index;
@@ -126,25 +125,31 @@ void PPMIntegrator::TraceRay(Scene& scene, std::vector<MemoryBlock> &mbs) {
         std::cout << "--- render_task " << args.task_index << " " << i << " " << j << std::endl;
 
         this->render_progress_total[task_index] = args.task_progress_total;
+        int progress_interval = args.task_progress_total / 40;
+        int progress = 0;
+        int next_progress_to_report = progress_interval;
 
-        for (int j = args.y_start; j <= args.y_end; ++j) {
-            for (int i = args.x_start; i <= args.x_end; ++i) {
+        for (int i = args.x_start; i <= args.x_end; ++i) {
+            for (int j = args.y_start; j <= args.y_end; ++j) {
 
                 if (render_status == 0)
                     break;
 
-                //Log("Render %d %d", i, j);
-                //std::cout << "Render " << i << " " << j << std::endl;
+                progress++;
+
+                //std::cout << std::format("render_task {} {} {}, {} {}\n", task_index, i, j, args.x_end, args.y_end);
                 Point2i pixel(i, j);
 
                 sampler->StartPixel(pixel);
 
-                this->render_progress_now[task_index]++;
+                if (progress > next_progress_to_report) {
+                    this->render_progress_now[task_index] = progress;
+                    next_progress_to_report += progress_interval;
+                }
 
-                do {
+                //do {
                     CameraSample cameraSample = sampler->GetCameraSample(pixel);
 
-                    // Generate camera ray for current sample
                     RayDifferential ray;
                     float rayWeight = camera->GenerateRayDifferential(cameraSample, &ray);
                     //ray.ScaleDifferentials(1 / std::sqrt((float)local_sampler->samplesPerPixel));
@@ -152,12 +157,42 @@ void PPMIntegrator::TraceRay(Scene& scene, std::vector<MemoryBlock> &mbs) {
                     if (rayWeight > 0)
                         TraceARay(mbs[task_index], ray, scene, Point2i(i, j), Point2i(camera->resolutionX, camera->resolutionY), 0, Spectrum(1.f), task_index);
 
-                } while (sampler->StartNextSample());
+                //} while (sampler->StartNextSample());
+            }
+
+            if (args.task_count > 1) {
+                if ((args.x_end - i > 10)){// && (float(i - args.x_start) / (args.x_end - args.x_start)) < 0.95) {
+                    int t = 0;
+                    for (; t < args.task_count; ++t) {
+                        if (t == task_index) // skip self
+                            continue;
+
+                        if (this->render_progress_total[t] == this->render_progress_now[t])
+                            break;
+                    }
+
+                    if (t < args.task_count) { // possible helper
+                        auto help_x_start = (i + args.x_end) / 2 + 1;
+                        auto help_x_end = args.x_end;
+                        int result = MultiTaskCallHelp(args, help_x_start, help_x_end);
+                        if (result == 1) {
+                            args.x_end = help_x_start - 1;
+
+                            args.task_progress_total = (args.x_end - args.x_start + 1) * (args.y_end - args.y_start + 1);
+                            this->render_progress_total[task_index] = args.task_progress_total;
+                            progress_interval = args.task_progress_total / 40;
+                        }
+                    }
+                }
             }
         }
+
+        this->render_progress_now[task_index] = args.task_progress_total;
+
+        std::cout << std::format("render_task {} over over over over over over over over over over\n", task_index);
     };
 
-    StartMultiTask(render_task, manager_func, tast_args);
+    StartMultiTask2(render_task, manager_func, tast_args);
 
     // Save final image after rendering
     //camera->film->WriteImage();
@@ -407,29 +442,22 @@ void PPMIntegrator::RenderPhoton(Scene& scene) {
         render_progress_now[i] = 0;
     }
 
-    json tast_args0({
-        { "task_count", render_threads_no },
-        { "start", 0 },
-        { "end", hitpoints.size() - 1}
-        });
-
-    MultiTaskArg tast_args;
-    tast_args.task_count = render_threads_no;
+    MultiTaskCtx tast_args(render_threads_no);
     tast_args.x_start = 0;
-    //tast_args.y_start = sampleBounds.pMin.y;
-    tast_args.x_end = hitpoints.size() - 1;
-    //tast_args.y_end = sampleBounds.pMax.y - 1;
+    tast_args.y_start = 0;
+    tast_args.x_end = int(hitpoints.size()) - 1;
+    tast_args.y_end = 0;
 
     // https://stackoverflow.com/questions/4324763/can-we-have-functions-inside-functions-in-c
     // https://en.cppreference.com/w/cpp/language/lambda
 
-    auto manager_func = [&](int task_index, MultiTaskArg args) {
+    auto manager_func = [](int task_index, MultiTaskCtx args) {
         int interval = (args.x_end - args.x_start + 1) / args.task_count;
         if ((args.x_end - args.x_start + 1) % args.task_count != 0)
             interval++;
 
         int start = args.x_start + interval * task_index;
-        int end = std::min(args.x_end, __int64(start + interval - 1));
+        int end = std::min(args.x_end, (start + interval - 1));
 
         args.task_index = task_index;
         args.task_progress_total = (end - start + 1);
@@ -439,7 +467,7 @@ void PPMIntegrator::RenderPhoton(Scene& scene) {
         return args;
     };
 
-    auto render_task = [&](MultiTaskArg args) {
+    auto render_task = [&](MultiTaskCtx args) {
         int i = args.x_start;
         int task_index = args.task_index;
 
@@ -447,19 +475,58 @@ void PPMIntegrator::RenderPhoton(Scene& scene) {
 
         this->render_progress_total[task_index] = args.task_progress_total;
 
+        int progress_interval = args.task_progress_total / 40;
+        int progress = 0;
+        int next_progress_to_report = progress_interval;
+
         for (; i <= args.x_end; ++i) {
 
             if (render_status == 0)
                 break;
 
             UpdateHitpoint(scene, i, task_index);
-            this->render_progress_now[task_index]++;
+
+            progress++;
+            if (progress > next_progress_to_report) {
+                this->render_progress_now[task_index] = progress;
+                next_progress_to_report += progress_interval;
+            }
+
+            // call help
+            if (args.task_count > 1) {
+                if ((args.x_end - i > 4) && (float(i - args.x_start) / (args.x_end - args.x_start)) < 0.95) {
+                    int t = 0;
+                    for (; t < args.task_count; ++t) {
+                        if (t == task_index) // skip self
+                            continue;
+
+                        if (this->render_progress_total[t] == this->render_progress_now[t])
+                            break;
+                    }
+
+                    if (t < args.task_count) { // possible helper
+                        //std::cout << "MultiTaskCallHelp 1\n";
+                        auto help_x_start = (i + args.x_end) / 2 + 1;
+                        auto help_x_end = args.x_end;
+                        int result = MultiTaskCallHelp(args, help_x_start, help_x_end);
+                        if (result == 1) {
+                            args.x_end = help_x_start - 1;
+
+                            args.task_progress_total = (args.x_end - args.x_start + 1) * (args.y_end - args.y_start + 1);
+                            this->render_progress_total[task_index] = args.task_progress_total;
+                            progress_interval = args.task_progress_total / 40;
+                        }
+                    }
+                }
+            }
         }
+
+        this->render_progress_now[task_index] = args.task_progress_total;
     };
 
     auto start_time = std::chrono::high_resolution_clock::now();
 
-    StartMultiTask(render_task, manager_func, tast_args);
+    StartMultiTask2(render_task, manager_func, tast_args);
 
     float duration = (float)(std::chrono::duration<double, std::milli>(std::chrono::high_resolution_clock::now() - start_time).count());
     std::cout << std::format("----------- RenderPhoton task_count = {} duration = {}\n", int(tast_args.task_count), duration);

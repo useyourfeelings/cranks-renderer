@@ -14,7 +14,7 @@ struct CameraSetting {
 	float fov = 90;
 	float asp = 1.2f;
 	float near_far[2] = { 2, 200 };
-	int image_scale = 1;
+	int image_scale = 2;
 	int resolution[2] = { image_scale * 128, image_scale * 128 };
 };
 
@@ -23,15 +23,15 @@ struct SceneOptions {
 	int render_method = 2; // 0-whitted 1-path tracing 2-photon mapping 3-ppm
 
 	int ray_sample_no = 1;
-	int ray_bounce_no = 5;
-	int render_threads_no = 4;
+	int ray_bounce_no = 6;
+	int render_threads_no = 6;
 
 	// pm
 	int emitPhotons = 2000;
-	int gatherPhotons = 30;
+	int gatherPhotons = 20;
 	float gatherPhotonsR = 0.f;
 	int gatherMethod = 0;
-	float energyScale = 10000;
+	float energyScale = 5000;
 	bool reemitPhotons = 1;
 
 	bool renderDirect = 1;
@@ -42,7 +42,7 @@ struct SceneOptions {
 
 	int filter = 1;
 	int specularMethod = 0;
-	int specularRTSamples = 5;
+	int specularRTSamples = 3;
 
 	// ppm
 	int maxIterations = 100;
@@ -52,7 +52,7 @@ struct SceneOptions {
 
 int PBR_API_hi();
 int PBR_API_print_scene();
-void PBR_API_render(const MultiTaskArg&);
+void PBR_API_render(const MultiTaskCtx&);
 int PBR_API_stop_rendering();
 int PBR_API_save_project(const std::string& path, const std::string& name);
 int PBR_API_load_project(const std::string& path);
@@ -74,9 +74,7 @@ int PBR_API_get_render_progress(int * status, std::vector<int>& now, std::vector
 int PBR_API_get_new_image(unsigned char* dst);
 int PBR_API_make_test_mipmap(const std::string& name);
 int PBR_API_get_mipmap_image(int index, std::vector<unsigned char>& data, int& x, int& y);
-
 int PBR_API_SET_SCENE_OPTIONS(const SceneOptions& s);
-
 int PbrApiSelectIntegrator(int method);
 int PbrApiSetIntegrator(const json& info);
 

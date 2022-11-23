@@ -156,7 +156,7 @@ int PBR_API_get_defualt_camera_setting(CameraSetting& s) {
 		return 0;
 }
 
-void PBR_API_render(const MultiTaskArg& args) {
+void PBR_API_render(const MultiTaskCtx& args) {
 	Log("PBR_API_render");
 	app.RenderScene();
 	Log("PBR_API_render over");
