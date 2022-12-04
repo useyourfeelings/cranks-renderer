@@ -58,6 +58,13 @@ public:
         return true;
     }
 
+    float Avg() const {
+        float avg = c[0];
+        for (int i = 1; i < nSpectrumSamples; ++i)
+            avg += c[i];
+        return avg / nSpectrumSamples;
+    }
+
     CoefficientSpectrum operator+(const CoefficientSpectrum& s2) const {
         CoefficientSpectrum ret = *this;
         for (int i = 0; i < nSpectrumSamples; ++i) ret.c[i] += s2.c[i];

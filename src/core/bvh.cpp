@@ -2,8 +2,9 @@
 #include "primitive.h"
 
 BVH::BVH(const std::vector<std::shared_ptr<Primitive>>& p) :
-	primitives(p),
-	binCount(12) {
+	primitives(p)
+	//binCount(12) 
+	{
 
 	if (primitives.empty())
 		return;
@@ -26,7 +27,7 @@ BVH::BVH(const std::vector<std::shared_ptr<Primitive>>& p) :
 	std::vector<std::shared_ptr<Primitive>> orderedPrims;
 	orderedPrims.reserve(primitives.size());
 
-	Build(primitiveInfo, 0, primitives.size() - 1, orderedPrims);
+	Build(primitiveInfo, orderedPrims);
 
 	primitives.swap(orderedPrims); // 替换为按顺序排列
 
@@ -41,6 +42,7 @@ BVH::BVH(const std::vector<std::shared_ptr<Primitive>>& p) :
 	//Print();
 }
 
+#if 0
 size_t BVH::Build(std::vector<BVHPrimitiveInfo>& primitiveInfo, size_t start, size_t end,
 	std::vector<std::shared_ptr<Primitive>>& orderedPrims) {
 
@@ -103,7 +105,9 @@ size_t BVH::Build(std::vector<BVHPrimitiveInfo>& primitiveInfo, size_t start, si
 	}
 
 	// 生成bin信息
-	auto bins = std::vector<BVHBin>(binCount);
+	//std::vector<BVHBin> bins(binCount);
+	BVHBin bins[12];
+
 	int bin;
 
 	for (size_t i = start; i <= end; ++i) {
@@ -128,7 +132,7 @@ size_t BVH::Build(std::vector<BVHPrimitiveInfo>& primitiveInfo, size_t start, si
 	float bestCost = MaxFloat;
 	size_t bestBin;
 
-	for (size_t i = 0; i < bins.size() - 1; ++i) {
+	for (size_t i = 0; i < binCount - 1; ++i) {
 		if (bins[i].count == 0) // 空的跳过
 			continue;
 
@@ -140,7 +144,7 @@ size_t BVH::Build(std::vector<BVHPrimitiveInfo>& primitiveInfo, size_t start, si
 		// 右边的值
 		size_t countR = 0;
 		BBox3f bboxR;
-		for (size_t j = i + 1; j < bins.size(); ++j) {
+		for (size_t j = i + 1; j < binCount; ++j) {
 			countR += bins[j].count;
 			bboxR.Union(bins[j].bounds);
 		}
@@ -182,6 +186,235 @@ size_t BVH::Build(std::vector<BVHPrimitiveInfo>& primitiveInfo, size_t start, si
 	tree[node_id].MakeInterior(node_id, &tree[l_id], &tree[r_id]);
 
 	return node_id;
+}
+#endif
+
+/*
+struct BuildTask {
+	char type; // B-build M-MakeInterior N-node_id
+	size_t start;
+	size_t end;
+	size_t node_id;
+	size_t node_id_l;
+	size_t node_id_r;
+};*/
+
+void BVH::Build(std::vector<BVHPrimitiveInfo>& primitiveInfo, std::vector<std::shared_ptr<Primitive>>& orderedPrims) {
+
+	std::vector<BVHBuildTask> task_q;
+	task_q.reserve(primitives.size());
+
+	BVHBuildTask task;
+	task.type = 'B';
+	task.start = 0;
+	task.end = primitives.size() - 1;
+
+	task_q.push_back(task);
+
+	while (task_q.size()) {
+		size_t size = task_q.size();
+		auto task = task_q.back();
+		if (task.type == 'B') {
+			task_q.pop_back();
+			InternalBuild(primitiveInfo, task.start, task.end, orderedPrims, task_q);
+		} else if (task.type == 'N') {
+			if (size == 1)
+				break;
+
+			if (task_q[size - 2].type == 'B')
+				std::swap(task_q[size - 1], task_q[size - 2]); // swap BN
+			else if (task_q[size - 2].type == 'N' && task_q[size - 3].type == 'M') { // MNN -> N
+				auto node_id = task_q[size - 3].node_id;
+				auto node_id_l = task_q[size - 1].node_id;
+				auto node_id_r = task_q[size - 2].node_id;
+				task_q.pop_back();
+				task_q.pop_back();
+
+				tree[node_id].MakeInterior(node_id, &tree[node_id_l], &tree[node_id_r]);
+				task_q[size - 3].node_id = node_id;
+				task_q[size - 3].type = 'N';
+			}
+			else {
+				throw("bvh 1");
+			}
+			//task_q.pop_back();
+			//InternalBuild(primitiveInfo, task.start, task.end, orderedPrims, task_q);
+		}
+		else {
+			throw("bvh 2");
+		}
+	}
+}
+
+void BVH::InternalBuild(std::vector<BVHPrimitiveInfo>& primitiveInfo, size_t start, size_t end,
+	std::vector<std::shared_ptr<Primitive>>& orderedPrims, std::vector<BVHBuildTask> &task_q) {
+
+	size_t node_id = tree.size();
+
+	//std::cout << std::format("Build {} {} current node_id {} \n", start, end, node_id);
+
+	tree.push_back(BVHNode());
+
+	if (start == end) {
+		/*std::cout << std::format("before MakeLeaf [{}, {}, {}] [{}, {}, {}]\n",
+			primitiveInfo[start].bounds.pMin.x, primitiveInfo[start].bounds.pMin.y, primitiveInfo[start].bounds.pMin.z,
+			primitiveInfo[start].bounds.pMax.x, primitiveInfo[start].bounds.pMax.y, primitiveInfo[start].bounds.pMax.z);
+
+		std::cout << std::format("{}\n", primitives[primitiveInfo[start].pIndex]->GetInfoString());*/
+
+		// 只有一个了。直接做叶子。
+		tree[node_id].MakeLeaf(node_id, orderedPrims.size(), 1, primitiveInfo[start].bounds);
+		orderedPrims.push_back(primitives[primitiveInfo[start].pIndex]);
+
+		// push N
+		BVHBuildTask task;
+		task.type = 'N';
+		task.node_id = node_id;
+		task_q.push_back(task);
+
+		return;// node_id;
+	}
+
+	// 质点总box
+	BBox3f centroidBounds;
+
+	for (size_t i = start; i <= end; ++i) {
+		centroidBounds = Union(centroidBounds, primitiveInfo[i].centroid);
+	}
+
+	// 按质点bbox选轴
+	auto diagonal = centroidBounds.pMax - centroidBounds.pMin;
+
+	int axis;
+	if (diagonal.x > diagonal.y && diagonal.x > diagonal.z)
+		axis = 0;
+	else if (diagonal.y > diagonal.z)
+		axis = 1;
+	else
+		axis = 2;
+
+	if (centroidBounds.pMax[axis] == centroidBounds.pMin[axis]) {
+		// 质点相等放。做到同个叶子里。
+		BBox3f pBounds;
+		size_t index = orderedPrims.size();
+
+		for (size_t i = start; i <= end; ++i) {
+			orderedPrims.push_back(primitives[primitiveInfo[i].pIndex]);
+			/*std::cout << std::format("before {} MakeLeaf [{}, {}, {}] [{}, {}, {}]\n", i,
+				primitiveInfo[i].bounds.pMin.x, primitiveInfo[i].bounds.pMin.y, primitiveInfo[i].bounds.pMin.z,
+				primitiveInfo[i].bounds.pMax.x, primitiveInfo[i].bounds.pMax.y, primitiveInfo[i].bounds.pMax.z);
+
+			std::cout << std::format("{}\n", primitives[primitiveInfo[i].pIndex]->GetInfoString());*/
+
+			pBounds = Union(pBounds, primitiveInfo[i].bounds);
+		}
+
+		tree[node_id].MakeLeaf(node_id, index, end - start + 1, pBounds);
+
+		// push N
+		BVHBuildTask task;
+		task.type = 'N';
+		task.node_id = node_id;
+		task_q.push_back(task);
+
+		return;// node_id;
+	}
+
+	// 生成bin信息
+	//std::vector<BVHBin> bins(binCount);
+	BVHBin bins[12];
+
+	int bin;
+
+	for (size_t i = start; i <= end; ++i) {
+
+		bin = binCount * (0.0001f + primitiveInfo[i].centroid[axis] - centroidBounds.pMin[axis]) /
+			(centroidBounds.pMax[axis] - centroidBounds.pMin[axis]);
+
+		if (bin > binCount - 1)
+			bin = binCount - 1;
+
+		//std::cout << std::format("i {} bin {} {} {} {} ", i, bin, primitiveInfo[i].centroid[axis], centroidBounds.pMin[axis], centroidBounds.pMax[axis]) << std::endl;
+
+		bins[bin].count++;
+		bins[bin].bounds.Union(primitiveInfo[i].bounds);
+	}
+
+	// 遍历bins。算sah。
+	// 考虑极端情况。比如有的bin为空。
+	// 全在一个bin好像不可能？最起码一头一尾。
+	size_t countL = 0;
+	BBox3f bboxL;
+	float bestCost = MaxFloat;
+	size_t bestBin;
+
+	for (size_t i = 0; i < binCount - 1; ++i) {
+		if (bins[i].count == 0) // 空的跳过
+			continue;
+
+		// 从i右边切开
+		// 左边的值
+		countL += bins[i].count;
+		bboxL.Union(bins[i].bounds);
+
+		// 右边的值
+		size_t countR = 0;
+		BBox3f bboxR;
+		for (size_t j = i + 1; j < binCount; ++j) {
+			countR += bins[j].count;
+			bboxR.Union(bins[j].bounds);
+		}
+
+		// sah
+		float cost = countL * bboxL.SurfaceArea() + countR * bboxR.SurfaceArea();
+
+		if (cost < bestCost) {
+			bestCost = cost;
+			bestBin = i;
+		}
+	}
+
+	// 根据bestBin分成两组。继续往下算。
+	auto pmid = std::partition(&primitiveInfo[start], &primitiveInfo[end] + 1,
+		[&](const BVHPrimitiveInfo& i) {
+			int bin = binCount * (0.0001f + i.centroid[axis] - centroidBounds.pMin[axis]) /
+				(centroidBounds.pMax[axis] - centroidBounds.pMin[axis]);
+
+			if (bin > binCount - 1)
+				bin = binCount - 1;
+
+			return bin <= bestBin;
+		}
+	);
+
+	int mid = pmid - &primitiveInfo[0];
+
+	//std::cout << "mid = " << mid << std::endl;
+
+
+	//size_t l_id = Build(primitiveInfo, start, mid - 1, orderedPrims);
+	//size_t r_id = Build(primitiveInfo, mid, end, orderedPrims);
+
+	//std::cout << "MakeInterior " << node_id << " l = " << l_id << " r = " << r_id << " "<< ( & tree[l_id])->id << " " << (&tree[r_id])->id << std::endl;
+	//tree[node_id].MakeInterior(node_id, &tree[l_id], &tree[r_id]);
+
+	// push MBB
+	BVHBuildTask task;
+	task.type = 'M';
+	task.node_id = node_id;
+	task_q.push_back(task);
+
+	task.type = 'B';
+	task.start = start;
+	task.end = mid - 1;
+	task_q.push_back(task);
+
+	task.type = 'B';
+	task.start = mid;
+	task.end = end;
+	task_q.push_back(task);
+
+	return;// node_id;
 }
 
 bool BVH::Intersect(const Ray& ray) const {

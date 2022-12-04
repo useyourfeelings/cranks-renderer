@@ -82,6 +82,14 @@ public:
 	Point3f centroid;
 };
 
+struct BVHBuildTask {
+	char type; // B-build M-MakeInterior N-node_id
+	size_t start;
+	size_t end;
+	size_t node_id;
+	//size_t node_id_l;
+	//size_t node_id_r;
+};
 
 class BVH {
 public:
@@ -97,8 +105,10 @@ public:
 	}
 
 private:
-	size_t Build(std::vector<BVHPrimitiveInfo>& primitiveInfo, size_t start, size_t end,
-		std::vector<std::shared_ptr<Primitive>>& orderedPrims);
+	void Build(std::vector<BVHPrimitiveInfo>& primitiveInfo, std::vector<std::shared_ptr<Primitive>>& orderedPrims);
+
+	void InternalBuild(std::vector<BVHPrimitiveInfo>& primitiveInfo, size_t start, size_t end,
+		std::vector<std::shared_ptr<Primitive>>& orderedPrims, std::vector<BVHBuildTask>& task_q);
 
 	void PrintNode(size_t node_id, size_t parent_id) const;
 
@@ -106,7 +116,7 @@ private:
 
 	std::vector<BVHNode> tree;
 
-	int binCount;
+	const int binCount = 12;
 
 	// multi thread
 

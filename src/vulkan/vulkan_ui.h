@@ -1391,7 +1391,7 @@ public:
 
 				int update_object = 0;
 
-				ImGui::SliderFloat3("world_position", pos, -100, 100);
+				ImGui::SliderFloat3("world_position", pos, -100, 100, "%0.5f");
 				if (ImGui::IsItemDeactivatedAfterEdit()) {
 					update_object = 1;
 				}

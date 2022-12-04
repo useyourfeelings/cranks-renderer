@@ -23,15 +23,15 @@ struct SceneOptions {
 	int render_method = 2; // 0-whitted 1-path tracing 2-photon mapping 3-ppm
 
 	int ray_sample_no = 1;
-	int ray_bounce_no = 6;
-	int render_threads_no = 6;
+	int ray_bounce_no = 12;
+	int render_threads_no = 12;
 
 	// pm
 	int emitPhotons = 2000;
 	int gatherPhotons = 20;
 	float gatherPhotonsR = 0.f;
 	int gatherMethod = 0;
-	float energyScale = 5000;
+	float energyScale = 15000;
 	bool reemitPhotons = 1;
 
 	bool renderDirect = 1;
@@ -41,7 +41,7 @@ struct SceneOptions {
 	bool renderGlobal = 0;
 
 	int filter = 1;
-	int specularMethod = 0;
+	int specularMethod = 1;
 	int specularRTSamples = 3;
 
 	// ppm

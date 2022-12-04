@@ -8,9 +8,26 @@ float BxDF::Pdf(const Vector3f& wo, const Vector3f& wi) const {
     return SameHemisphere(wo, wi) ? AbsCosTheta(wi) * InvPi : 0;
 }
 
+// 反射率
+// 即一束光打过来，在所有出射方向的和。
+// 通过采样来计算。
+// 什么情况能直接给出确定的函数，从而不需要采样？
+Spectrum BxDF::rho(const Vector3f& w, int nSamples, const Point2f* u) const {
+    Spectrum r(0.);
+    for (int i = 0; i < nSamples; ++i) {
+        // Estimate one term of $\rho_\roman{hd}$
+        Vector3f wi;
+        float pdf = 0;
+        Spectrum f = Sample_f(w, &wi, u[i], &pdf);
+        if (pdf > 0) r += f * AbsCosTheta(wi) / pdf;
+    }
+    return r / nSamples;
+}
+
+
 Spectrum BxDF::Sample_f(const Vector3f& wo, Vector3f* wi, const Point2f& u, float* pdf, BxDFType* sampledType) const {
     // 默认对半球随机采样
-    // pbrt 13.5 13.6设计较多数学推导
+    // pbrt 13.5 13.6涉及较多数学推导
     
     // Cosine-sample the hemisphere, flipping the direction if necessary
     *wi = CosineSampleHemisphere(u);
@@ -58,7 +75,9 @@ Spectrum BSDF::f(const Vector3f& woW, const Vector3f& wiW, BxDFType flags) const
 // pbrt page 832
 // 
 // 给定wo。随机找一个匹配类型的bxdf。bxdf进行采样。得到wi。
-// 
+//
+// 随机选是否是一个简化的模型？对于多种材质并存，至少应该有一个比例的设置。然后要考虑比例的影响。
+
 Spectrum BSDF::Sample_f(const Vector3f& woWorld, Vector3f* wiWorld, const Point2f& u, float* pdf, BxDFType type, BxDFType* sampledType) const {
 
     // Choose which _BxDF_ to sample
@@ -172,6 +191,36 @@ float BSDF::Pdf(const Vector3f& woWorld, const Vector3f& wiWorld,
 
 /////////////////////////////////
 
+/*
+struct BSDFRESULT {
+    float pdf;
+    BxDFType type;
+    Vector3f wi;
+    Spectrum f;
+};
+*/
+
+// 算所有bxdf的反射率等
+int BSDF::All_f(const Vector3f& woWorld, const Point2f& u, BSDFRESULT* result) const {
+    Vector3f wo = WorldToLocal(woWorld); // 转到微小面本地nts
+
+    int i = 0;
+
+    for (; i < std::min(nBxDFs, 16); ++i) {
+
+        //result[i].f = bxdfs[i]->Sample_f(wo, &result[i].wi, u, &result[i].pdf);
+        bxdfs[i]->Sample_f(wo, &result[i].wi, u, &result[i].pdf);
+        result[i].f = bxdfs[i]->rho(wo, 20, &u);
+
+        result[i].type = bxdfs[i]->type;
+        result[i].wi = LocalToWorld(result[i].wi);
+    }
+
+    return i;
+}
+
+/////////////////////////////////
+
 // 得到fresnel百分比
 float FrDielectric(float cosThetaI, float etaI, float etaT) {
     cosThetaI = Clamp(cosThetaI, -1, 1);
@@ -240,11 +289,22 @@ Spectrum FresnelConductor::Evaluate(float cosThetaI) const {
 Spectrum SpecularReflection::Sample_f(const Vector3f& wo, Vector3f* wi, const Point2f& sample, float* pdf, BxDFType* sampledType) const {
     // Compute perfect specular reflection direction
     //std::cout << "SpecularReflection::Sample_f" << std::endl;
-    *wi = Vector3f(-wo.x, -wo.y, wo.z); // 以原点镜面反射。此时一定是本地坐标，z轴为normal？
+    *wi = Vector3f(-wo.x, -wo.y, wo.z); // 以原点镜面反射。此时一定是本地坐标，z轴为normal。
     *pdf = 1;
 
     // pbrt page 524
-    return fresnel->Evaluate(CosTheta(*wi)) * R / AbsCosTheta(*wi);
+    //auto a = fresnel->Evaluate(CosTheta(*wi));
+    //std::cout << std::format("fresnel f = {} {} {}, wo = {} {} {}\n", a.c[0], a.c[1], a.c[2], wo.x, wo.y, wo.z);
+    //std::cout << "fresnel f = " << a.c[0] << " " << a.c[1] << " " << a.c[2] << std::endl;
+    return fresnel->Evaluate(CosTheta(*wi)) * R / AbsCosTheta(*wi); // 镜面不需要考虑垂直分量，但是外面会统一乘CosTheta，所以这里先除掉？
+}
+
+Spectrum SpecularReflection::rho(const Vector3f& w, int nSamples, const Point2f* u) const {
+    // Estimate one term of $\rho_\roman{hd}$
+    Vector3f wi;
+    float pdf = 0; 
+    Spectrum f = Sample_f(w, &wi, u[0], &pdf, nullptr);
+    return f * AbsCosTheta(wi); // 原本不需要乘AbsCosTheta，但是采样里除了。
 }
 
 // 镜面的折射部分
@@ -254,7 +314,7 @@ Spectrum SpecularTransmission::Sample_f(const Vector3f& wo, Vector3f* wi,
     //std::cout << "SpecularTransmission::Sample_f" << std::endl;
 
     // Figure out which $\eta$ is incident and which is transmitted
-    bool entering = CosTheta(wo) > 0;
+    bool entering = CosTheta(wo) > 0; // 大于0，即和normal相对，也就是射入表面。
     float etaI = entering ? etaA : etaB;
     float etaT = entering ? etaB : etaA;
 
@@ -267,7 +327,15 @@ Spectrum SpecularTransmission::Sample_f(const Vector3f& wo, Vector3f* wi,
     if (mode == TransportMode::Radiance)
         ft *= (etaI * etaI) / (etaT * etaT);
 
-    return ft / AbsCosTheta(*wi);
+    return ft / AbsCosTheta(*wi); // 镜面不需要考虑垂直分量，但是外面会统一乘CosTheta，所以这里先除掉？
+}
+
+Spectrum SpecularTransmission::rho(const Vector3f& w, int nSamples, const Point2f* u) const {
+    // Estimate one term of $\rho_\roman{hd}$
+    Vector3f wi;
+    float pdf = 0;
+    Spectrum f = Sample_f(w, &wi, u[0], &pdf, nullptr);
+    return f * AbsCosTheta(wi); // 原本不需要乘AbsCosTheta，但是采样里除了。
 }
 
 //////////////////////////

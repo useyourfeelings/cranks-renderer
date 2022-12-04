@@ -94,14 +94,23 @@ public:
     virtual Spectrum Sample_f(const Vector3f& wo, Vector3f* wi, const Point2f& sample, float* pdf, BxDFType* sampledType = nullptr) const;
 	virtual float Pdf(const Vector3f& wo, const Vector3f& wi) const;
 
+    virtual Spectrum rho(const Vector3f& wo, int nSamples, const Point2f* samples) const;
+
 	const BxDFType type;
+};
+
+struct BSDFRESULT {
+    float pdf;
+    BxDFType type;
+    Vector3f wi;
+    Spectrum f;
 };
 
 class BSDF {
 public:
     // BSDF Public Methods
     BSDF(const SurfaceInteraction& si, float eta = 1):
-        //bxdfs(0),
+        nBxDFs(0),
         eta(eta),
         ns(si.shading.n),
         ng(si.n),
@@ -145,6 +154,8 @@ public:
         BxDFType flags = BSDF_ALL) const;
     std::string ToString() const;
 
+    int All_f(const Vector3f& woWorld, const Point2f& u, BSDFRESULT *result) const;
+
     // BSDF Public Data
     const float eta;
 
@@ -181,8 +192,8 @@ public:
     LambertianReflection(const Spectrum& R)
         : BxDF(BxDFType(BSDF_REFLECTION | BSDF_DIFFUSE)), R(R) {}
     Spectrum f(const Vector3f& wo, const Vector3f& wi) const;
-    Spectrum rho(const Vector3f&, int, const Point2f*) const { return R; }
-    Spectrum rho(int, const Point2f*, const Point2f*) const { return R; }
+    Spectrum rho(const Vector3f&, int, const Point2f*) const { return R; } // 反射率为常数R
+    //Spectrum rho(int, const Point2f*, const Point2f*) const { return R; }
     //std::string ToString() const;
 
 private:
@@ -272,6 +283,8 @@ public:
     float Pdf(const Vector3f& wo, const Vector3f& wi) const { return 0; }
     //std::string ToString() const;
 
+    Spectrum rho(const Vector3f& w, int nSamples, const Point2f* u) const;
+
 private:
     // SpecularReflection Private Data
     const Spectrum R;
@@ -298,6 +311,8 @@ public:
     float Pdf(const Vector3f& wo, const Vector3f& wi) const { return 0; }
 
     //std::string ToString() const;
+
+    Spectrum rho(const Vector3f& w, int nSamples, const Point2f* u) const;
 
 private:
     // SpecularTransmission Private Data

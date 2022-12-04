@@ -299,6 +299,7 @@ inline Vector3<T> operator*(U s, const Vector3<T>& v) {
 	return v * s;
 }
 
+// v为normal确定一个平面。如果v2于平面同方向返回v。否则返回-v。
 template <typename T>
 inline Vector3<T> Faceforward(const Vector3<T>& v, const Vector3<T>& v2) {
 	return (Dot(v, v2) < 0.f) ? -v : v;

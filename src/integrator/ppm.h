@@ -23,8 +23,8 @@ struct Hitpoint {
     Spectrum energyWeight;
     int photonCount[3];
     
-    float x; // screen x
-    float y; // screen y
+    int x; // screen x
+    int y; // screen y
 
     Hitpoint() {
     }

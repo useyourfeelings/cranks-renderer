@@ -64,6 +64,9 @@ void PMIntegrator::EmitPhoton(Scene& scene) {
 
     MemoryBlock mb;
 
+    BSDFRESULT all_f_result[32]; // 存某个点上所有bxdf的sample_f结果。
+    float reflectivity[32]; // bxdf概率。决定光子的操作。
+
     // 每个灯发射光子
     for (auto light: scene.lights) {
         std::cout << "light Emit Photon " << std::endl;
@@ -94,6 +97,8 @@ void PMIntegrator::EmitPhoton(Scene& scene) {
 
             Spectrum photonEnergy = light->Le(ray) / emitPhotons;
 
+            //std::cout << std::format("photonEnergy = {} {} {}\n", photonEnergy.c[0], photonEnergy.c[1], photonEnergy.c[2]);
+
             // emit to scene
             for (int pathLen = 0; pathLen < 100; ++pathLen) {
                 //std::cout << "pathLen " << pathLen << std::endl;
@@ -108,14 +113,35 @@ void PMIntegrator::EmitPhoton(Scene& scene) {
                 // 根据material添加bxdf
                 isect.ComputeScatteringFunctions(mb, ray);
 
-                if (isect.bsdf->NumComponents(BxDFType(BSDF_SPECULAR | BSDF_REFLECTION)) > 0 ||
-                    isect.bsdf->NumComponents(BxDFType(BSDF_GLOSSY | BSDF_REFLECTION)) > 0 ||
-                    isect.bsdf->NumComponents(BxDFType(BSDF_SPECULAR | BSDF_TRANSMISSION)) > 0) { // BSDF_GLOSSY | BSDF_REFLECTION
-                //if (isect.bsdf->NumComponents(BxDFType(BSDF_SPECULAR)) > 0 ||
-                //    isect.bsdf->NumComponents(BxDFType(BSDF_GLOSSY)) > 0) {
+                int bxdfCount = isect.bsdf->All_f(-ray.d, sampler->Get2D(), all_f_result);
 
-                    // 一旦碰到specular，就开始一个caustic。
-                    // 一整条路径中可包含多个caustic。目前这样实现。
+                int i = 0;
+                for (; i < bxdfCount; ++i) {
+                    reflectivity[i] = all_f_result[i].f.Avg();
+                    if (i > 0) {
+                        reflectivity[i] += reflectivity[i - 1];
+                    }
+
+                    //std::cout << std::format("reflectivity {}\n", reflectivity[i]);
+                }
+
+                // 按概率选定bxdf
+                float random = sampler->Get1D() * bxdfCount;
+                i = 0;
+                for (; i < bxdfCount; ++i) {
+                    if (random <= reflectivity[i])
+                        break;
+                }
+
+                if (i >= bxdfCount) { // 吸收
+                    //std::cout << "absorb\n";
+                    break;
+                }
+
+                auto type = all_f_result[i].type;
+                if (type == BxDFType(BSDF_SPECULAR | BSDF_REFLECTION) ||
+                    type == BxDFType(BSDF_GLOSSY | BSDF_REFLECTION) ||
+                    type == BxDFType(BSDF_SPECULAR | BSDF_TRANSMISSION)) {
                     caustic = true;
                 }
                 else {
@@ -133,36 +159,24 @@ void PMIntegrator::EmitPhoton(Scene& scene) {
                     caustic = false; // 重新开始
                 }
 
-                Vector3f wo = -ray.d, wi;
-                float pdf;
-                BxDFType flags;
-
-                // 以wo采一束入射光，算出f。
-                // 同时得到一个随机方向，作为下一层的path。
-                Spectrum f = isect.bsdf->Sample_f(wo, &wi, sampler->Get2D(), &pdf, BSDF_ALL, &flags);
-
-                if (f.IsBlack() || pdf == 0.f)
-                    break;
+                //std::cout << "type = " << type << std::endl;
 
                 // 更新光子能量
-                photonEnergy *= (f * AbsDot(wo, isect.shading.n) / pdf);
+                //photonEnergy = photonEnergy * all_f_result[i].f * AbsDot(all_f_result[i].wi, isect.shading.n) / all_f_result[i].f.Avg() / all_f_result[i].pdf;
+                photonEnergy = photonEnergy * all_f_result[i].f / all_f_result[i].f.Avg();
 
-                // rr
-                float q = (1 - photonEnergy.MaxComponentValue() * emitPhotons);
-                if (q > 0.8) {
-                    if (sampler->Get1D() < q) {
-                        //std::cout << "rr break q = " << q << " pathLen = " << pathLen << std::endl;
-                        break;
-                    }
+                /*if (type == 5) {
+                    std::cout << std::format("f = {} {} {}, pdf = {}, avg = {}, after = {} {} {}\n",
+                        all_f_result[i].f.c[0], all_f_result[i].f.c[1], all_f_result[i].f.c[2], all_f_result[i].pdf, all_f_result[i].f.Avg(),
+                        photonEnergy.c[0], photonEnergy.c[1], photonEnergy.c[2]);
+                }*/
 
-                    photonEnergy /= 1 - q;
-                }
+                ray = isect.SpawnRay(all_f_result[i].wi);
 
-                ray = isect.SpawnRay(wi);
+                dir = Normalize(all_f_result[i].wi);
 
-                dir = Normalize(wi);
+                mb.Reset();
             }
-
         }
     }
 
@@ -198,24 +212,6 @@ void PMIntegrator::RenderPhoton(Scene& scene) {
 
     // https://stackoverflow.com/questions/4324763/can-we-have-functions-inside-functions-in-c
     // https://en.cppreference.com/w/cpp/language/lambda
-
-    // 改为竖着分像素。一般会更均匀。
-    /*auto manager_func = [&](int task_index, json args) {
-        int x_interval = (int(args["x_end"]) - args["x_start"] + 1) / args["task_count"];
-        if ((int(args["x_end"]) - args["x_start"] + 1) % args["task_count"] != 0)
-            x_interval++;
-
-        int x_start = args["x_start"] + x_interval * task_index;
-        int x_end = std::min(int(args["x_end"]), int(x_start + x_interval - 1));
-
-        return json({
-            { "task_index", task_index },
-            { "task_progress_total", (x_end - x_start + 1) * (int(args["y_end"]) - args["y_start"] + 1)},
-            { "y_start", args["y_start"]},
-            { "x_start", x_start },
-            { "y_end", args["y_end"] },
-            { "x_end", x_end} });
-    };*/
 
     auto manager_func = [](int task_index, MultiTaskCtx args) {
         int x_interval = (args.x_end - args.x_start + 1) / args.task_count;
@@ -403,11 +399,10 @@ Spectrum PMIntegrator::Li(MemoryBlock &mb, const RayDifferential& ray, Scene& sc
                     float pdf;
                     BxDFType flags;
 
-                    // 以wo采一束入射光，算出f。
-                    // 同时得到一个随机方向，作为下一层的path。
                     Spectrum f = isect.bsdf->Sample_f(wo, &wi, sampler->Get2D(), &pdf, BxDFType(BSDF_SPECULAR | BSDF_REFLECTION), &flags);
 
                     if (f.IsBlack() || pdf == 0.f) {
+                        //throw("1");
                     }
                     else {
                         Ls = f * AbsDot(wi, isect.shading.n) * Li(mb, isect.SpawnRay(wi), scene, pool_id, depth + 1, samplingFlag) / pdf;
@@ -415,6 +410,7 @@ Spectrum PMIntegrator::Li(MemoryBlock &mb, const RayDifferential& ray, Scene& sc
 
                     L += Ls;
                 }
+
 
                 if (isect.bsdf->NumComponents(BxDFType(BSDF_GLOSSY | BSDF_REFLECTION)) > 0) {
 
@@ -424,8 +420,6 @@ Spectrum PMIntegrator::Li(MemoryBlock &mb, const RayDifferential& ray, Scene& sc
                     float pdf;
                     BxDFType flags;
 
-                    // 以wo采一束入射光，算出f。
-                    // 同时得到一个随机方向，作为下一层的path。
                     Spectrum f = isect.bsdf->Sample_f(wo, &wi, sampler->Get2D(), &pdf, BxDFType(BSDF_GLOSSY | BSDF_REFLECTION), &flags);
 
                     if (f.IsBlack() || pdf == 0.f) {
@@ -445,8 +439,6 @@ Spectrum PMIntegrator::Li(MemoryBlock &mb, const RayDifferential& ray, Scene& sc
                     float pdf;
                     BxDFType flags;
 
-                    // 以wo采一束入射光，算出f。
-                    // 同时得到一个随机方向，作为下一层的path。
                     Spectrum f = isect.bsdf->Sample_f(wo, &wi, sampler->Get2D(), &pdf, BxDFType(BSDF_SPECULAR | BSDF_TRANSMISSION), &flags);
 
                     if (f.IsBlack() || pdf == 0.f) {
@@ -459,6 +451,7 @@ Spectrum PMIntegrator::Li(MemoryBlock &mb, const RayDifferential& ray, Scene& sc
                 }
             }
         }
+
 
         KNNResult<Photon> knnResult;
         knnResult.payloads.reserve(1000);
@@ -474,53 +467,7 @@ Spectrum PMIntegrator::Li(MemoryBlock &mb, const RayDifferential& ray, Scene& sc
             knnResult.payloads.clear();
             causticPhotonMap.KNN(isect.p, near, gatherPhotonsR * gatherPhotonsR, pool_id, knnResult);
 
-            // for cone filter
-            float r = std::sqrt(knnResult.maxDistance2);
-            float k = 1.1f;
-
-            for (auto photon : knnResult.payloads) {
-                Vector3f wo = -photon.dir, wi;
-                float pdf;
-                BxDFType flags;
-
-                Spectrum f = isect.bsdf->Sample_f(wo, &wi, sampler->Get2D(), &pdf, BxDFType(BSDF_ALL & ~(BSDF_SPECULAR | BSDF_GLOSSY)), &flags); // BSDF_ALL
-
-                if (f.IsBlack() || pdf == 0.f)
-                    continue;
-
-                auto photonEnergy = f * AbsDot(wi, isect.shading.n) * photon.energy * energyScale / pdf;
-
-                if (filter == 1) {
-                    photonEnergy *= (1.f - Distance(photon.pos, isect.p) / (k * r));
-                }
-
-                L_caustic += photonEnergy;
-            }
-
-            if (filter == 0) {
-                L_caustic /= (Pi * knnResult.maxDistance2);
-            }
-            else if (filter == 1) {
-                L_caustic /= (Pi * knnResult.maxDistance2 * (1.f - 2.f / (k * 3)));
-            }
-
-            L += L_caustic;
-
-        }
-
-        // diffuse
-        if (renderDiffuse) {
-            if (isect.bsdf->NumComponents(BxDFType(BSDF_ALL & ~(BSDF_SPECULAR | BSDF_GLOSSY))) > 0) {
-
-                Spectrum L_caustic(0.f);
-
-                int near = gatherPhotons;
-                if (gatherMethod == 1)
-                    near = int(float(near) * diffusePhotonMap.Size() / 1000);
-
-                knnResult.payloads.clear();
-                diffusePhotonMap.KNN(isect.p, near, gatherPhotonsR * gatherPhotonsR, pool_id, knnResult);
-
+            if (!knnResult.payloads.empty()) {
                 // for cone filter
                 float r = std::sqrt(knnResult.maxDistance2);
                 float k = 1.1f;
@@ -530,7 +477,7 @@ Spectrum PMIntegrator::Li(MemoryBlock &mb, const RayDifferential& ray, Scene& sc
                     float pdf;
                     BxDFType flags;
 
-                    Spectrum f = isect.bsdf->Sample_f(wo, &wi, sampler->Get2D(), &pdf, BSDF_ALL, &flags);
+                    Spectrum f = isect.bsdf->Sample_f(wo, &wi, sampler->Get2D(), &pdf, BxDFType(BSDF_ALL & ~(BSDF_SPECULAR | BSDF_GLOSSY)), &flags); // BSDF_ALL
 
                     if (f.IsBlack() || pdf == 0.f)
                         continue;
@@ -552,6 +499,55 @@ Spectrum PMIntegrator::Li(MemoryBlock &mb, const RayDifferential& ray, Scene& sc
                 }
 
                 L += L_caustic;
+            }
+        }
+
+        // diffuse
+        if (renderDiffuse) {
+            if (isect.bsdf->NumComponents(BxDFType(BSDF_ALL & ~(BSDF_SPECULAR | BSDF_GLOSSY))) > 0) {
+
+                Spectrum L_caustic(0.f);
+
+                int near = gatherPhotons;
+                if (gatherMethod == 1)
+                    near = int(float(near) * diffusePhotonMap.Size() / 1000);
+
+                knnResult.payloads.clear();
+                diffusePhotonMap.KNN(isect.p, near, gatherPhotonsR * gatherPhotonsR, pool_id, knnResult);
+
+                if (!knnResult.payloads.empty()) {
+                    // for cone filter
+                    float r = std::sqrt(knnResult.maxDistance2);
+                    float k = 1.1f;
+
+                    for (auto photon : knnResult.payloads) {
+                        Vector3f wo = -photon.dir, wi;
+                        float pdf;
+                        BxDFType flags;
+
+                        Spectrum f = isect.bsdf->Sample_f(wo, &wi, sampler->Get2D(), &pdf, BSDF_ALL, &flags);
+
+                        if (f.IsBlack() || pdf == 0.f)
+                            continue;
+
+                        auto photonEnergy = f * AbsDot(wi, isect.shading.n) * photon.energy * energyScale / pdf;
+
+                        if (filter == 1) {
+                            photonEnergy *= (1.f - Distance(photon.pos, isect.p) / (k * r));
+                        }
+
+                        L_caustic += photonEnergy;
+                    }
+
+                    if (filter == 0) {
+                        L_caustic /= (Pi * knnResult.maxDistance2);
+                    }
+                    else if (filter == 1) {
+                        L_caustic /= (Pi * knnResult.maxDistance2 * (1.f - 2.f / (k * 3)));
+                    }
+
+                    L += L_caustic;
+                }
             }
         }
 
@@ -568,43 +564,53 @@ Spectrum PMIntegrator::Li(MemoryBlock &mb, const RayDifferential& ray, Scene& sc
                 knnResult.payloads.clear();
                 globalPhotonMap.KNN(isect.p, near, gatherPhotonsR * gatherPhotonsR, pool_id, knnResult);
 
-                // for cone filter
-                float r = std::sqrt(knnResult.maxDistance2);
-                float k = 1.1f;
+                if (!knnResult.payloads.empty()) {
 
-                //std::cout << knnResult.payloads.size() << " "<< knnResult.resultMaxDistance2<< std::endl;
+                    // for cone filter
+                    float r = std::sqrt(knnResult.maxDistance2);
+                    float k = 1.1f;
 
-                for (auto photon : knnResult.payloads) {
-                    Vector3f wo = -photon.dir, wi;
-                    float pdf;
-                    BxDFType flags;
+                    //std::cout << knnResult.payloads.size() << " "<< knnResult.resultMaxDistance2<< std::endl;
 
-                    Spectrum f = isect.bsdf->Sample_f(wo, &wi, sampler->Get2D(), &pdf, BSDF_ALL, &flags);
+                    for (auto photon : knnResult.payloads) {
+                        Vector3f wo = -photon.dir, wi;
+                        float pdf;
+                        BxDFType flags;
 
-                    if (f.IsBlack() || pdf == 0.f)
-                        continue;
+                        Spectrum f = isect.bsdf->Sample_f(wo, &wi, sampler->Get2D(), &pdf, BSDF_ALL, &flags);
 
-                    auto photonEnergy = f * AbsDot(wi, isect.shading.n) * photon.energy * energyScale / pdf;
+                        if (f.IsBlack() || pdf == 0.f)
+                            continue;
 
-                    if (filter == 1) {
-                        photonEnergy *= (1.f - Distance(photon.pos, isect.p) / (k * r));
+                        auto photonEnergy = f * AbsDot(wi, isect.shading.n) * photon.energy * energyScale / pdf;
+
+                        if (filter == 1) {
+                            photonEnergy *= (1.f - Distance(photon.pos, isect.p) / (k * r));
+                        }
+
+                        L_caustic += photonEnergy;
                     }
 
-                    L_caustic += photonEnergy;
-                }
+                    if (filter == 0) {
+                        L_caustic /= (Pi * knnResult.maxDistance2);
+                    }
+                    else if (filter == 1) {
+                        L_caustic /= (Pi * knnResult.maxDistance2 * (1.f - 2.f / (k * 3)));
+                    }
 
-                if (filter == 0) {
-                    L_caustic /= (Pi * knnResult.maxDistance2);
+                    L += L_caustic;
                 }
-                else if (filter == 1) {
-                    L_caustic /= (Pi * knnResult.maxDistance2 * (1.f - 2.f / (k * 3)));
-                }
-
-                L += L_caustic;
             }
         }
 
         //std::cout << i << " " << j << " " << L.c[0] <<" "<< L.c[1] << " " << L.c[2] << std::endl;
+    }
+    else {
+        //throw("wtfffff");
+    }
+
+    if(L.IsBlack()) {
+        //throw("wtfffff");
     }
 
     return L;

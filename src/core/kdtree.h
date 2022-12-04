@@ -371,10 +371,12 @@ void KDTree<T>::KNNQuery(KNNQueryInfo& info, size_t currentIndex, int level) {
 
 	if (distance2 <= info.distance2Limit) { // 限定范围
 		if (info.result.Size() < info.k) {
+			// 如果未满直接push
 			info.result.Push(NodeInfo{ distance2, currentIndex });
 			info.currentMaxDistance2 = info.result.Top().distance2;
 		}
 		else {
+			// 比当前最大值更小才push
 			if (distance2 < info.currentMaxDistance2) {
 				info.result.Pop();
 				info.result.Push(NodeInfo{ distance2, currentIndex });

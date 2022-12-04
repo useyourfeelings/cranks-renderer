@@ -157,7 +157,7 @@ void GlassMaterial::ComputeScatteringFunctions(MemoryBlock& mb, SurfaceInteracti
         if (!T.IsBlack()) {
             if (isSpecular) {
                 //si->bsdf->Add(std::make_shared<SpecularTransmission>(T, 1.f, eta, mode));
-                si->bsdf->Add(MB_ALLOC(mb, SpecularTransmission)(T, 1.f, eta, mode));
+                si->bsdf->Add(MB_ALLOC(mb, SpecularTransmission)(T, 1.f, eta, mode)); // 写死了1？是个问题。
             }
                 
             
