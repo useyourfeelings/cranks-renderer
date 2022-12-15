@@ -260,12 +260,12 @@ Spectrum SamplerIntegrator::SpecularTransmit(
     MemoryBlock& mb, 
     const RayDifferential& ray, const SurfaceInteraction& isect,
     Scene& scene, Sampler& sampler, int pool_id, int depth)  {
+
     Vector3f wo = isect.wo, wi;
     float pdf;
     const Point3f& p = isect.p;
     const BSDF& bsdf = *isect.bsdf;
-    Spectrum f = bsdf.Sample_f(wo, &wi, sampler.Get2D(), &pdf,
-        BxDFType(BSDF_TRANSMISSION | BSDF_SPECULAR));
+    Spectrum f = bsdf.Sample_f(wo, &wi, sampler.Get2D(), &pdf, BxDFType(BSDF_TRANSMISSION | BSDF_SPECULAR));
     Spectrum L = Spectrum(0.f);
     Vector3f ns = isect.shading.n;
     if (pdf > 0.f && !f.IsBlack() && AbsDot(wi, ns) != 0.f) {

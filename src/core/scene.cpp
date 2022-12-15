@@ -183,8 +183,9 @@ std::tuple<int, json> Scene::AddObject(const json& obj_info) {
 		int tri_count, vertex_count;
 		int* vertex_index;
 		float* points;
+		float* normals;
 
-		LoadGLTF(obj_info["file_name"], &tri_count, &vertex_count, &vertex_index, &points);
+		LoadGLTF(obj_info["file_name"], &tri_count, &vertex_count, &vertex_index, &points, &normals);
 
 		//auto material = GenMaterial(obj_info["material"]);
 		//auto material = material_list.at(int(obj_info["material_id"]));
@@ -196,10 +197,11 @@ std::tuple<int, json> Scene::AddObject(const json& obj_info) {
 		}
 
 		//auto obj = std::make_shared<TriangleMesh>(name, t, tri_count, vertex_index, vertex_count, points, obj_info["material_id"], nullptr);
-		auto obj = std::make_shared<TriangleMesh>(name, t, tri_count, vertex_index, vertex_count, points, material, shared_from_this());
+		auto obj = std::make_shared<TriangleMesh>(name, t, tri_count, vertex_index, vertex_count, points, normals, material, shared_from_this());
 
 		delete[] vertex_index;
 		delete[] points;
+		delete[] normals;
 
 		for (int i = 0; i < tri_count; ++i) {
 			std::shared_ptr<Shape> shape = std::make_shared<Triangle>(t, Inverse(t), obj, i);

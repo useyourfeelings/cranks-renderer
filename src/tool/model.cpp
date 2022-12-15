@@ -2,13 +2,14 @@
 #include "json.h"
 #include<iostream>
 #include<fstream>
+#include<format>
 
 extern "C" {
 	#include "../../third_party/base64/base64.h"
 }
 
 // load first model
-int LoadGLTF(const std::string& file_name, int* tri_count, int* vertex_count, int** vertex_index, float** points) {
+int LoadGLTF(const std::string& file_name, int* tri_count, int* vertex_count, int** vertex_index, float** points, float** normals) {
 	std::fstream f;
 	f.open(file_name, std::fstream::in);
 
@@ -77,6 +78,22 @@ int LoadGLTF(const std::string& file_name, int* tri_count, int* vertex_count, in
 			memcpy(&(*points)[i * 3], &mesh_bytes[offset], 4); // x
 			memcpy(&(*points)[i * 3 + 1], &mesh_bytes[offset + 4], 4); // y
 			memcpy(&(*points)[i * 3 + 2], &mesh_bytes[offset + 8], 4); // z
+		}
+
+		// normal
+		int normal_id = file_json["meshes"][0]["primitives"][0]["attributes"]["NORMAL"];
+		int normal_count = file_json["accessors"][normal_id]["count"];
+		int normal_buffer_view_id = file_json["accessors"][normal_id]["bufferView"];
+		int normal_buffer_offset = file_json["bufferViews"][normal_buffer_view_id]["byteOffset"];
+		*normals = new float[normal_count * 3];
+
+		for (int i = 0; i < normal_count; ++i) {
+			int offset = normal_buffer_offset + i * 12;
+			memcpy(&(*normals)[i * 3], &mesh_bytes[offset], 4); // x
+			memcpy(&(*normals)[i * 3 + 1], &mesh_bytes[offset + 4], 4); // y
+			memcpy(&(*normals)[i * 3 + 2], &mesh_bytes[offset + 8], 4); // z
+
+			//std::cout << std::format("read gltf normals {} {} {}\n", (*normals)[i*3], (*normals)[i * 3 + 1], (*normals)[i * 3+2]);
 		}
 
 		int index_id = file_json["meshes"][0]["primitives"][0]["indices"];

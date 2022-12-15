@@ -8,13 +8,13 @@
 // mesh数据
 class TriangleMesh: public Object {
 public:
-	// TriangleMesh Public Methods
+    // TriangleMesh Public Methods
     TriangleMesh(const std::string& name, const Transform& ObjectToWorld, int nTriangles,
         const int* vertexIndices, int nVertices,
         //const Point3f* P
         const float* P,
         //const Vector3f* S,
-        //const Normal3f* N,
+        const float* N,
         //const Point2f* uv,
         //const std::shared_ptr<Texture<float>>& alphaMask,
         //const std::shared_ptr<Texture<float>>& shadowAlphaMask,
@@ -22,18 +22,18 @@ public:
         //int material_id
         std::shared_ptr<Material> material,
         std::shared_ptr<Scene> scene
-	);
+    );
 
-	// TriangleMesh Data
-	const int nTriangles; // 三角形数
-	const int nVertices; // 点数
-	std::vector<int> vertexIndices; // 三角形每个顶点的index。每个三角形三个index，顺序排。
-	std::unique_ptr<Point3f[]> p;
-	//std::unique_ptr<Normal3f[]> n;
-	//std::unique_ptr<Vector3f[]> s;
-	//std::unique_ptr<Point2f[]> uv;
-	//std::shared_ptr<Texture<float>> alphaMask, shadowAlphaMask;
-	//std::vector<int> faceIndices;
+    // TriangleMesh Data
+    const int nTriangles; // 三角形数
+    const int nVertices; // 点数
+    std::vector<int> vertexIndices; // 三角形每个顶点的index。每个三角形三个index，顺序排。
+    std::unique_ptr<Point3f[]> p;
+    std::unique_ptr<Vector3f[]> n;
+    //std::unique_ptr<Vector3f[]> s;
+    //std::unique_ptr<Point2f[]> uv;
+    //std::shared_ptr<Texture<float>> alphaMask, shadowAlphaMask;
+    //std::vector<int> faceIndices;
 
     std::shared_ptr<Material> GetMaterial();
 
@@ -76,7 +76,7 @@ public:
 private:
 
     std::shared_ptr<TriangleMesh> mesh;
-    const int* v;
+    const int* v; // 指向mesh的该三角index处
     //int faceIndex;
 };
 

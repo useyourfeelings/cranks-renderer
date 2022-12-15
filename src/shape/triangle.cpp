@@ -78,7 +78,7 @@ TriangleMesh::TriangleMesh(
     //const Point3f* P
     const float* P,
     //const Vector3f* S,
-    //const Normal3f* N,
+    const float* N,
     //const Point2f* UV,
     //const std::shared_ptr<Texture<float>>& alphaMask,
     //const std::shared_ptr<Texture<float>>& shadowAlphaMask,
@@ -115,10 +115,27 @@ TriangleMesh::TriangleMesh(
         //std::cout << P[i * 3] << " " << P[i * 3 + 1] << " " << P[i * 3 + 2] << std::endl;
     }
 
-    std::cout << "vertexIndices:" << std::endl;
+    std::cout << "normal:" << std::endl;
+    /*n.reset(new Vector3f[nTriangles]);
     for (int i = 0; i < nTriangles; ++i) {
-        //std::cout << vertexIndices[i * 3] << " " << vertexIndices[i * 3 + 1] << " " << vertexIndices[i * 3 + 2] << std::endl;
+        //p[i] = ObjectToWorld(P[i]);
+        n[i] = ObjectToWorld(Vector3f(N[i * 3], N[i * 3 + 1], N[i * 3 + 2]));
+        //std::cout <<"wtf " << N[i * 3] << " " << N[i * 3 + 1] << " " << N[i * 3 + 2] << std::endl;
+        std::cout << "wtf " << n[i].x << " " << n[i].y << " " << n[i].z << std::endl;
+    }*/
+
+    n.reset(new Vector3f[nVertices]);
+    for (int i = 0; i < nVertices; ++i) {
+        //p[i] = ObjectToWorld(P[i]);
+        n[i] = ObjectToWorld(Vector3f(N[i * 3], N[i * 3 + 1], N[i * 3 + 2]));
+        //std::cout <<"wtf " << N[i * 3] << " " << N[i * 3 + 1] << " " << N[i * 3 + 2] << std::endl;
+        //std::cout << "wtf " << n[i].x << " " << n[i].y << " " << n[i].z << std::endl;
     }
+
+    /*std::cout << "vertexIndices:" << std::endl;
+    for (int i = 0; i < nTriangles; ++i) {
+        std::cout << vertexIndices[i * 3] << " " << vertexIndices[i * 3 + 1] << " " << vertexIndices[i * 3 + 2] << std::endl;
+    }*/
         
 
     // Copy _UV_, _N_, and _S_ vertex data, if present
@@ -189,10 +206,13 @@ bool Triangle::Intersect(const Ray& ray, float* tHit, SurfaceInteraction* isect)
         // todo: make correct gamma. 8 is fake.
         Vector3f pError = gamma(8) * Abs((Vector3f)hitPoint);
 
+        //std::cout << std::format("Intersect v[0] v[1] v[2] {} {} {}\n", this->v[0], this->v[1], this->v[2]);
+        //std::cout << std::format("Intersect {} {} {}\n", mesh->n[this->v[0]].x, mesh->n[this->v[0]].y, mesh->n[this->v[0]].z);
+
         *isect = SurfaceInteraction(
             hitPoint,
             pError,
-            hitPoint - Point3f(0, 0, 0),
+            mesh->n[this->v[0]], // 直接用模型的normal // hitPoint - Point3f(0, 0, 0),
             Point2f(u, v), -ray.d,
             fake_dpdu, fake_dpdv,// fake test dpdu, dpdv,
             ray.time, this);

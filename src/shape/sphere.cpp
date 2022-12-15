@@ -44,17 +44,17 @@ bool Sphere::Intersect(const Ray& ray, float* tHit, SurfaceInteraction* isect) c
 
 		float c = Dot(Vector3f(r.o.x, r.o.y, r.o.z), Vector3f(r.o.x, r.o.y, r.o.z)) - radius * radius;
 
-		Log("Sphere wtf1 %f %f %f", a, b, c);
+		//Log("Sphere wtf1 %f %f %f", a, b, c);
 
 		if (Quadratic(a, b, c, &t1, &t2) == 0)
 			return false; // no root
 
-		Log("Sphere wtf2 %f %f", t1, t2);
+		//Log("Sphere wtf2 %f %f", t1, t2);
 
 		if (t1 > r.tMax || t2 <= 0) // out of range
 			return false;
 
-		Log("Sphere wtf3");
+		//Log("Sphere wtf3");
 
 		// find nearest t and check
 		t = t1;
@@ -64,7 +64,7 @@ bool Sphere::Intersect(const Ray& ray, float* tHit, SurfaceInteraction* isect) c
 				return false;
 		}
 
-		Log("Sphere wtf4 %f", t);
+		//Log("Sphere wtf4 %f", t);
 
 		hitPoint = r(float(t)); // get hit position
 
@@ -130,8 +130,8 @@ bool Sphere::Intersect(const Ray& ray, float* tHit, SurfaceInteraction* isect) c
 	}
 
 	
-	Log("hitPoint");
-	hitPoint.LogSelf();
+	//Log("hitPoint");
+	//hitPoint.LogSelf();
 
 	// todo 
 
@@ -225,20 +225,28 @@ bool Sphere::Intersect(const Ray& ray, float* tHit, SurfaceInteraction* isect) c
 	Vector3f dpdv = Vector3f(hitPoint.z * cosPhi, hitPoint.z * sinPhi, -radius * std::sin(theta)) 
 		* (thetaMax - thetaMin);
 
-	Log("dpdu");
-	dpdu.LogSelf();
+	//Log("dpdu");
+	//dpdu.LogSelf();
 
-	Log("dpdv");
-	dpdv.LogSelf();
+	//Log("dpdv");
+	//dpdv.LogSelf();
 
-
+	if (0) {
+		std::cout << std::format("Sphere::Intersect dpdu {} {} {}\n", dpdu.x, dpdu.y, dpdu.z);
+		std::cout << std::format("Sphere::Intersect dpdv {} {} {}\n", dpdv.x, dpdv.y, dpdv.z);
+		auto cross = Normalize(Cross(dpdu, dpdv));
+		std::cout << std::format("Sphere::Intersect cross {} {} {}\n", cross.x, cross.y, cross.z);
+		auto shape_n = Normalize(hitPoint - Point3f(0, 0, 0));
+		std::cout << std::format("Sphere::Intersect shape_n {} {} {}\n\n\n", shape_n.x, shape_n.y, shape_n.z);
+	}
 
 	// 最后生成信息并转回world	
 	*isect = ObjectToWorld(SurfaceInteraction(
 		hitPoint, 
 		pError,
 		hitPoint - Point3f(0, 0, 0), 
-		Point2f(u, v), -r.d, 
+		Point2f(u, v),
+		-r.d, 
 		dpdu, dpdv,
 		r.time, this));
 

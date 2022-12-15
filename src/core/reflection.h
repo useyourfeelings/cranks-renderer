@@ -130,7 +130,7 @@ public:
 
     int NumComponents(BxDFType flags = BSDF_ALL) const;
 
-    // 计算ss/ts/ns上的分量。即转到微小面本地nts。
+    // 计算ss/ts/ns上的分量。即转到微小面本地stn。
     Vector3f WorldToLocal(const Vector3f& v) const {
         return Vector3f(Dot(v, ss), Dot(v, ts), Dot(v, ns));
     }

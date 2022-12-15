@@ -5,7 +5,8 @@ SurfaceInteraction::SurfaceInteraction(
     const Point3f& p, const Vector3f& pError, const Vector3f& shape_n, const Point2f& uv,
     const Vector3f& wo, const Vector3f& dpdu, const Vector3f& dpdv,
     float time, const Shape* shape)
-    : Interaction(p, shape_n, Normalize(Cross(dpdu, dpdv)), pError, wo, time),
+    //: Interaction(p, shape_n, Normalize(Cross(dpdu, dpdv)), pError, wo, time),
+    : Interaction(p, shape_n, shape_n, pError, wo, time),
     uv(uv),
     dpdu(dpdu),
     dpdv(dpdv),
@@ -15,7 +16,7 @@ SurfaceInteraction::SurfaceInteraction(
     shading.dpdu = dpdu;
     shading.dpdv = dpdv;
 
-
+    //std::cout << std::format("SurfaceInteraction {} {} {}, {} {} {}\n", n.x, n.y, n.z, shape_n.x, shape_n.y, shape_n.z);
 }
 
 void SurfaceInteraction::LogSelf() {
