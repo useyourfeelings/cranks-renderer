@@ -9,7 +9,7 @@ BVH::BVH(const std::vector<std::shared_ptr<Primitive>>& p) :
 	if (primitives.empty())
 		return;
 
-	// ³õÊ¼»¯primitiveInfo
+	// åˆå§‹åŒ–primitiveInfo
 	std::vector<BVHPrimitiveInfo> primitiveInfo(primitives.size());
 	for (size_t i = 0; i < primitives.size(); ++i) {
 		primitiveInfo[i] = { i, primitives[i]->WorldBound() };
@@ -19,17 +19,17 @@ BVH::BVH(const std::vector<std::shared_ptr<Primitive>>& p) :
 			primitiveInfo[i].bounds.pMax.x, primitiveInfo[i].bounds.pMax.y, primitiveInfo[i].bounds.pMax.z);*/
 	}
 
-	tree.reserve(primitives.size() * 2 - 1); // vectorÔªËØµØÖ·»á±ä¡£²»³¬¹ıreserve¾Í²»»á±ä¡£¿ÉÄÜÓĞÒş²ØµÄÎÊÌâ¡£
+	tree.reserve(primitives.size() * 2 - 1); // vectorå…ƒç´ åœ°å€ä¼šå˜ã€‚ä¸è¶…è¿‡reserveå°±ä¸ä¼šå˜ã€‚å¯èƒ½æœ‰éšè—çš„é—®é¢˜ã€‚
 
-	// orderedPrimsÓÃÀ´´æË³Ğò²åÈëµÄÈı½ÇĞÎ
-	// ÓĞÊ±Ò»¸ö¼¯ºÏÖĞËùÓĞÖÊµãÏàµÈ¡£ĞèÒª°ÑÆäÖĞËùÓĞÈı½ÇĞÎ×öµ½Ò»¸öÒ¶×ÓÀï¡£
-	// ÄÇÃ´Î¬³ÖºÃÌí¼ÓµÄË³Ğò£¬ºóĞø¿ÉÒÔ¸üºÃµØÈ¡Èı½ÇĞÎ¡£
+	// orderedPrimsç”¨æ¥å­˜é¡ºåºæ’å…¥çš„ä¸‰è§’å½¢
+	// æœ‰æ—¶ä¸€ä¸ªé›†åˆä¸­æ‰€æœ‰è´¨ç‚¹ç›¸ç­‰ã€‚éœ€è¦æŠŠå…¶ä¸­æ‰€æœ‰ä¸‰è§’å½¢åšåˆ°ä¸€ä¸ªå¶å­é‡Œã€‚
+	// é‚£ä¹ˆç»´æŒå¥½æ·»åŠ çš„é¡ºåºï¼Œåç»­å¯ä»¥æ›´å¥½åœ°å–ä¸‰è§’å½¢ã€‚
 	std::vector<std::shared_ptr<Primitive>> orderedPrims;
 	orderedPrims.reserve(primitives.size());
 
 	Build(primitiveInfo, orderedPrims);
 
-	primitives.swap(orderedPrims); // Ìæ»»Îª°´Ë³ĞòÅÅÁĞ
+	primitives.swap(orderedPrims); // æ›¿æ¢ä¸ºæŒ‰é¡ºåºæ’åˆ—
 
 	for (int i = 0; i < 32; ++i) {
 		hopes_pool[i] = nullptr;
@@ -59,21 +59,21 @@ size_t BVH::Build(std::vector<BVHPrimitiveInfo>& primitiveInfo, size_t start, si
 
 		std::cout << std::format("{}\n", primitives[primitiveInfo[start].pIndex]->GetInfoString());*/
 
-		// Ö»ÓĞÒ»¸öÁË¡£Ö±½Ó×öÒ¶×Ó¡£
+		// åªæœ‰ä¸€ä¸ªäº†ã€‚ç›´æ¥åšå¶å­ã€‚
 		tree[node_id].MakeLeaf(node_id, orderedPrims.size(), 1, primitiveInfo[start].bounds);
 		orderedPrims.push_back(primitives[primitiveInfo[start].pIndex]);
 		
 		return node_id;
 	}
 
-	// ÖÊµã×Übox
+	// è´¨ç‚¹æ€»box
 	BBox3f centroidBounds;
 
 	for (size_t i = start; i <= end; ++i) {
 		centroidBounds = Union(centroidBounds, primitiveInfo[i].centroid);
 	}
 
-	// °´ÖÊµãbboxÑ¡Öá
+	// æŒ‰è´¨ç‚¹bboxé€‰è½´
 	auto diagonal = centroidBounds.pMax - centroidBounds.pMin;
 
 	int axis;
@@ -85,7 +85,7 @@ size_t BVH::Build(std::vector<BVHPrimitiveInfo>& primitiveInfo, size_t start, si
 		axis = 2;
 
 	if (centroidBounds.pMax[axis] == centroidBounds.pMin[axis]) {
-		// ÖÊµãÏàµÈ·Å¡£×öµ½Í¬¸öÒ¶×ÓÀï¡£
+		// è´¨ç‚¹ç›¸ç­‰æ”¾ã€‚åšåˆ°åŒä¸ªå¶å­é‡Œã€‚
 		BBox3f pBounds;
 		size_t index = orderedPrims.size();
 
@@ -104,7 +104,7 @@ size_t BVH::Build(std::vector<BVHPrimitiveInfo>& primitiveInfo, size_t start, si
 		return node_id;
 	}
 
-	// Éú³ÉbinĞÅÏ¢
+	// ç”Ÿæˆbinä¿¡æ¯
 	//std::vector<BVHBin> bins(binCount);
 	BVHBin bins[12];
 
@@ -124,24 +124,24 @@ size_t BVH::Build(std::vector<BVHPrimitiveInfo>& primitiveInfo, size_t start, si
 		bins[bin].bounds.Union(primitiveInfo[i].bounds);
 	}
 
-	// ±éÀúbins¡£Ëãsah¡£
-	// ¿¼ÂÇ¼«¶ËÇé¿ö¡£±ÈÈçÓĞµÄbinÎª¿Õ¡£
-	// È«ÔÚÒ»¸öbinºÃÏñ²»¿ÉÄÜ£¿×îÆğÂëÒ»Í·Ò»Î²¡£
+	// éå†binsã€‚ç®—sahã€‚
+	// è€ƒè™‘æç«¯æƒ…å†µã€‚æ¯”å¦‚æœ‰çš„binä¸ºç©ºã€‚
+	// å…¨åœ¨ä¸€ä¸ªbinå¥½åƒä¸å¯èƒ½ï¼Ÿæœ€èµ·ç ä¸€å¤´ä¸€å°¾ã€‚
 	size_t countL = 0;
 	BBox3f bboxL;
 	float bestCost = MaxFloat;
 	size_t bestBin;
 
 	for (size_t i = 0; i < binCount - 1; ++i) {
-		if (bins[i].count == 0) // ¿ÕµÄÌø¹ı
+		if (bins[i].count == 0) // ç©ºçš„è·³è¿‡
 			continue;
 
-		// ´ÓiÓÒ±ßÇĞ¿ª
-		// ×ó±ßµÄÖµ
+		// ä»iå³è¾¹åˆ‡å¼€
+		// å·¦è¾¹çš„å€¼
 		countL += bins[i].count;
 		bboxL.Union(bins[i].bounds);
 
-		// ÓÒ±ßµÄÖµ
+		// å³è¾¹çš„å€¼
 		size_t countR = 0;
 		BBox3f bboxR;
 		for (size_t j = i + 1; j < binCount; ++j) {
@@ -158,7 +158,7 @@ size_t BVH::Build(std::vector<BVHPrimitiveInfo>& primitiveInfo, size_t start, si
 		}
 	}
 
-	// ¸ù¾İbestBin·Ö³ÉÁ½×é¡£¼ÌĞøÍùÏÂËã¡£
+	// æ ¹æ®bestBinåˆ†æˆä¸¤ç»„ã€‚ç»§ç»­å¾€ä¸‹ç®—ã€‚
 	auto pmid = std::partition(&primitiveInfo[start], &primitiveInfo[end] + 1,
 		[&](const BVHPrimitiveInfo& i) {
 			int bin = binCount * (0.0001f + i.centroid[axis] - centroidBounds.pMin[axis]) /
@@ -262,7 +262,7 @@ void BVH::InternalBuild(std::vector<BVHPrimitiveInfo>& primitiveInfo, size_t sta
 
 		std::cout << std::format("{}\n", primitives[primitiveInfo[start].pIndex]->GetInfoString());*/
 
-		// Ö»ÓĞÒ»¸öÁË¡£Ö±½Ó×öÒ¶×Ó¡£
+		// åªæœ‰ä¸€ä¸ªäº†ã€‚ç›´æ¥åšå¶å­ã€‚
 		tree[node_id].MakeLeaf(node_id, orderedPrims.size(), 1, primitiveInfo[start].bounds);
 		orderedPrims.push_back(primitives[primitiveInfo[start].pIndex]);
 
@@ -275,14 +275,14 @@ void BVH::InternalBuild(std::vector<BVHPrimitiveInfo>& primitiveInfo, size_t sta
 		return;// node_id;
 	}
 
-	// ÖÊµã×Übox
+	// è´¨ç‚¹æ€»box
 	BBox3f centroidBounds;
 
 	for (size_t i = start; i <= end; ++i) {
 		centroidBounds = Union(centroidBounds, primitiveInfo[i].centroid);
 	}
 
-	// °´ÖÊµãbboxÑ¡Öá
+	// æŒ‰è´¨ç‚¹bboxé€‰è½´
 	auto diagonal = centroidBounds.pMax - centroidBounds.pMin;
 
 	int axis;
@@ -294,7 +294,7 @@ void BVH::InternalBuild(std::vector<BVHPrimitiveInfo>& primitiveInfo, size_t sta
 		axis = 2;
 
 	if (centroidBounds.pMax[axis] == centroidBounds.pMin[axis]) {
-		// ÖÊµãÏàµÈ·Å¡£×öµ½Í¬¸öÒ¶×ÓÀï¡£
+		// è´¨ç‚¹ç›¸ç­‰æ”¾ã€‚åšåˆ°åŒä¸ªå¶å­é‡Œã€‚
 		BBox3f pBounds;
 		size_t index = orderedPrims.size();
 
@@ -320,7 +320,7 @@ void BVH::InternalBuild(std::vector<BVHPrimitiveInfo>& primitiveInfo, size_t sta
 		return;// node_id;
 	}
 
-	// Éú³ÉbinĞÅÏ¢
+	// ç”Ÿæˆbinä¿¡æ¯
 	//std::vector<BVHBin> bins(binCount);
 	BVHBin bins[12];
 
@@ -340,24 +340,24 @@ void BVH::InternalBuild(std::vector<BVHPrimitiveInfo>& primitiveInfo, size_t sta
 		bins[bin].bounds.Union(primitiveInfo[i].bounds);
 	}
 
-	// ±éÀúbins¡£Ëãsah¡£
-	// ¿¼ÂÇ¼«¶ËÇé¿ö¡£±ÈÈçÓĞµÄbinÎª¿Õ¡£
-	// È«ÔÚÒ»¸öbinºÃÏñ²»¿ÉÄÜ£¿×îÆğÂëÒ»Í·Ò»Î²¡£
+	// éå†binsã€‚ç®—sahã€‚
+	// è€ƒè™‘æç«¯æƒ…å†µã€‚æ¯”å¦‚æœ‰çš„binä¸ºç©ºã€‚
+	// å…¨åœ¨ä¸€ä¸ªbinå¥½åƒä¸å¯èƒ½ï¼Ÿæœ€èµ·ç ä¸€å¤´ä¸€å°¾ã€‚
 	size_t countL = 0;
 	BBox3f bboxL;
 	float bestCost = MaxFloat;
 	size_t bestBin;
 
 	for (size_t i = 0; i < binCount - 1; ++i) {
-		if (bins[i].count == 0) // ¿ÕµÄÌø¹ı
+		if (bins[i].count == 0) // ç©ºçš„è·³è¿‡
 			continue;
 
-		// ´ÓiÓÒ±ßÇĞ¿ª
-		// ×ó±ßµÄÖµ
+		// ä»iå³è¾¹åˆ‡å¼€
+		// å·¦è¾¹çš„å€¼
 		countL += bins[i].count;
 		bboxL.Union(bins[i].bounds);
 
-		// ÓÒ±ßµÄÖµ
+		// å³è¾¹çš„å€¼
 		size_t countR = 0;
 		BBox3f bboxR;
 		for (size_t j = i + 1; j < binCount; ++j) {
@@ -374,7 +374,7 @@ void BVH::InternalBuild(std::vector<BVHPrimitiveInfo>& primitiveInfo, size_t sta
 		}
 	}
 
-	// ¸ù¾İbestBin·Ö³ÉÁ½×é¡£¼ÌĞøÍùÏÂËã¡£
+	// æ ¹æ®bestBinåˆ†æˆä¸¤ç»„ã€‚ç»§ç»­å¾€ä¸‹ç®—ã€‚
 	auto pmid = std::partition(&primitiveInfo[start], &primitiveInfo[end] + 1,
 		[&](const BVHPrimitiveInfo& i) {
 			int bin = binCount * (0.0001f + i.centroid[axis] - centroidBounds.pMin[axis]) /
@@ -432,28 +432,28 @@ bool BVH::Intersect(const Ray& ray) const {
 
 	float t;
 
-	// ×ö³Éºó½øÏÈ³ö¡£Éî¶ÈÓÅÏÈ¡£
+	// åšæˆåè¿›å…ˆå‡ºã€‚æ·±åº¦ä¼˜å…ˆã€‚
 
 	while (true) {
-		if (hopes.empty()) // ËùÓĞ¿ÉÄÜÓÃ¾¡
+		if (hopes.empty()) // æ‰€æœ‰å¯èƒ½ç”¨å°½
 			return false;
 
 		auto hope = hopes.back();
 		hopes.pop_back();
 
-		// Èç¹ûbboxÏà½»
+		// å¦‚æœbboxç›¸äº¤
 		if (hope->bounds.Intersect(ray, invDir, dirIsNeg, &t)) {
-			// Èç¹ûÊÇÒ¶×Ó
+			// å¦‚æœæ˜¯å¶å­
 			if (hope->left == nullptr && hope->right == nullptr) {
 				for (size_t i = 0; i < hope->count; ++i) {
 					if (this->primitives[hope->index + i]->Intersect(ray)) {
-						// primitiveÈ·ÊµÏà½»
+						// primitiveç¡®å®ç›¸äº¤
 						return true;
 					}
 				}
 			}
 			else {
-				// todo-ÅĞ¶Ï·½Ïò¡£ÏÈËã¸ÅÂÊ´óµÄ¡£
+				// todo-åˆ¤æ–­æ–¹å‘ã€‚å…ˆç®—æ¦‚ç‡å¤§çš„ã€‚
 				hopes.push_back(hope->left);
 				hopes.push_back(hope->right);
 			}
@@ -476,7 +476,7 @@ bool BVH::Intersect(const Ray& ray, float* tHit, SurfaceInteraction* isect, int 
 	if (!tree[0].bounds.Intersect(ray, invDir, dirIsNeg, &t))
 		return false;
 
-	//std::vector<const BVHNode*>& hopes = hopes_pool[pool_id]; // ¶àÏß³ÌÓÃlocalºÍpoolÇø±ğÍ¦´ó
+	//std::vector<const BVHNode*>& hopes = hopes_pool[pool_id]; // å¤šçº¿ç¨‹ç”¨localå’ŒpoolåŒºåˆ«æŒºå¤§
 
 	//std::vector<const BVHNode*> hopes;
 	//hopes.push_back(&tree[0]);
@@ -490,17 +490,17 @@ bool BVH::Intersect(const Ray& ray, float* tHit, SurfaceInteraction* isect, int 
 	int qend = 0;
 	hopes[qend] = &tree[0];
 
-	// ×ö³Éºó½øÏÈ³öq¡£Éî¶ÈÓÅÏÈ¡£½øÈ¥µÄÒ»¶¨ÊÇÓĞÏ£ÍûµÄbbox¡£
+	// åšæˆåè¿›å…ˆå‡ºqã€‚æ·±åº¦ä¼˜å…ˆã€‚è¿›å»çš„ä¸€å®šæ˜¯æœ‰å¸Œæœ›çš„bboxã€‚
 	while (true) {
-		if (qend < 0) // ËùÓĞ¿ÉÄÜÓÃ¾¡
+		if (qend < 0) // æ‰€æœ‰å¯èƒ½ç”¨å°½
 			break;
 
 		const BVHNode* hope = hopes[qend];
 		qend--;
 
-		// Èç¹ûÊÇÒ¶×Ó
+		// å¦‚æœæ˜¯å¶å­
 		if (hope->left == nullptr && hope->right == nullptr) {
-			// primitiveÈ·ÊµÏà½»
+			// primitiveç¡®å®ç›¸äº¤
 			for (size_t i = 0; i < hope->count; ++i) {
 				if (this->primitives[hope->index + i]->Intersect(ray, &t, &tempIsect)) {
 					if (t < tMin) {
@@ -513,9 +513,9 @@ bool BVH::Intersect(const Ray& ray, float* tHit, SurfaceInteraction* isect, int 
 			}
 		}
 		else {
-			// todo ÅĞ¶Ï·½Ïò
+			// todo åˆ¤æ–­æ–¹å‘
 
-			// bboxÇó½»µÄt>=tMinµÄ»°Ã»±ØÒªÔÙ²é¡£
+			// bboxæ±‚äº¤çš„t>=tMinçš„è¯æ²¡å¿…è¦å†æŸ¥ã€‚
 			if (hope->left->bounds.Intersect(ray, invDir, dirIsNeg, &t)) {
 				if (t < tMin) {
 					qend++;

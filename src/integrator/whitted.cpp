@@ -30,8 +30,8 @@ Spectrum WhittedIntegrator::Li(MemoryBlock& mb, const RayDifferential& ray, Scen
     Vector3f wo = isect.wo;
 
     // Compute scattering functions for surface interaction
-    // ¸ù¾İ²ÄÖÊÌí¼ÓBxDF¡£Ò»¸ö²ÄÖÊ¿ÉÄÜ°üº¬¶àÖÖbxdf¡£
-    // isect.bsdf×îÖÕ¿É°üº¬¶à¸öbxdf¡£
+    // æ ¹æ®æè´¨æ·»åŠ BxDFã€‚ä¸€ä¸ªæè´¨å¯èƒ½åŒ…å«å¤šç§bxdfã€‚
+    // isect.bsdfæœ€ç»ˆå¯åŒ…å«å¤šä¸ªbxdfã€‚
     isect.ComputeScatteringFunctions(mb, ray);
     
     //if (!isect.bsdf)
@@ -41,28 +41,28 @@ Spectrum WhittedIntegrator::Li(MemoryBlock& mb, const RayDifferential& ray, Scen
     //L += isect.Le(wo);
 
     // Add contribution of each light source
-    // ¼ÆËãÃ¿¸öµÆ´ò¹ıÀ´µÄ¹â¡£Ö±½Ó¹â¡£
+    // è®¡ç®—æ¯ä¸ªç¯æ‰“è¿‡æ¥çš„å…‰ã€‚ç›´æ¥å…‰ã€‚
     for (const auto& light : scene.lights) {
         Vector3f wi;
         float pdf;
         //VisibilityTester visibility;
 
-        // ¹âÔ´µÄ»ù±¾Öµ
+        // å…‰æºçš„åŸºæœ¬å€¼
         Spectrum Li = light->Sample_Li(isect, sampler.Get2D(), &wi, &pdf); // for point light
 
         //Log("base Li %f %f %f pdf = %f", Li.c[0], Li.c[1], Li.c[2], pdf);
 
-        // Îª0µÄ»°Ö±½ÓÌø¹ı
+        // ä¸º0çš„è¯ç›´æ¥è·³è¿‡
         if (Li.IsBlack() || pdf == 0)
             continue;
 
-        // ËãbsdfÀïµÄÃ¿¸öbxdfµÄf
-        // ¼´¹â´òÔÚµãÉÏ£¬¶Ôwo·½ÏòµÄ¹±Ï×¡£
+        // ç®—bsdfé‡Œçš„æ¯ä¸ªbxdfçš„f
+        // å³å…‰æ‰“åœ¨ç‚¹ä¸Šï¼Œå¯¹woæ–¹å‘çš„è´¡çŒ®ã€‚
         Spectrum f = isect.bsdf-> f(wo, wi);
 
         //Log("bsdf f = %f %f %f", f.c[0], f.c[1], f.c[2]);
 
-        // ½»µãµ½¹âÔ´Ö®¼äÊÇ·ñÓĞ×èµ²
+        // äº¤ç‚¹åˆ°å…‰æºä¹‹é—´æ˜¯å¦æœ‰é˜»æŒ¡
         if (!f.IsBlack()) {
             //Ray temp_ray(isect.p, wi);
 
@@ -91,14 +91,14 @@ Spectrum WhittedIntegrator::Li(MemoryBlock& mb, const RayDifferential& ray, Scen
     if (depth + 1 < maxDepth) {
         // Trace rays for specular reflection and refraction
 
-        // WhittedIntegrator Ö»ÄÜ´¦Àí BxDFType(BSDF_REFLECTION | BSDF_SPECULAR)
-        // ·´Éä¹â½øĞĞÏÂÒ»²ãLi
+        // WhittedIntegrator åªèƒ½å¤„ç† BxDFType(BSDF_REFLECTION | BSDF_SPECULAR)
+        // åå°„å…‰è¿›è¡Œä¸‹ä¸€å±‚Li
         L += SpecularReflect(mb, ray, isect, scene, sampler, pool_id, depth);
 
-        // ´«Êä¹â½øĞĞÏÂÒ»²ãLi
+        // ä¼ è¾“å…‰è¿›è¡Œä¸‹ä¸€å±‚Li
         L += SpecularTransmit(mb, ray, isect, scene, sampler, pool_id, depth);
     }
 
-    // LµÄÈı¸ö²¿·Ö¡£Ö±½Ó¹â£¬·´Éä¹â¡£´«Êä¹â¡£
+    // Lçš„ä¸‰ä¸ªéƒ¨åˆ†ã€‚ç›´æ¥å…‰ï¼Œåå°„å…‰ã€‚ä¼ è¾“å…‰ã€‚
     return L;
 }

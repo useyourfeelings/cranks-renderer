@@ -20,7 +20,7 @@ enum BxDFType {
 };
 
 // pbrt page 510
-// ±¾µØwµÄ¸÷ÖÖ¼ÆËã
+// æœ¬åœ°wçš„å„ç§è®¡ç®—
 inline float CosTheta(const Vector3f& w) { return w.z; }
 inline float Cos2Theta(const Vector3f& w) { return w.z * w.z; }
 inline float AbsCosTheta(const Vector3f& w) { return std::abs(w.z); }
@@ -47,7 +47,7 @@ inline float SinPhi(const Vector3f& w) {
 inline float Cos2Phi(const Vector3f& w) { return CosPhi(w) * CosPhi(w); }
 inline float Sin2Phi(const Vector3f& w) { return SinPhi(w) * SinPhi(w); }
 
-// ÒÑÖªÈëÉä·½Ïò£¬normalºÍeta±È¡£ÇóÕÛÉä·½Ïò¡£
+// å·²çŸ¥å…¥å°„æ–¹å‘ï¼Œnormalå’Œetaæ¯”ã€‚æ±‚æŠ˜å°„æ–¹å‘ã€‚
 inline bool Refract(const Vector3f& wi, const Vector3f& n, float eta, Vector3f* wt) {
     // Compute $\cos \theta_\roman{t}$ using Snell's law
     float cosThetaI = Dot(n, wi);
@@ -64,17 +64,17 @@ inline bool Refract(const Vector3f& wi, const Vector3f& n, float eta, Vector3f* 
     return true;
 }
 
-// ÒÑÖªnormalÇó·´Éä¹âÏß
+// å·²çŸ¥normalæ±‚åå°„å…‰çº¿
 inline Vector3f Reflect(const Vector3f& wo, const Vector3f& n) {
     return -wo + 2 * Dot(wo, n) * n;
 }
 
-// ¼Ğ½Ç<90¶È¡£ÔÚÍ¬¸ö°ëÇò¡£
+// å¤¹è§’<90åº¦ã€‚åœ¨åŒä¸ªåŠçƒã€‚
 inline bool SameHemisphere(const Vector3f& w, const Vector3f& wp) {
     return w.z * wp.z > 0;
 }
 
-// Çò×ø±ê
+// çƒåæ ‡
 inline Vector3f SphericalDirection(float sinTheta, float cosTheta, float phi) {
     return Vector3f(sinTheta * std::cos(phi), sinTheta * std::sin(phi), cosTheta);
 }
@@ -87,7 +87,7 @@ public:
 	virtual ~BxDF() {}
 
     bool MatchesFlags(BxDFType t) const { 
-        return (type & t) == type; // t°üº¬×ÔÉí
+        return (type & t) == type; // tåŒ…å«è‡ªèº«
     }
 
 	virtual Spectrum f(const Vector3f& wo, const Vector3f& wi) const = 0;
@@ -130,7 +130,7 @@ public:
 
     int NumComponents(BxDFType flags = BSDF_ALL) const;
 
-    // ¼ÆËãss/ts/nsÉÏµÄ·ÖÁ¿¡£¼´×ªµ½Î¢Ğ¡Ãæ±¾µØstn¡£
+    // è®¡ç®—ss/ts/nsä¸Šçš„åˆ†é‡ã€‚å³è½¬åˆ°å¾®å°é¢æœ¬åœ°stnã€‚
     Vector3f WorldToLocal(const Vector3f& v) const {
         return Vector3f(Dot(v, ss), Dot(v, ts), Dot(v, ns));
     }
@@ -192,7 +192,7 @@ public:
     LambertianReflection(const Spectrum& R)
         : BxDF(BxDFType(BSDF_REFLECTION | BSDF_DIFFUSE)), R(R) {}
     Spectrum f(const Vector3f& wo, const Vector3f& wi) const;
-    Spectrum rho(const Vector3f&, int, const Point2f*) const { return R; } // ·´ÉäÂÊÎª³£ÊıR
+    Spectrum rho(const Vector3f&, int, const Point2f*) const { return R; } // åå°„ç‡ä¸ºå¸¸æ•°R
     //Spectrum rho(int, const Point2f*, const Point2f*) const { return R; }
     //std::string ToString() const;
 
@@ -228,7 +228,7 @@ public:
     //virtual std::string ToString() const = 0;
 };
 
-// Á½¸ö¾øÔµÌå½»½ç´¦µÄFresnel
+// ä¸¤ä¸ªç»ç¼˜ä½“äº¤ç•Œå¤„çš„Fresnel
 class FresnelDielectric : public Fresnel {
 public:
     // FresnelDielectric Public Methods
@@ -238,11 +238,11 @@ public:
     //std::string ToString() const;
 
 private:
-    float etaI; // ²ÄÖÊ1 eta
-    float etaT; // ²ÄÖÊ2 eta
+    float etaI; // æè´¨1 eta
+    float etaT; // æè´¨2 eta
 };
 
-// µ¼Ìå
+// å¯¼ä½“
 class FresnelConductor : public Fresnel {
 public:
     // FresnelConductor Public Methods
@@ -275,7 +275,7 @@ public:
         fresnel(fresnel) {}
     Spectrum f(const Vector3f& wo, const Vector3f& wi) const {
         // see pbrt page 524
-        // ¶ÔÓÚ¾µÃæ·´ÉäÊ¼ÖÕ·µ»Ø0
+        // å¯¹äºé•œé¢åå°„å§‹ç»ˆè¿”å›0
         return Spectrum(0.f);
     }
     Spectrum Sample_f(const Vector3f& wo, Vector3f* wi, const Point2f& sample,

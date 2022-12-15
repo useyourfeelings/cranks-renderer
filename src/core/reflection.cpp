@@ -3,15 +3,15 @@
 #include "sampler.h"
 #include "sampling.h"
 
-// BxDF»ùÀàpdf
+// BxDFåŸºç±»pdf
 float BxDF::Pdf(const Vector3f& wo, const Vector3f& wi) const {
     return SameHemisphere(wo, wi) ? AbsCosTheta(wi) * InvPi : 0;
 }
 
-// ·´ÉäÂÊ
-// ¼´Ò»Êø¹â´ò¹ıÀ´£¬ÔÚËùÓĞ³öÉä·½ÏòµÄºÍ¡£
-// Í¨¹ı²ÉÑùÀ´¼ÆËã¡£
-// Ê²Ã´Çé¿öÄÜÖ±½Ó¸ø³öÈ·¶¨µÄº¯Êı£¬´Ó¶ø²»ĞèÒª²ÉÑù£¿
+// åå°„ç‡
+// å³ä¸€æŸå…‰æ‰“è¿‡æ¥ï¼Œåœ¨æ‰€æœ‰å‡ºå°„æ–¹å‘çš„å’Œã€‚
+// é€šè¿‡é‡‡æ ·æ¥è®¡ç®—ã€‚
+// ä»€ä¹ˆæƒ…å†µèƒ½ç›´æ¥ç»™å‡ºç¡®å®šçš„å‡½æ•°ï¼Œä»è€Œä¸éœ€è¦é‡‡æ ·ï¼Ÿ
 Spectrum BxDF::rho(const Vector3f& w, int nSamples, const Point2f* u) const {
     Spectrum r(0.);
     for (int i = 0; i < nSamples; ++i) {
@@ -26,8 +26,8 @@ Spectrum BxDF::rho(const Vector3f& w, int nSamples, const Point2f* u) const {
 
 
 Spectrum BxDF::Sample_f(const Vector3f& wo, Vector3f* wi, const Point2f& u, float* pdf, BxDFType* sampledType) const {
-    // Ä¬ÈÏ¶Ô°ëÇòËæ»ú²ÉÑù
-    // pbrt 13.5 13.6Éæ¼°½Ï¶àÊıÑ§ÍÆµ¼
+    // é»˜è®¤å¯¹åŠçƒéšæœºé‡‡æ ·
+    // pbrt 13.5 13.6æ¶‰åŠè¾ƒå¤šæ•°å­¦æ¨å¯¼
     
     // Cosine-sample the hemisphere, flipping the direction if necessary
     *wi = CosineSampleHemisphere(u);
@@ -37,7 +37,7 @@ Spectrum BxDF::Sample_f(const Vector3f& wo, Vector3f* wi, const Point2f& u, floa
 }
 
 Spectrum LambertianReflection::f(const Vector3f& wo, const Vector3f& wi) const {
-    // ÎªÊ²Ã´InvPi¡£´ıÕûÀí¡£
+    // ä¸ºä»€ä¹ˆInvPiã€‚å¾…æ•´ç†ã€‚
     return R * InvPi;
 }
 
@@ -74,9 +74,9 @@ Spectrum BSDF::f(const Vector3f& woW, const Vector3f& wiW, BxDFType flags) const
 
 // pbrt page 832
 // 
-// ¸ø¶¨wo¡£Ëæ»úÕÒÒ»¸öÆ¥ÅäÀàĞÍµÄbxdf¡£bxdf½øĞĞ²ÉÑù¡£µÃµ½wi¡£
+// ç»™å®šwoã€‚éšæœºæ‰¾ä¸€ä¸ªåŒ¹é…ç±»å‹çš„bxdfã€‚bxdfè¿›è¡Œé‡‡æ ·ã€‚å¾—åˆ°wiã€‚
 //
-// Ëæ»úÑ¡ÊÇ·ñÊÇÒ»¸ö¼ò»¯µÄÄ£ĞÍ£¿¶ÔÓÚ¶àÖÖ²ÄÖÊ²¢´æ£¬ÖÁÉÙÓ¦¸ÃÓĞÒ»¸ö±ÈÀıµÄÉèÖÃ¡£È»ºóÒª¿¼ÂÇ±ÈÀıµÄÓ°Ïì¡£
+// éšæœºé€‰æ˜¯å¦æ˜¯ä¸€ä¸ªç®€åŒ–çš„æ¨¡å‹ï¼Ÿå¯¹äºå¤šç§æè´¨å¹¶å­˜ï¼Œè‡³å°‘åº”è¯¥æœ‰ä¸€ä¸ªæ¯”ä¾‹çš„è®¾ç½®ã€‚ç„¶åè¦è€ƒè™‘æ¯”ä¾‹çš„å½±å“ã€‚
 
 Spectrum BSDF::Sample_f(const Vector3f& woWorld, Vector3f* wiWorld, const Point2f& u, float* pdf, BxDFType type, BxDFType* sampledType) const {
 
@@ -90,9 +90,9 @@ Spectrum BSDF::Sample_f(const Vector3f& woWorld, Vector3f* wiWorld, const Point2
         return Spectrum(0);
     }
 
-    // ÕâÀï´úÂëÓĞµã¶ñĞÄ¡£ÆäÊµ¾ÍÊÇÒª´ÓÆ¥ÅäµÄbxdfÖĞ°´Æ½¾ù·Ö²¼£¬Ëæ»úÑ¡Ò»¸ö¡£
+    // è¿™é‡Œä»£ç æœ‰ç‚¹æ¶å¿ƒã€‚å…¶å®å°±æ˜¯è¦ä»åŒ¹é…çš„bxdfä¸­æŒ‰å¹³å‡åˆ†å¸ƒï¼Œéšæœºé€‰ä¸€ä¸ªã€‚
 
-    // [0, matchingComps - 1]ÖĞµÄÄ³¸öÕûÊı
+    // [0, matchingComps - 1]ä¸­çš„æŸä¸ªæ•´æ•°
     int comp = std::min((int)std::floor(u.x * matchingComps), matchingComps - 1); // min([0, matchingComps), matchingComps-1)
 
     // Get _BxDF_ pointer for chosen component
@@ -109,25 +109,25 @@ Spectrum BSDF::Sample_f(const Vector3f& woWorld, Vector3f* wiWorld, const Point2
 
 
     // Remap _BxDF_ sample _u_ to $[0,1)^2$
-    // OneMinusEpsilonÊÇ1È±Ò»µãµã¡£±ÈÈç0.99999999999999
+    // OneMinusEpsilonæ˜¯1ç¼ºä¸€ç‚¹ç‚¹ã€‚æ¯”å¦‚0.99999999999999
     Point2f uRemapped(std::min(u.x * matchingComps - comp, OneMinusEpsilon), u.y);
 
     // Sample chosen _BxDF_
     Vector3f wi;
-    Vector3f wo = WorldToLocal(woWorld); // ×ªµ½Î¢Ğ¡Ãæ±¾µØnts
+    Vector3f wo = WorldToLocal(woWorld); // è½¬åˆ°å¾®å°é¢æœ¬åœ°nts
 
     if (wo.z == 0)
-        return 0.; // normal·½ÏòÎª0
+        return 0.; // normalæ–¹å‘ä¸º0
 
     *pdf = 0;
     if (sampledType)
         *sampledType = bxdf->type;
 
-    // bxdf²ÉÑù¡£ÒÑÖªwo£¬²ÉÑùÒ»¸öwi£¬Ëã³ö¹âÄÜ£¬²¢ÄÃµ½pdf¡£
-    // ÀıÈç¶ÔÓÚ¾µÃæ·´Éä£¬¾ÍÊÇÍêÃÀµÄ¶Ô³ÆµÄwi£¬pdfÎª1¡£¹âÄÜ¸ù¾İfresnelËã¡£
-    // ÀıÈç¶ÔÓÚÕÛÉä£¬¾ÍËãÕÛÉä·½ÏòºÍ¡£¹âÄÜ¸ù¾İfresnelËã¡£
-    // ¶ÔÓÚLambertian£¿·´ÉäÆ½¾ù·Ö²¼ÔÚ°ëÇò¡£Ëæ»úÒ»¸ö·½Ïò£¿
-    // ×ø±ê±ØĞëÏÈ×ªµ½local¡£zÖáÎªnormal¡£
+    // bxdfé‡‡æ ·ã€‚å·²çŸ¥woï¼Œé‡‡æ ·ä¸€ä¸ªwiï¼Œç®—å‡ºå…‰èƒ½ï¼Œå¹¶æ‹¿åˆ°pdfã€‚
+    // ä¾‹å¦‚å¯¹äºé•œé¢åå°„ï¼Œå°±æ˜¯å®Œç¾çš„å¯¹ç§°çš„wiï¼Œpdfä¸º1ã€‚å…‰èƒ½æ ¹æ®fresnelç®—ã€‚
+    // ä¾‹å¦‚å¯¹äºæŠ˜å°„ï¼Œå°±ç®—æŠ˜å°„æ–¹å‘å’Œã€‚å…‰èƒ½æ ¹æ®fresnelç®—ã€‚
+    // å¯¹äºLambertianï¼Ÿåå°„å¹³å‡åˆ†å¸ƒåœ¨åŠçƒã€‚éšæœºä¸€ä¸ªæ–¹å‘ï¼Ÿ
+    // åæ ‡å¿…é¡»å…ˆè½¬åˆ°localã€‚zè½´ä¸ºnormalã€‚
     Spectrum f = bxdf->Sample_f(wo, &wi, uRemapped, pdf, sampledType);
 
     //VLOG(2) << "For wo = " << wo << ", sampled f = " << f << ", pdf = " 
@@ -142,13 +142,13 @@ Spectrum BSDF::Sample_f(const Vector3f& woWorld, Vector3f* wiWorld, const Point2
     *wiWorld = LocalToWorld(wi);
 
     // Compute overall PDF with all matching _BxDF_s
-    // Èç¹ûÑ¡³öµÄ²»ÊÇspecular£¬ÇÒÓĞÆäËûmatchµÄbxdf¡£°ÑÆäËûbxdfµÄpdf¶¼¼ÓÉÏ¡£
+    // å¦‚æœé€‰å‡ºçš„ä¸æ˜¯specularï¼Œä¸”æœ‰å…¶ä»–matchçš„bxdfã€‚æŠŠå…¶ä»–bxdfçš„pdféƒ½åŠ ä¸Šã€‚
     if (!(bxdf->type & BSDF_SPECULAR) && matchingComps > 1)
         for (int i = 0; i < nBxDFs; ++i)
             if (bxdfs[i] != bxdf && bxdfs[i]->MatchesFlags(type))
                 *pdf += bxdfs[i]->Pdf(wo, wi);
 
-    // Æ½¾ùpdf
+    // å¹³å‡pdf
     if (matchingComps > 1)
         *pdf /= matchingComps;
 
@@ -171,7 +171,7 @@ Spectrum BSDF::Sample_f(const Vector3f& woWorld, Vector3f* wiWorld, const Point2
     return f;
 }
 
-// ËãËùÓĞbxdfµÄÆ½¾ùÖµ
+// ç®—æ‰€æœ‰bxdfçš„å¹³å‡å€¼
 float BSDF::Pdf(const Vector3f& woWorld, const Vector3f& wiWorld,
     BxDFType flags) const {
     //ProfilePhase pp(Prof::BSDFPdf);
@@ -200,9 +200,9 @@ struct BSDFRESULT {
 };
 */
 
-// ËãËùÓĞbxdfµÄ·´ÉäÂÊµÈ
+// ç®—æ‰€æœ‰bxdfçš„åå°„ç‡ç­‰
 int BSDF::All_f(const Vector3f& woWorld, const Point2f& u, BSDFRESULT* result) const {
-    Vector3f wo = WorldToLocal(woWorld); // ×ªµ½Î¢Ğ¡Ãæ±¾µØnts
+    Vector3f wo = WorldToLocal(woWorld); // è½¬åˆ°å¾®å°é¢æœ¬åœ°nts
 
     int i = 0;
 
@@ -221,7 +221,7 @@ int BSDF::All_f(const Vector3f& woWorld, const Point2f& u, BSDFRESULT* result) c
 
 /////////////////////////////////
 
-// µÃµ½fresnel°Ù·Ö±È
+// å¾—åˆ°fresnelç™¾åˆ†æ¯”
 float FrDielectric(float cosThetaI, float etaI, float etaT) {
     cosThetaI = Clamp(cosThetaI, -1, 1);
     // Potentially swap indices of refraction
@@ -285,18 +285,18 @@ Spectrum FresnelConductor::Evaluate(float cosThetaI) const {
 
 /////////////////////////////////
 
-// ¾µÃæµÄ·´Éä²¿·Ö
+// é•œé¢çš„åå°„éƒ¨åˆ†
 Spectrum SpecularReflection::Sample_f(const Vector3f& wo, Vector3f* wi, const Point2f& sample, float* pdf, BxDFType* sampledType) const {
     // Compute perfect specular reflection direction
     //std::cout << "SpecularReflection::Sample_f" << std::endl;
-    *wi = Vector3f(-wo.x, -wo.y, wo.z); // ÒÔÔ­µã¾µÃæ·´Éä¡£´ËÊ±Ò»¶¨ÊÇ±¾µØ×ø±ê£¬zÖáÎªnormal¡£
+    *wi = Vector3f(-wo.x, -wo.y, wo.z); // ä»¥åŸç‚¹é•œé¢åå°„ã€‚æ­¤æ—¶ä¸€å®šæ˜¯æœ¬åœ°åæ ‡ï¼Œzè½´ä¸ºnormalã€‚
     *pdf = 1;
 
     // pbrt page 524
     //auto a = fresnel->Evaluate(CosTheta(*wi));
     //std::cout << std::format("fresnel f = {} {} {}, wo = {} {} {}\n", a.c[0], a.c[1], a.c[2], wo.x, wo.y, wo.z);
     //std::cout << "fresnel f = " << a.c[0] << " " << a.c[1] << " " << a.c[2] << std::endl;
-    return fresnel->Evaluate(CosTheta(*wi)) * R / AbsCosTheta(*wi); // ¾µÃæ²»ĞèÒª¿¼ÂÇ´¹Ö±·ÖÁ¿£¬µ«ÊÇÍâÃæ»áÍ³Ò»³ËCosTheta£¬ËùÒÔÕâÀïÏÈ³ıµô£¿
+    return fresnel->Evaluate(CosTheta(*wi)) * R / AbsCosTheta(*wi); // é•œé¢ä¸éœ€è¦è€ƒè™‘å‚ç›´åˆ†é‡ï¼Œä½†æ˜¯å¤–é¢ä¼šç»Ÿä¸€ä¹˜CosThetaï¼Œæ‰€ä»¥è¿™é‡Œå…ˆé™¤æ‰ï¼Ÿ
 }
 
 Spectrum SpecularReflection::rho(const Vector3f& w, int nSamples, const Point2f* u) const {
@@ -304,17 +304,17 @@ Spectrum SpecularReflection::rho(const Vector3f& w, int nSamples, const Point2f*
     Vector3f wi;
     float pdf = 0; 
     Spectrum f = Sample_f(w, &wi, u[0], &pdf, nullptr);
-    return f * AbsCosTheta(wi); // Ô­±¾²»ĞèÒª³ËAbsCosTheta£¬µ«ÊÇ²ÉÑùÀï³ıÁË¡£
+    return f * AbsCosTheta(wi); // åŸæœ¬ä¸éœ€è¦ä¹˜AbsCosThetaï¼Œä½†æ˜¯é‡‡æ ·é‡Œé™¤äº†ã€‚
 }
 
-// ¾µÃæµÄÕÛÉä²¿·Ö
+// é•œé¢çš„æŠ˜å°„éƒ¨åˆ†
 Spectrum SpecularTransmission::Sample_f(const Vector3f& wo, Vector3f* wi,
     const Point2f& sample, float* pdf,
     BxDFType* sampledType) const {
     //std::cout << "SpecularTransmission::Sample_f" << std::endl;
 
     // Figure out which $\eta$ is incident and which is transmitted
-    bool entering = CosTheta(wo) > 0; // ´óÓÚ0£¬¼´ºÍnormalÏà¶Ô£¬Ò²¾ÍÊÇÉäÈë±íÃæ¡£
+    bool entering = CosTheta(wo) > 0; // å¤§äº0ï¼Œå³å’Œnormalç›¸å¯¹ï¼Œä¹Ÿå°±æ˜¯å°„å…¥è¡¨é¢ã€‚
     float etaI = entering ? etaA : etaB;
     float etaT = entering ? etaB : etaA;
 
@@ -327,7 +327,7 @@ Spectrum SpecularTransmission::Sample_f(const Vector3f& wo, Vector3f* wi,
     if (mode == TransportMode::Radiance)
         ft *= (etaI * etaI) / (etaT * etaT);
 
-    return ft / AbsCosTheta(*wi); // ¾µÃæ²»ĞèÒª¿¼ÂÇ´¹Ö±·ÖÁ¿£¬µ«ÊÇÍâÃæ»áÍ³Ò»³ËCosTheta£¬ËùÒÔÕâÀïÏÈ³ıµô£¿
+    return ft / AbsCosTheta(*wi); // é•œé¢ä¸éœ€è¦è€ƒè™‘å‚ç›´åˆ†é‡ï¼Œä½†æ˜¯å¤–é¢ä¼šç»Ÿä¸€ä¹˜CosThetaï¼Œæ‰€ä»¥è¿™é‡Œå…ˆé™¤æ‰ï¼Ÿ
 }
 
 Spectrum SpecularTransmission::rho(const Vector3f& w, int nSamples, const Point2f* u) const {
@@ -335,7 +335,7 @@ Spectrum SpecularTransmission::rho(const Vector3f& w, int nSamples, const Point2
     Vector3f wi;
     float pdf = 0;
     Spectrum f = Sample_f(w, &wi, u[0], &pdf, nullptr);
-    return f * AbsCosTheta(wi); // Ô­±¾²»ĞèÒª³ËAbsCosTheta£¬µ«ÊÇ²ÉÑùÀï³ıÁË¡£
+    return f * AbsCosTheta(wi); // åŸæœ¬ä¸éœ€è¦ä¹˜AbsCosThetaï¼Œä½†æ˜¯é‡‡æ ·é‡Œé™¤äº†ã€‚
 }
 
 //////////////////////////
@@ -361,8 +361,8 @@ Spectrum MicrofacetReflection::f(const Vector3f& wo, const Vector3f& wi) const {
     return R * distribution->D(wh) * F / (4 * cosThetaI * cosThetaO);
 }
 
-// Î¢Ğ¡ÃæµÄ·´Éä
-// woÎª±¾µØ×ø±ê¡£zÖáÎªnormal¡£
+// å¾®å°é¢çš„åå°„
+// woä¸ºæœ¬åœ°åæ ‡ã€‚zè½´ä¸ºnormalã€‚
 Spectrum MicrofacetReflection::Sample_f(const Vector3f& wo, Vector3f* wi,
     const Point2f& u, float* pdf,
     BxDFType* sampledType) const {
@@ -376,7 +376,7 @@ Spectrum MicrofacetReflection::Sample_f(const Vector3f& wo, Vector3f* wi,
     if (Dot(wo, wh) < 0) 
         return 0.;   // Should be rare
 
-    // µÃµ½¶Ô³ÆµÄÈëÉä¹âÏß
+    // å¾—åˆ°å¯¹ç§°çš„å…¥å°„å…‰çº¿
     *wi = Reflect(wo, wh);
 
     if (!SameHemisphere(wo, *wi))

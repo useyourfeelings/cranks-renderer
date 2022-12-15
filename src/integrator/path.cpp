@@ -34,7 +34,7 @@ Spectrum PathIntegrator::Li(MemoryBlock& mb, const RayDifferential& r, Scene& sc
         
         bool hitScene = scene.Intersect(ray, &tHit, &isect, pool_id);
 
-        //break; // ¶àÏß³Ìµ½´ËÓĞËğÊ§ 2Ïß³Ì1.85¡£4Ïß³Ì3.x¡£8Ïß³Ì6¡£
+        //break; // å¤šçº¿ç¨‹åˆ°æ­¤æœ‰æŸå¤± 2çº¿ç¨‹1.85ã€‚4çº¿ç¨‹3.xã€‚8çº¿ç¨‹6ã€‚
         
         //std::cout << "hitScene " << hitScene << std::endl;
 
@@ -46,13 +46,13 @@ Spectrum PathIntegrator::Li(MemoryBlock& mb, const RayDifferential& r, Scene& sc
                 //VLOG(2) << "Added Le -> L = " << L;
             }
             else {
-                // ¶ÔÓÚspecularBounce£¬ÉÏÒ»´Î·´ÉäÊÇ¾µÃæ·´Éä¡£
-                // ¾µÃæ·´ÉäÊÇ²»¼ÓÖ±½Ó¹âµÄ¡£µ½ÕâÀïÈç¹ûÃ»Åö×²£¬¾ÍÊÇ´òµ½»·¾³ÁË¡£¾ÍµÃ·µ»Ø»·¾³¡£·ñÔò¾ÍÊÇÈ«ºÚ¡£
+                // å¯¹äºspecularBounceï¼Œä¸Šä¸€æ¬¡åå°„æ˜¯é•œé¢åå°„ã€‚
+                // é•œé¢åå°„æ˜¯ä¸åŠ ç›´æ¥å…‰çš„ã€‚åˆ°è¿™é‡Œå¦‚æœæ²¡ç¢°æ’ï¼Œå°±æ˜¯æ‰“åˆ°ç¯å¢ƒäº†ã€‚å°±å¾—è¿”å›ç¯å¢ƒã€‚å¦åˆ™å°±æ˜¯å…¨é»‘ã€‚
 
                 // bounces == 0
-                // ÌØÊâÇé¿ö£¬ÑÛ¾¦Ö±½Ó¿´µ½»·¾³¡£
+                // ç‰¹æ®Šæƒ…å†µï¼Œçœ¼ç›ç›´æ¥çœ‹åˆ°ç¯å¢ƒã€‚
 
-                // »·¾³¹â
+                // ç¯å¢ƒå…‰
                 if (0) {
                     auto le = GetFakeSky(ray.d.z);
                     L += beta * le;
@@ -71,7 +71,7 @@ Spectrum PathIntegrator::Li(MemoryBlock& mb, const RayDifferential& r, Scene& sc
             break;
         }
 
-        // ¸ù¾İmaterialÌí¼Óbxdf
+        // æ ¹æ®materialæ·»åŠ bxdf
         isect.ComputeScatteringFunctions(mb, ray);
 
         auto distrib = lightDistribution->Lookup(isect.p);
@@ -81,8 +81,8 @@ Spectrum PathIntegrator::Li(MemoryBlock& mb, const RayDifferential& r, Scene& sc
         if (isect.bsdf->NumComponents(BxDFType(BSDF_ALL & ~BSDF_SPECULAR)) > 0) {
             //++totalPaths;
 
-            // ¼ÆËãÖ±½Ó¹â¡£
-            // ¶ÔËùÓĞ¹âÔ´²ÉÑù£¬Ñ¡³öÒ»¸ö¹âÔ´£¬¼ÆËãbsdf¡£µÃµ½×îºóµÄ¹âÄÜ¡£
+            // è®¡ç®—ç›´æ¥å…‰ã€‚
+            // å¯¹æ‰€æœ‰å…‰æºé‡‡æ ·ï¼Œé€‰å‡ºä¸€ä¸ªå…‰æºï¼Œè®¡ç®—bsdfã€‚å¾—åˆ°æœ€åçš„å…‰èƒ½ã€‚
             Spectrum Ld = beta * UniformSampleOneLight(isect, scene, sampler, pool_id, false, distrib);
 
             L += Ld;
@@ -94,14 +94,14 @@ Spectrum PathIntegrator::Li(MemoryBlock& mb, const RayDifferential& r, Scene& sc
 
         //std::cout << "Sample_f " << std::endl;
 
-        // ÒÔwo²ÉÒ»ÊøÈëÉä¹â£¬Ëã³öÄÜÁ¿¡£
-        // Í¬Ê±µÃµ½Ò»¸öËæ»ú·½Ïò£¬×÷ÎªÏÂÒ»²ãµÄpath¡£
+        // ä»¥woé‡‡ä¸€æŸå…¥å°„å…‰ï¼Œç®—å‡ºèƒ½é‡ã€‚
+        // åŒæ—¶å¾—åˆ°ä¸€ä¸ªéšæœºæ–¹å‘ï¼Œä½œä¸ºä¸‹ä¸€å±‚çš„pathã€‚
         Spectrum f = isect.bsdf->Sample_f(wo, &wi, sampler.Get2D(), &pdf, BSDF_ALL, &flags);
 
         if (f.IsBlack() || pdf == 0.f)
             break;
 
-        // ¸üĞÂbeta
+        // æ›´æ–°beta
         beta *= f * AbsDot(wi, isect.shading.n) / pdf;
 
         // rr

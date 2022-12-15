@@ -1,6 +1,6 @@
 #include "point.h"
 
-// ÒÑÖª¹âÔ´£¬½»µã¡£Ëã³öwi£¬ÄÜÁ¿¡£
+// å·²çŸ¥å…‰æºï¼Œäº¤ç‚¹ã€‚ç®—å‡ºwiï¼Œèƒ½é‡ã€‚
 Spectrum PointLight::Sample_Li(const Interaction& ref, const Point2f& u, Vector3f* wi, float* pdf) const {
     //ProfilePhase _(Prof::LightSample);
     //auto v = pLight - ref.p;
@@ -10,7 +10,7 @@ Spectrum PointLight::Sample_Li(const Interaction& ref, const Point2f& u, Vector3
     *pdf = 1.f;
     // *vis = VisibilityTester(ref, Interaction(pLight, ref.time, mediumInterface));
 
-    // Ö¸ÊıË¥¼õ
+    // æŒ‡æ•°è¡°å‡
     // return I;
     return I / DistanceSquared(pLight, ref.p) * 4000;
 }

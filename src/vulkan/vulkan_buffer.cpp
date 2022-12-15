@@ -10,7 +10,7 @@
 	*/
 VkResult VulkanBuffer::map(VkDeviceSize size, VkDeviceSize offset)
 {
-	// device的memory映射到本地的mapped
+	// device鐨刴emory鏄犲皠鍒版湰鍦扮殑mapped
 	return vkMapMemory(device, memory, offset, size, 0, &mapped);
 }
 

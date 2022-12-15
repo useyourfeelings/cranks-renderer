@@ -64,7 +64,7 @@ public:
 
     void Draw(const char* title, bool* p_open = NULL)
     {
-        std::lock_guard<std::mutex> guard(logger_mutex); // Log()¿É¹©ÆäËûÏß³Ìµ÷ÓÃ¡£ËùÒÔÔÚËùÓĞ²Ù×÷¹²Í¬Êı¾İµÄµØ·½¶¼Ó¦¼ÓËø¡£
+        std::lock_guard<std::mutex> guard(logger_mutex); // Log()å¯ä¾›å…¶ä»–çº¿ç¨‹è°ƒç”¨ã€‚æ‰€ä»¥åœ¨æ‰€æœ‰æ“ä½œå…±åŒæ•°æ®çš„åœ°æ–¹éƒ½åº”åŠ é”ã€‚
 
         ImGui::SetNextWindowBgAlpha(0.8f);
 

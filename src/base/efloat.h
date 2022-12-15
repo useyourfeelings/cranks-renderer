@@ -17,7 +17,7 @@ inline float BitsToFloat(uint32_t ui) {
     return f;
 }
 
-// Èç¹ûÊÇÕıÊı£¬¼ÓÒ»¸öulp¡£·ñÔò¼õÒ»¸öulp¡£
+// å¦‚æœæ˜¯æ­£æ•°ï¼ŒåŠ ä¸€ä¸ªulpã€‚å¦åˆ™å‡ä¸€ä¸ªulpã€‚
 inline float NextFloatUp(float v) {
     // Handle infinity and negative zero for _NextFloatUp()_
     if (std::isinf(v) && v > 0.) return v;
@@ -32,7 +32,7 @@ inline float NextFloatUp(float v) {
     return BitsToFloat(ui);
 }
 
-// Èç¹ûÊÇÕıÊı£¬¼õÒ»¸öulp¡£·ñÔò¼ÓÒ»¸öulp¡£
+// å¦‚æœæ˜¯æ­£æ•°ï¼Œå‡ä¸€ä¸ªulpã€‚å¦åˆ™åŠ ä¸€ä¸ªulpã€‚
 inline float NextFloatDown(float v) {
     // Handle infinity and positive zero for _NextFloatDown()_
     if (std::isinf(v) && v < 0.) return v;
@@ -77,8 +77,8 @@ public:
 
         // Interval arithemetic addition, with the result rounded away from
         // the value r.v in order to be conservative.
-        r.low = NextFloatDown(LowerBound() + ef.LowerBound()); // Ëã¿ÉÄÜµÄ×îĞ¡Öµ
-        r.high = NextFloatUp(UpperBound() + ef.UpperBound());  // Ëã¿ÉÄÜµÄ×î´óÖµ
+        r.low = NextFloatDown(LowerBound() + ef.LowerBound()); // ç®—å¯èƒ½çš„æœ€å°å€¼
+        r.high = NextFloatUp(UpperBound() + ef.UpperBound());  // ç®—å¯èƒ½çš„æœ€å¤§å€¼
         //r.Check();
         return r;
     }
@@ -87,8 +87,8 @@ public:
         EFloat r;
         r.v = v - ef.v;
 
-        r.low = NextFloatDown(LowerBound() - ef.UpperBound()); // Ëã¿ÉÄÜµÄ×îĞ¡Öµ  low-up
-        r.high = NextFloatUp(UpperBound() - ef.LowerBound());  // Ëã¿ÉÄÜµÄ×î´óÖµ  up-low
+        r.low = NextFloatDown(LowerBound() - ef.UpperBound()); // ç®—å¯èƒ½çš„æœ€å°å€¼  low-up
+        r.high = NextFloatUp(UpperBound() - ef.LowerBound());  // ç®—å¯èƒ½çš„æœ€å¤§å€¼  up-low
         //r.Check();
         return r;
     }
@@ -97,7 +97,7 @@ public:
         EFloat r;
         r.v = v * ef.v;
 
-        // ÉÏÏŞÏÂÏŞÒ»¶¨ÂäÔÚËÄÖÖ×éºÏÀï
+        // ä¸Šé™ä¸‹é™ä¸€å®šè½åœ¨å››ç§ç»„åˆé‡Œ
         float prod[4] = {
             LowerBound() * ef.LowerBound(), UpperBound() * ef.LowerBound(),
             LowerBound() * ef.UpperBound(), UpperBound() * ef.UpperBound() };
@@ -112,7 +112,7 @@ public:
         EFloat r;
         r.v = v / ef.v;
 
-        // ¿ç¹ı0µÄ»°ÉÏÏÂÏŞ¾ÍÊÇÎŞÇî
+        // è·¨è¿‡0çš„è¯ä¸Šä¸‹é™å°±æ˜¯æ— ç©·
         if (ef.low < 0 && ef.high > 0) {
             // Bah. The interval we're dividing by straddles zero, so just
             // return an interval of everything.
@@ -120,7 +120,7 @@ public:
             r.high = Infinity;
         }
         else {
-            // ÉÏÏŞÏÂÏŞÒ»¶¨ÂäÔÚËÄÖÖ×éºÏÀï
+            // ä¸Šé™ä¸‹é™ä¸€å®šè½åœ¨å››ç§ç»„åˆé‡Œ
 
             float div[4] = {
                 LowerBound() / ef.LowerBound(), UpperBound() / ef.LowerBound(),
@@ -222,7 +222,7 @@ inline EFloat abs(EFloat fe) {
     }
 }
 
-// efloat°æ±¾
+// efloatç‰ˆæœ¬
 inline int Quadratic(EFloat a, EFloat b, EFloat c, EFloat* r1, EFloat* r2) {
     float discriminant = b.v * b.v - a.v * c.v * 4;
 
@@ -242,15 +242,15 @@ inline int Quadratic(EFloat a, EFloat b, EFloat c, EFloat* r1, EFloat* r2) {
 
     //*r1 = (-b + sqrtd) / (2 * a);
     //*r2 = (-b - sqrtd) / (2 * a);
-    // ±ÜÃâÇ÷½üÓÚ0
+    // é¿å…è¶‹è¿‘äº0
 
     // <<Accuracy and Stability of Numerical Algorithms>> 1.7 1.8
-    // ±ÜÃâ¿ÉÄÜµÄÏà¼õÎª0
+    // é¿å…å¯èƒ½çš„ç›¸å‡ä¸º0
 
     //*r1 = (b - sqrtd) / (-2 * a);
     //*r2 = (b + sqrtd) / (-2 * a);
 
-    // Èç¹ûb<0¾ÍÌô¼õ·¨£¬Èç¹û´óÓÚ0¾ÍÌô¼Ó·¨¡£Ëã³öÒ»¸öÎó²îĞ¡µÄ½â£¬ÔÙËãÁíÒ»¸ö¡£
+    // å¦‚æœb<0å°±æŒ‘å‡æ³•ï¼Œå¦‚æœå¤§äº0å°±æŒ‘åŠ æ³•ã€‚ç®—å‡ºä¸€ä¸ªè¯¯å·®å°çš„è§£ï¼Œå†ç®—å¦ä¸€ä¸ªã€‚
     if (b.v < 0)
         q = -0.5f * (b - efloat_sqrtd);
     else

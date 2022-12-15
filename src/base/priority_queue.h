@@ -37,36 +37,36 @@ public:
         return size;
     }
 
-    // ÔÚÒÑÊÇheapµÄ»ù´¡ÉÏ°Ñi´¦µÄÔªËØµ÷Õûµ½ÕıÈ·µÄÎ»ÖÃ
-    // ÕÒ³öÈıÕß×î´óµÄ£¬²»¶ÏÍùÏÂ»»¡£
+    // åœ¨å·²æ˜¯heapçš„åŸºç¡€ä¸ŠæŠŠiå¤„çš„å…ƒç´ è°ƒæ•´åˆ°æ­£ç¡®çš„ä½ç½®
+    // æ‰¾å‡ºä¸‰è€…æœ€å¤§çš„ï¼Œä¸æ–­å¾€ä¸‹æ¢ã€‚
     void Heapify(size_t i) {
         size_t l = i * 2 + 1;
         size_t r = (i + 1) * 2;
 
         size_t largest = 0;
 
-        if (l < size && heap[l] > heap[i]) // ×ó±ß´ó
+        if (l < size && heap[l] > heap[i]) // å·¦è¾¹å¤§
             largest = l;
         else
             largest = i;
 
-        if (r < size && heap[r] > heap[largest]) // ÓÒ±ß´ó
+        if (r < size && heap[r] > heap[largest]) // å³è¾¹å¤§
             largest = r;
 
-        if (largest != i) { // ×ó±ß´ó»òÓÒ±ß´ó
+        if (largest != i) { // å·¦è¾¹å¤§æˆ–å³è¾¹å¤§
             std::swap(heap[i], heap[largest]);
             Heapify(largest);
         }
     }
 
-    // ´ÓÂÒĞòµÄÊı×é´´½¨max heap
+    // ä»ä¹±åºçš„æ•°ç»„åˆ›å»ºmax heap
     void BuildHeap() {
         for (size_t i = size / 2 - 1; i >= 0; --i) {
             Heapify(i);
         }
     }
 
-    // ×îºóÒ»¸ö·Åµ½µÚÒ»ÔÙHeapify
+    // æœ€åä¸€ä¸ªæ”¾åˆ°ç¬¬ä¸€å†Heapify
     T Pop() {
         T max = heap[0];
         heap[0] = heap[size - 1];
@@ -76,7 +76,7 @@ public:
         return max;
     }
 
-    // ·Åµ½×îºóÔÙÍùÉÏÉı
+    // æ”¾åˆ°æœ€åå†å¾€ä¸Šå‡
     void Push(T t) {
         if (size >= heap.size()) {
             throw("PriorityQueue dead 1");
@@ -86,7 +86,7 @@ public:
 
         size_t i = size - 1;
 
-        while (i > 0 && heap[i] > heap[(i - 1) / 2]) { // Ã»µ½¶¥ÇÒ±Èparent´ó
+        while (i > 0 && heap[i] > heap[(i - 1) / 2]) { // æ²¡åˆ°é¡¶ä¸”æ¯”parentå¤§
             std::swap(heap[i], heap[(i - 1) / 2]);
             i = (i - 1) / 2;
         }

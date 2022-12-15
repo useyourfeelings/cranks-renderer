@@ -10,18 +10,18 @@
 
 /*
 * 
-* ¿ÉÉè¼Æ³ÉµÈ´ıÎ¨Ò»µÄevents_mutex¡£ËùÓĞÏûÏ¢¶¼ÔÚÀïÃæ´¦Àí£¬ÔÚÀïÃæÇø·Ö²»Í¬ÏûÏ¢ÀàĞÍ£¬±ÈÈçÏß³Ìµ÷¶ÈÏà¹Ø£¬±ÈÈçµ¥´¿µÄÏûÏ¢´«µİ¡£
+* å¯è®¾è®¡æˆç­‰å¾…å”¯ä¸€çš„events_mutexã€‚æ‰€æœ‰æ¶ˆæ¯éƒ½åœ¨é‡Œé¢å¤„ç†ï¼Œåœ¨é‡Œé¢åŒºåˆ†ä¸åŒæ¶ˆæ¯ç±»å‹ï¼Œæ¯”å¦‚çº¿ç¨‹è°ƒåº¦ç›¸å…³ï¼Œæ¯”å¦‚å•çº¯çš„æ¶ˆæ¯ä¼ é€’ã€‚
 * 
-* Ğè¶¨ÒåÒ»¸öÏêÏ¸µÄÏûÏ¢ÀàĞÍ¡£¸²¸ÇËùÓĞÏûÏ¢¡£
+* éœ€å®šä¹‰ä¸€ä¸ªè¯¦ç»†çš„æ¶ˆæ¯ç±»å‹ã€‚è¦†ç›–æ‰€æœ‰æ¶ˆæ¯ã€‚
 * 
-* Ó¦ÓĞÒ»Åú×îµ×²ãµÄÊÂ¼ş¡£±ÈÈçÓĞÏß³Ì½áÊø¡£Thread½áÊøÊ±Í¨Öªloop½øĞĞjoin¡£
+* åº”æœ‰ä¸€æ‰¹æœ€åº•å±‚çš„äº‹ä»¶ã€‚æ¯”å¦‚æœ‰çº¿ç¨‹ç»“æŸã€‚Threadç»“æŸæ—¶é€šçŸ¥loopè¿›è¡Œjoinã€‚
 * 
-* ¿Í»§¶Ë´úÂë¿ÉÒÔ×¢²áÏûÏ¢
+* å®¢æˆ·ç«¯ä»£ç å¯ä»¥æ³¨å†Œæ¶ˆæ¯
 * 
-* Ö»Ìá¹©µ×²ã¿ò¼Ü¡£²»Ó¦Óë¾ßÌå¹¦ÄÜñîºÏ¡£
+* åªæä¾›åº•å±‚æ¡†æ¶ã€‚ä¸åº”ä¸å…·ä½“åŠŸèƒ½è€¦åˆã€‚
 * 
-* ÆäËû£º
-* ¿É×öĞÄÌø¡£Ïß³ÌÌ«¾ÃÃ»·´Ó¦£¬ĞèÒª´¦Àí¡£
+* å…¶ä»–ï¼š
+* å¯åšå¿ƒè·³ã€‚çº¿ç¨‹å¤ªä¹…æ²¡ååº”ï¼Œéœ€è¦å¤„ç†ã€‚
 */
 
 int RegisterEvent(MultiTaskCtx& thread_ctx, std::function<void(const MultiTaskCtx&)> f) {
@@ -52,11 +52,11 @@ int SendEvent(MultiTaskCtx& thread_ctx, int event_id) {
 
 /*
 
-Ö÷Ñ­»·
+ä¸»å¾ªç¯
 
-Æô¶¯init_func£¬µÈ´ıÏûÏ¢¡£¿É×¢²áÏûÏ¢£¬È»ºó·¢ÏûÏ¢´´½¨ĞÂÏß³Ì¡£
+å¯åŠ¨init_funcï¼Œç­‰å¾…æ¶ˆæ¯ã€‚å¯æ³¨å†Œæ¶ˆæ¯ï¼Œç„¶åå‘æ¶ˆæ¯åˆ›å»ºæ–°çº¿ç¨‹ã€‚
 
-threads´æ·ÅÏß³Ì¡£
+threadså­˜æ”¾çº¿ç¨‹ã€‚
 
 */ 
 int EventLoop(MultiTaskCtx& thread_ctx, std::function<void(MultiTaskCtx&)> init_func) {
@@ -72,10 +72,10 @@ int EventLoop(MultiTaskCtx& thread_ctx, std::function<void(MultiTaskCtx&)> init_
         //std::cout << "events_cv.wait_for start" << std::endl;
 
         // https://en.cppreference.com/w/cpp/thread/condition_variable/wait_for
-        // ×èÈûµÈ¸÷ÖÖÏûÏ¢
-        // got_eventsÓÃÓÚÇø·ÖÊÕµ½ÊÂ¼şºÍwait³¬Ê±
-        // wait_forµÈnotify»ò³¬Ê±£¬È»ºó¼ì²éÊÇ·ñgot_events¡£
-        // ±ØĞëÏÈÕùevents_mutex£¬·ñÔòÊÇUB¡£
+        // é˜»å¡ç­‰å„ç§æ¶ˆæ¯
+        // got_eventsç”¨äºåŒºåˆ†æ”¶åˆ°äº‹ä»¶å’Œwaitè¶…æ—¶
+        // wait_forç­‰notifyæˆ–è¶…æ—¶ï¼Œç„¶åæ£€æŸ¥æ˜¯å¦got_eventsã€‚
+        // å¿…é¡»å…ˆäº‰events_mutexï¼Œå¦åˆ™æ˜¯UBã€‚
         if (thread_ctx.control_cv->wait_for(lock, std::chrono::seconds(8), [&] { return *thread_ctx.event_flag != 0; })) {
             // got events
             std::cout << "got events" << std::endl;
@@ -89,8 +89,8 @@ int EventLoop(MultiTaskCtx& thread_ctx, std::function<void(MultiTaskCtx&)> init_
                     int event_id = event.type - int(EVENT_END);
 
                     switch(event_id){
-                        case EVENT_THREAD_OVER: // ÆäËûÏß³Ì½áÊøÊ±·¢Õâ¸öÏûÏ¢£¬ÈÃÕâ±ß¼°Ê±join¡£
-                            break;// É¶Ò²²»¸É¡£´¥·¢wait¾ÍĞĞ¡£ÏÂÃæ´¦Àíjoin¡£
+                        case EVENT_THREAD_OVER: // å…¶ä»–çº¿ç¨‹ç»“æŸæ—¶å‘è¿™ä¸ªæ¶ˆæ¯ï¼Œè®©è¿™è¾¹åŠæ—¶joinã€‚
+                            break;// å•¥ä¹Ÿä¸å¹²ã€‚è§¦å‘waitå°±è¡Œã€‚ä¸‹é¢å¤„ç†joinã€‚
 
                     }
                 }
@@ -100,7 +100,7 @@ int EventLoop(MultiTaskCtx& thread_ctx, std::function<void(MultiTaskCtx&)> init_
                 }
             }
 
-            // É¾³ıËùÓĞÏûÏ¢
+            // åˆ é™¤æ‰€æœ‰æ¶ˆæ¯
             thread_ctx.events->clear();
         }
         else {
@@ -134,7 +134,7 @@ int EventLoop(MultiTaskCtx& thread_ctx, std::function<void(MultiTaskCtx&)> init_
     return 0;
 }
 
-// ×èÈûÖ´ĞĞ¶àÏß³ÌÈÎÎñ
+// é˜»å¡æ‰§è¡Œå¤šçº¿ç¨‹ä»»åŠ¡
 void StartMultiTask(std::function<void(MultiTaskCtx)> thread_func,
     std::function<MultiTaskCtx(int, MultiTaskCtx)> manager_func,
     MultiTaskCtx args) {
@@ -147,7 +147,7 @@ void StartMultiTask(std::function<void(MultiTaskCtx)> thread_func,
         threads.push_back(Thread(thread_func, manager_func(i, args)));
 
         // https://stackoverflow.com/questions/31071761/why-only-last-thread-executing
-        // ¿Éµ¼ÖÂÖ®Ç°µÄthreadÊ§Ğ§£¬Ö»ÓĞ×îºóÒ»¸öthreadÄÜÕı³£Ö´ĞĞ¡£
+        // å¯å¯¼è‡´ä¹‹å‰çš„threadå¤±æ•ˆï¼Œåªæœ‰æœ€åä¸€ä¸ªthreadèƒ½æ­£å¸¸æ‰§è¡Œã€‚
         //threads.back().Start(); 
     }
 
@@ -161,9 +161,9 @@ void StartMultiTask(std::function<void(MultiTaskCtx)> thread_func,
 
 }
 
-// ×èÈûÖ´ĞĞ¶àÏß³ÌÈÎÎñ
-// ÊµÏÖµ÷¶È¡£Èç¹ûÓĞÒÑÍê³É×Ô¼ºµÄÈÎÎñ²¢joinµÄÏß³Ì£¬¿ÉÒÔÆğĞÂÏß³Ì°ïÖúÖ´ĞĞÆäËûÏß³ÌµÄÈÎÎñ¡£
-// ºÍEventLoopÀàËÆ¡£todo£ºÄÜ·ñ×ö³ÉÍ¨ÓÃµÄ£¿
+// é˜»å¡æ‰§è¡Œå¤šçº¿ç¨‹ä»»åŠ¡
+// å®ç°è°ƒåº¦ã€‚å¦‚æœæœ‰å·²å®Œæˆè‡ªå·±çš„ä»»åŠ¡å¹¶joinçš„çº¿ç¨‹ï¼Œå¯ä»¥èµ·æ–°çº¿ç¨‹å¸®åŠ©æ‰§è¡Œå…¶ä»–çº¿ç¨‹çš„ä»»åŠ¡ã€‚
+// å’ŒEventLoopç±»ä¼¼ã€‚todoï¼šèƒ½å¦åšæˆé€šç”¨çš„ï¼Ÿ
 void StartMultiTask2(std::function<void(MultiTaskCtx)> thread_func,
     std::function<MultiTaskCtx(int, MultiTaskCtx)> manager_func,
     MultiTaskCtx args) {
@@ -177,7 +177,7 @@ void StartMultiTask2(std::function<void(MultiTaskCtx)> thread_func,
         threads.push_back(Thread(thread_func, manager_func(i, args)));
 
         // https://stackoverflow.com/questions/31071761/why-only-last-thread-executing
-        // ¿Éµ¼ÖÂÖ®Ç°µÄthreadÊ§Ğ§£¬Ö»ÓĞ×îºóÒ»¸öthreadÄÜÕı³£Ö´ĞĞ¡£
+        // å¯å¯¼è‡´ä¹‹å‰çš„threadå¤±æ•ˆï¼Œåªæœ‰æœ€åä¸€ä¸ªthreadèƒ½æ­£å¸¸æ‰§è¡Œã€‚
         //threads.back().Start(); 
     }
 
@@ -200,7 +200,7 @@ void StartMultiTask2(std::function<void(MultiTaskCtx)> thread_func,
 
                 if (event.type == EVENT_THREAD_OVER) {
                     std::cout << "StartMultiTask2 EVENT_THREAD_OVER join 1" << std::endl;
-                    threads[event.task_index].Join(); // Ò»¶¨¿ÉÒÔjoin´ËÏß³Ì
+                    threads[event.task_index].Join(); // ä¸€å®šå¯ä»¥joinæ­¤çº¿ç¨‹
                     std::cout << "StartMultiTask2 EVENT_THREAD_OVER join ok" << std::endl;
                 }
                 else if (event.type == EVENT_THREAD_CALL_HELP) {
@@ -243,7 +243,7 @@ void StartMultiTask2(std::function<void(MultiTaskCtx)> thread_func,
                 }
             }
 
-            // É¾³ıËùÓĞÏûÏ¢
+            // åˆ é™¤æ‰€æœ‰æ¶ˆæ¯
             args.events->clear();
         }
         else {
@@ -286,7 +286,7 @@ int MultiTaskCallHelp(MultiTaskCtx& args, int help_x_start, int help_x_end) {
     args.control_mutex->lock();
     std::cout << "MultiTaskCallHelp lock " << task_index << std::endl;
 
-    (*args.task_flag)[task_index] = 0; // ×´Ì¬ÉèÎª0¡£µÈ´ıcontrolÉèÖÃ½á¹û¡£
+    (*args.task_flag)[task_index] = 0; // çŠ¶æ€è®¾ä¸º0ã€‚ç­‰å¾…controlè®¾ç½®ç»“æœã€‚
     *args.event_flag = 1;
     args.events->push_back(event);
     args.control_cv->notify_all();

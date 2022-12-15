@@ -76,7 +76,7 @@ public:
 
     // Pipeline stage at which the queue submission will wait (via pWaitSemaphores)
     VkPipelineStageFlags waitStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
-    VkSubmitInfo submitInfo; // ø…∏¥”√
+    VkSubmitInfo submitInfo; // ÂèØÂ§çÁî®
 
     std::vector<VkFramebuffer>frameBuffers;
     // Active frame buffer index
