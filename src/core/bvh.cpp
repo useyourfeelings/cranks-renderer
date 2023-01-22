@@ -6,6 +6,8 @@ BVH::BVH(const std::vector<std::shared_ptr<Primitive>>& p) :
 	//binCount(12) 
 	{
 
+	//std::cout<<std::format("BVH::BVH primitives.size {}\n", primitives.size());
+
 	if (primitives.empty())
 		return;
 
@@ -214,6 +216,9 @@ void BVH::Build(std::vector<BVHPrimitiveInfo>& primitiveInfo, std::vector<std::s
 	while (task_q.size()) {
 		size_t size = task_q.size();
 		auto task = task_q.back();
+
+		//std::cout << std::format("task {} {} {}\n", task.type, task.start, task.end);
+
 		if (task.type == 'B') {
 			task_q.pop_back();
 			InternalBuild(primitiveInfo, task.start, task.end, orderedPrims, task_q);
@@ -293,7 +298,8 @@ void BVH::InternalBuild(std::vector<BVHPrimitiveInfo>& primitiveInfo, size_t sta
 	else
 		axis = 2;
 
-	if (centroidBounds.pMax[axis] == centroidBounds.pMin[axis]) {
+	// 如果质点非常接近，算作相等。否则后面对微小距离再划分，有各种问题，可导致死循环。
+	if ((centroidBounds.pMax[axis] - centroidBounds.pMin[axis]) < 0.001f) { //if (centroidBounds.pMax[axis] == centroidBounds.pMin[axis]) {
 		// 质点相等放。做到同个叶子里。
 		BBox3f pBounds;
 		size_t index = orderedPrims.size();
@@ -342,7 +348,10 @@ void BVH::InternalBuild(std::vector<BVHPrimitiveInfo>& primitiveInfo, size_t sta
 
 	// 遍历bins。算sah。
 	// 考虑极端情况。比如有的bin为空。
+
 	// 全在一个bin好像不可能？最起码一头一尾。
+	// 有可能的。比如质点非常接近的时候会出现。不处理的话分割可能有问题，可导致死循环。在前边规避掉。
+
 	size_t countL = 0;
 	BBox3f bboxL;
 	float bestCost = MaxFloat;
@@ -375,7 +384,7 @@ void BVH::InternalBuild(std::vector<BVHPrimitiveInfo>& primitiveInfo, size_t sta
 	}
 
 	// 根据bestBin分成两组。继续往下算。
-	auto pmid = std::partition(&primitiveInfo[start], &primitiveInfo[end] + 1,
+	auto pmid = std::partition(primitiveInfo.begin() + start, primitiveInfo.begin() + end + 1,
 		[&](const BVHPrimitiveInfo& i) {
 			int bin = binCount * (0.0001f + i.centroid[axis] - centroidBounds.pMin[axis]) /
 				(centroidBounds.pMax[axis] - centroidBounds.pMin[axis]);
@@ -387,7 +396,7 @@ void BVH::InternalBuild(std::vector<BVHPrimitiveInfo>& primitiveInfo, size_t sta
 		}
 	);
 
-	int mid = pmid - &primitiveInfo[0];
+	int mid = pmid - primitiveInfo.begin();
 
 	//std::cout << "mid = " << mid << std::endl;
 

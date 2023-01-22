@@ -66,6 +66,7 @@ public:
 
     void Render(Scene& scene);
     void SetOptions(const json& data);
+    json GetConfig();
     json GetRenderStatus();
 
 private:
@@ -100,11 +101,11 @@ private:
     float energyScale;
     //int reemitPhotons;
 
-    int renderDirect = 1;
+    bool renderDirect;
     //int renderSpecular = 1;
-    int renderCaustic = 1;
-    int renderDiffuse = 1;
-    int renderGlobal = 0;
+    bool renderCaustic;
+    bool renderDiffuse;
+    bool renderGlobal;
 
     //int specularMethod = 0; // 0-monte carlo 1-whitted
     //int specularRTSamples = 5;

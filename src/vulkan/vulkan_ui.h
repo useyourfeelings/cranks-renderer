@@ -142,7 +142,7 @@ public:
 			&stagingBuffer,
 			uploadSize));
 
-		// mapÒÔºócopy fontDataÊý¾Ý
+		// mapä»¥åŽcopy fontDataæ•°æ®
 		stagingBuffer.map();
 		memcpy(stagingBuffer.mapped, fontData, uploadSize);
 		stagingBuffer.unmap();
@@ -347,7 +347,7 @@ public:
 	/** Update vertex and index buffer containing the imGui elements when required */
 	bool UpdateBuffer()
 	{
-		// imguiµÄdrawdataÊÇ·ñÓÐ¸Ä±ä¡£
+		// imguiçš„drawdataæ˜¯å¦æœ‰æ”¹å˜ã€‚
 
 		ImDrawData* imDrawData = ImGui::GetDrawData();
 		bool updateCmdBuffers = false;
@@ -447,7 +447,7 @@ public:
 				scissorRect.extent.width = (uint32_t)(pcmd->ClipRect.z - pcmd->ClipRect.x);
 				scissorRect.extent.height = (uint32_t)(pcmd->ClipRect.w - pcmd->ClipRect.y);
 
-				// Ä¬ÈÏµÄdescriptorSet´´½¨µÄÊÇfont¡£¶îÍâ´´½¨µÄÍ¼Æ¬´æÔÚpcmd->TextureId¡£Èç¹ûpcmd´ø×ÅÓÐÐ§µÄTextureId£¬¾ÍÒªÓÃ¡£
+				// é»˜è®¤çš„descriptorSetåˆ›å»ºçš„æ˜¯fontã€‚é¢å¤–åˆ›å»ºçš„å›¾ç‰‡å­˜åœ¨pcmd->TextureIdã€‚å¦‚æžœpcmdå¸¦ç€æœ‰æ•ˆçš„TextureIdï¼Œå°±è¦ç”¨ã€‚
 				// Bind DescriptorSet with font or user texture
 				VkDescriptorSet desc_set[1] = { (VkDescriptorSet)pcmd->TextureId };
 				if (pcmd->TextureId == 0 || sizeof(ImTextureID) < sizeof(ImU64))
@@ -459,7 +459,7 @@ public:
 				vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0, 1, desc_set, 0, nullptr);
 				//vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0, 1, &descriptorSet, 0, NULL);
 
-				// vkCmdSetScissorÉèÖÃÒ»¸ö¾ØÐÎ¡£Íâ²¿µÄµãÈ«²¿¶ªÆú¡£
+				// vkCmdSetScissorè®¾ç½®ä¸€ä¸ªçŸ©å½¢ã€‚å¤–éƒ¨çš„ç‚¹å…¨éƒ¨ä¸¢å¼ƒã€‚
 				vkCmdSetScissor(commandBuffer, 0, 1, &scissorRect);
 				
 
@@ -573,6 +573,12 @@ public:
 
 		static CameraSetting cs;
 		static SceneOptions scene_options;
+		static SystemConfig system_config;
+		static WhittedIntConfig whitted_int_config;
+		static PathIntConfig path_int_config;
+		static VpathIntConfig vpath_int_config;
+		static PMIntConfig pm_int_config;
+		static PPMIntConfig ppm_int_config;
 
 		static bool show_about_window = false;
 		static bool show_demo_window = false;
@@ -610,6 +616,10 @@ public:
 
 			PBR_API_get_mipmap_image(5, image_data, res_x, res_y);
 			app->BuildTestImage(res_x, res_y, image_data.data(), 5);
+
+			PbrApiGetSceneConfig(scene_options);
+			PbrApiGetSystemConfig(system_config);
+			PbrApiGetIntegratorsConfig(whitted_int_config, path_int_config, vpath_int_config, pm_int_config, ppm_int_config);
 		}
 
 		currentFrame++;
@@ -620,7 +630,7 @@ public:
 		static std::vector<float> progress_per;
 		static float render_duaration;
 
-		// ²»ÓÃÃ¿Ö¡¶¼¸üÐÂ
+		// ä¸ç”¨æ¯å¸§éƒ½æ›´æ–°
 		if (currentFrame == 0 ||
 			currentFrame > (lastProgressUpdatingFrame + lastFPS / 20)) {
 			PBR_API_get_render_progress(&render_status, progress_now, progress_total, progress_per, &has_new_photo, render_status_info);
@@ -817,12 +827,13 @@ public:
 					ImGuiID object_dock = ImGui::DockBuilderSplitNode(dock_main_id, ImGuiDir_Right, 0.30f, NULL, &dock_main_id);
 					ImGuiID property_dock = ImGui::DockBuilderSplitNode(object_dock, ImGuiDir_Down, 0.60f, NULL, &object_dock);
 					ImGuiID material_dock = ImGui::DockBuilderSplitNode(object_dock, ImGuiDir_Right, 0.50f, NULL, &object_dock);
-					
+					ImGuiID medium_dock = ImGui::DockBuilderSplitNode(object_dock, ImGuiDir_Right, 0.50f, NULL, &object_dock);
 
 					ImGui::DockBuilderDockWindow("Scene", scene_docker);
 					ImGui::DockBuilderDockWindow("Control", control_docker);
 					ImGui::DockBuilderDockWindow("Object", object_dock);
 					ImGui::DockBuilderDockWindow("Material", material_dock);
+					ImGui::DockBuilderDockWindow("Medium", medium_dock);
 					ImGui::DockBuilderDockWindow("Property", property_dock);
 					ImGui::DockBuilderFinish(dockspace_id);
 				}
@@ -837,12 +848,21 @@ public:
 		const float TEXT_BASE_HEIGHT = ImGui::GetTextLineHeightWithSpacing();
 
 		static int need_to_update_scene_tree = 1;
+		static int need_to_load_scene_config = 0;
+		static int need_to_load_system_config = 1;
+		static int need_to_load_integrators_config = 0;
 		static int need_to_update_material_tree = 1;
+		static int need_to_update_medium_tree = 1;
 		static json scene_tree = PBR_API_get_scene_tree();
 		static json material_tree = PBR_API_get_material_tree();
+		static json medium_tree = PBR_API_get_medium_tree();
 
 		static std::map<int, std::string> material_name_map;
 		static int material_combo_selected_id = 0;
+		static int object_medium_combo_selected_id = -1;
+
+		static std::map<int, std::string> medium_name_map;
+		static int medium_combo_selected_id = 0;
 
 		{
 			if (ImGuiFileDialog::Instance()->Display("Open Project", ImGuiWindowFlags_NoCollapse, ImVec2(600, 400), ImVec2(1200, 800)))
@@ -860,6 +880,10 @@ public:
 
 					need_to_update_scene_tree = 1;
 					need_to_update_material_tree = 1;
+					need_to_update_medium_tree = 1;
+					need_to_load_scene_config = 1;
+					need_to_load_system_config = 1;
+					need_to_load_integrators_config = 1;
 				}
 
 				// close
@@ -890,16 +914,48 @@ public:
 			need_to_update_scene_tree = 0;
 		}
 
+		if (need_to_load_scene_config) {
+			PbrApiGetSceneConfig(scene_options);
+			need_to_load_scene_config = 0;
+		}
+
+		if (need_to_load_system_config) {
+			PbrApiGetSystemConfig(system_config);
+			need_to_load_system_config = 0;
+		}
+
+		if (need_to_load_integrators_config) {
+			PbrApiGetIntegratorsConfig(whitted_int_config, path_int_config, vpath_int_config, pm_int_config, ppm_int_config);
+			need_to_load_integrators_config = 0;
+		}
+
 		if (need_to_update_material_tree) {
 			material_tree = PBR_API_get_material_tree();
-			std::cout << "material_tree " << material_tree << std::endl;
 			need_to_update_material_tree = 0;
+
+			std::cout << "material_tree " << material_tree << std::endl;
 
 			material_name_map.clear();
 			for (auto& [material_id, material] : material_tree.items()) {
+				//std::cout << "material_tree id  " << material["id"] <<" name "<< material["name"] << std::endl;
 				material_name_map[material["id"]] = material["name"];
 			}
 		}
+
+		if (need_to_update_medium_tree) {
+			medium_tree = PBR_API_get_medium_tree();
+			need_to_update_medium_tree = 0;
+
+			std::cout << "medium_tree " << medium_tree << std::endl;
+
+			medium_name_map.clear();
+			for (auto& [medium_id, medium] : medium_tree.items()) {
+				//std::cout << "medium_tree id  " << medium["id"] << " name " << medium["name"] << std::endl;
+				medium_name_map[medium["id"]] = medium["name"];
+			}
+		}
+
+
 
 		//ImGui::SetNextWindowPos(ImVec2(main_viewport->WorkPos.x + 650, main_viewport->WorkPos.y + 20), ImGuiCond_FirstUseEver);
 		//LoggerUI();
@@ -933,6 +989,11 @@ public:
 		static int selected_material_id = -1;
 		static json selected_material;
 		static int edit_material_name_status = 0;
+
+		static int selected_medium_id = -1;
+		static json selected_medium;
+		static int edit_medium_name_status = 0;
+
 		static int edit_obj_name_status = 0;
 		static int open_new_object_dialog = 0;
 
@@ -942,6 +1003,7 @@ public:
 
 		static char object_name_buffer[64] = "default";
 		static char material_name_buffer[64] = "default";
+		static char medium_name_buffer[64] = "default";
 		static float pos[3] = { 0, 0, 0 };
 		static int type = 0;
 		static std::string type_name[] = { "mesh", "sphere", "point_light", "infinite_light" };
@@ -960,6 +1022,14 @@ public:
 		static float uvrough[2] = { 0.1f, 0.1f };
 		static float sigma = 0.5f, eta = 1.8f, rough = 0.1f;
 		static bool remaproughness = false;
+
+		// medium
+		static int medium_type = 0;
+		static float sigma_s[3] = { 1, 1, 1 };
+		static float sigma_a[3] = { 1, 1, 1 };
+		static float medium_g = 0.3f;
+
+		static std::map<std::string, int> medium_type_id_map = { {"homo", 0} };
 
 		static std::map<std::string, int> material_type_id_map = { {"matte", 0}, {"glass", 1}, {"mirror", 2}, {"plastic", 3}, {"metal", 4} };
 
@@ -994,6 +1064,14 @@ public:
 
 			if (type == 0 || type == 1) {
 				material_combo_selected_id = node["material_id"];
+
+				if (node.contains("medium_id")) {
+					object_medium_combo_selected_id = node["medium_id"];
+				}
+				else {
+					object_medium_combo_selected_id = -1;
+				}
+					
 			}
 		};
 
@@ -1055,6 +1133,31 @@ public:
 			}
 		};
 
+		const auto dump_medium_node_to_buffer = [&](const json& node) -> void {
+			sprintf_s(medium_name_buffer, "%s", (std::string(node["name"])).c_str());
+
+			//pos[0] = node["world_pos"][0];
+			//pos[1] = node["world_pos"][1];
+			//pos[2] = node["world_pos"][2];
+
+			medium_type = medium_type_id_map[node["type"]];
+
+			switch (medium_type) {
+			case 0:
+				sigma_a[0] = node["sigma_a"][0];
+				sigma_a[1] = node["sigma_a"][1];
+				sigma_a[2] = node["sigma_a"][2];
+
+				sigma_s[0] = node["sigma_s"][0];
+				sigma_s[1] = node["sigma_s"][1];
+				sigma_s[2] = node["sigma_s"][2];
+
+				medium_g = node["g"];
+
+				break;
+			}
+		};
+
 		// Objects
 		{
 			const auto new_object_popup = [&](const json& on_node) -> void {
@@ -1093,7 +1196,12 @@ public:
 
 					if (type == 0 || type == 1) {
 						//material_combo_selected_id = 1; // default material
-						if (ImGui::BeginCombo("material", material_name_map[material_combo_selected_id].c_str()))
+
+						static std::string selected = "";
+						if (material_name_map.contains(material_combo_selected_id))
+							selected = material_name_map[material_combo_selected_id];
+
+						if (ImGui::BeginCombo("material", selected.c_str()))
 						{
 							for (const auto& [material_id, material_name] : material_name_map) {
 								if (ImGui::Selectable(material_name.c_str(), material_id == material_combo_selected_id))
@@ -1181,9 +1289,14 @@ public:
 							PBR_API_delete_object_from_scene(node);
 							need_to_update_scene_tree = 1;
 						}
-						else {
+						else if(delete_node_type == 1) {
 							PBR_API_delete_material(node);
 							need_to_update_material_tree = 1;
+							need_to_update_scene_tree = 1;
+						}
+						else if (delete_node_type == 2) {
+							PBR_API_delete_medium(node);
+							need_to_update_medium_tree = 1;
 							need_to_update_scene_tree = 1;
 						}
 						
@@ -1285,6 +1398,8 @@ public:
 						}
 						else {
 							if (ImGui::Selectable(node_name.c_str(), selected_obj_id == node["id"], ImGuiSelectableFlags_AllowDoubleClick)) {
+								// click object
+
 								selected_obj_id = node["id"];
 								selected_obj = node;
 								dump_node_to_buffer(node);
@@ -1442,6 +1557,8 @@ public:
 				}
 
 				if (type == 0 || type == 1) {
+
+					// object material
 					std::string material_string = "None";
 					if (material_name_map.contains(material_combo_selected_id)) {
 						material_string = material_name_map[material_combo_selected_id];
@@ -1449,12 +1566,25 @@ public:
 
 					if (ImGui::BeginCombo("material", material_string.c_str())) {
 						for (const auto& [material_id, material_name] : material_name_map) {
-							{
-								if (ImGui::Selectable(material_name.c_str(), material_id == material_combo_selected_id)) {
-									material_combo_selected_id = material_id;
-									update_object = 1;
-								}
-									
+							if (ImGui::Selectable(material_name.c_str(), material_id == material_combo_selected_id)) {
+								material_combo_selected_id = material_id;
+								update_object = 1;
+							}
+						}
+						ImGui::EndCombo();
+					}
+
+					// object medium
+					std::string medium_string = "";
+					if (medium_name_map.contains(object_medium_combo_selected_id)) {
+						medium_string = medium_name_map[object_medium_combo_selected_id];
+					}
+
+					if (ImGui::BeginCombo("medium", medium_string.c_str())) {
+						for (const auto& [medium_id, medium_name] : medium_name_map) {
+							if (ImGui::Selectable(medium_name.c_str(), medium_id == object_medium_combo_selected_id)) {
+								object_medium_combo_selected_id = medium_id;
+								update_object = 1;
 							}
 						}
 						ImGui::EndCombo();
@@ -1487,6 +1617,7 @@ public:
 
 					if (type == 0 || type == 1) {
 						obj_info["material_id"] = material_combo_selected_id;
+						obj_info["medium_id"] = object_medium_combo_selected_id;
 					}
 					else if (type == 2) {
 						obj_info["power"] = power;
@@ -1520,6 +1651,7 @@ public:
 					ImGui::TableNextColumn();
 					std::string node_name = node["name"];
 					std::string node_type = node["type"];
+
 					if(0) {// (node["type"] == "folder") {
 						bool open = ImGui::TreeNodeEx(node_name.c_str(),
 							ImGuiTreeNodeFlags_SpanFullWidth |
@@ -1848,6 +1980,195 @@ public:
 			ImGui::End();
 		}
 
+		// Medium
+		{
+			static int set_focus = 0;
+
+			const auto make_medium_tree_table = [&](const auto& myself, const json& parent) -> void {
+
+				for (auto& [node_id, node] : parent.items()) {
+					ImGui::TableNextRow();
+					ImGui::TableNextColumn();
+					std::string node_name = node["name"];
+					std::string node_type = node["type"];
+					
+					if (edit_medium_name_status && selected_medium_id == node["id"]) {
+						//ImGui::ActivateItem();
+						if (set_focus) {
+							ImGui::SetKeyboardFocusHere();
+							set_focus = 0;
+						}
+						if (ImGui::InputText("##medium_name", medium_name_buffer, 64,
+							0//ImGuiInputTextFlags_EnterReturnsTrue
+						)) {
+							//std::cout << "name 1\n";
+						}
+						else {
+							//std::cout << "name 2\n";
+						}
+
+						if (ImGui::IsItemDeactivated()) {
+							//std::cout << "name 11\n";
+							edit_medium_name_status = 0;
+
+							if (ImGui::IsItemDeactivatedAfterEdit()) { //IsItemDeactivated   IsItemDeactivatedAfterEdit
+								//std::cout << "name 22\n";
+								auto new_name = PBR_API_rename_medium(node["id"], medium_name_buffer);
+
+								sprintf_s(medium_name_buffer, "%s", new_name.c_str());
+
+								need_to_update_medium_tree = 1;
+							}
+						}
+					}
+					else {
+						if (ImGui::Selectable(node_name.c_str(), selected_medium_id == node["id"], ImGuiSelectableFlags_AllowDoubleClick)) {
+							selected_medium_id = node["id"];
+							selected_medium = node;
+							dump_medium_node_to_buffer(node);
+
+							if (ImGui::IsMouseDoubleClicked(0)) {
+								//std::cout << "db click\n";
+								edit_medium_name_status = 1;
+								set_focus = 1;
+							}
+						}
+					}
+
+					if (!edit_medium_name_status) {
+						if (ImGui::BeginPopupContextItem())
+						{
+							ImGui::Text("This a popup for \"%s\"!", node_name.c_str());
+							if (ImGui::Button("Delete")) {
+								ImGui::CloseCurrentPopup();
+								open_delete_pop = 1;
+								op_node = node;
+								delete_node_type = 2;
+							}
+
+							if (ImGui::Button("Add")) {
+								ImGui::CloseCurrentPopup();
+								open_new_object_dialog = 1;
+								op_node = node;
+							}
+							ImGui::EndPopup();
+						}
+					}
+
+
+					ImGui::TableNextColumn();
+					ImGui::Text(node_type.c_str());
+					//ImGui::TableNextColumn();
+					//ImGui::TextUnformatted(node->Type);
+				}
+			};
+
+			if (ImGui::Begin("Medium", nullptr,
+				//ImGuiWindowFlags_AlwaysAutoResize |
+				//ImGuiWindowFlags_NoMove |
+				//ImGuiWindowFlags_NoDecoration |
+				ImGuiWindowFlags_NoCollapse)) {
+
+				//ImGui::SetNextItemWidth();
+				if (ImGui::Button("new medium", ImVec2(ImGui::GetContentRegionAvail().x, 0))) {
+					selected_medium = PBR_API_new_medium();
+					selected_medium_id = selected_medium["id"];
+					need_to_update_medium_tree = 1;
+					dump_medium_node_to_buffer(selected_medium);
+				}
+
+				static ImGuiTableFlags flags =
+					//ImGuiTableFlags_BordersV | 
+					ImGuiTableFlags_BordersOuterH |
+					ImGuiTableFlags_Resizable |
+					ImGuiTableFlags_RowBg |
+					ImGuiTableFlags_NoBordersInBody;
+
+				if (ImGui::BeginTable("MediumTable", 2, flags)) {
+					ImGui::TableSetupColumn("Name", ImGuiTableColumnFlags_NoHide);
+					//ImGui::TableSetupColumn("Size", ImGuiTableColumnFlags_WidthFixed, TEXT_BASE_WIDTH * 12.0f);
+					ImGui::TableSetupColumn("Type", ImGuiTableColumnFlags_WidthFixed, TEXT_BASE_WIDTH * 12.0f);
+					ImGui::TableHeadersRow();
+
+					make_medium_tree_table(make_medium_tree_table, medium_tree);
+				}
+				ImGui::EndTable();
+
+				if (ImGui::CollapsingHeader("Property")) {
+					if (selected_medium_id != -1) {
+
+						int update_medium = 0;
+
+						//ImGui::InputText("name", material_name_buffer, 64, ImGuiInputTextFlags_ReadOnly);
+						ImGui::Text(medium_name_buffer);
+
+						if (ImGui::Combo("medium", &medium_type, "homo\0\0"))
+						{
+							/*PBR_API_update_scene_object(json({
+								{"id",selected_obj_id},
+								{"world_pos", pos}
+								}));*/
+							update_medium = 1;
+						}
+
+
+						switch (medium_type) {
+						case 0:
+							ImGui::ColorEdit3("sigma_a", sigma_a,
+								ImGuiColorEditFlags_Float |
+								ImGuiColorEditFlags_NoDragDrop
+							);
+							if (ImGui::IsItemDeactivatedAfterEdit()) {
+								update_medium = 1;
+							}
+
+							ImGui::ColorEdit3("sigma_s", sigma_s,
+								ImGuiColorEditFlags_Float |
+								ImGuiColorEditFlags_NoDragDrop
+							);
+							if (ImGui::IsItemDeactivatedAfterEdit()) {
+								update_medium = 1;
+							}
+
+							ImGui::SliderFloat("g", &medium_g, 0, 1);
+							if (ImGui::IsItemDeactivatedAfterEdit()) {
+								update_medium = 1;
+							}
+							break;
+						}
+
+						if (update_medium) {
+
+							json medium_info = json({
+								{"id", selected_medium_id},
+								{"name", selected_medium["name"]}
+								});
+
+							switch (medium_type) {
+							case 0:
+								medium_info["type"] = "homo";
+								medium_info["sigma_s"] = sigma_s;
+								medium_info["sigma_a"] = sigma_a;
+								medium_info["g"] = medium_g;
+
+								break;
+							}
+
+							PBR_API_update_medium(medium_info);
+							need_to_update_medium_tree = 1;
+						}
+					}
+				}
+
+
+				if (ImGui::CollapsingHeader("Preview")) {
+
+				}
+
+			}
+			ImGui::End();
+		}
+
 		{
 			//ImGui::SetNextWindowSize(ImVec2(1024 + 20, 1024 + 50));
 			//ImGui::SetNextWindowPos(ImVec2(512, 20));
@@ -1893,8 +2214,8 @@ public:
 				}
 
 				bool cameraChanged = false;
-
-				static bool integrator_changed = true;
+				bool system_config_changed = false;
+				static bool integrator_changed = false;
 
 				ImGui::SliderFloat3("pos", cs.pos, -100, 100);
 				if (ImGui::IsItemDeactivatedAfterEdit()) {
@@ -1909,6 +2230,23 @@ public:
 				ImGui::SliderFloat3("up", cs.up, -100, 100);
 				if (ImGui::IsItemDeactivatedAfterEdit()) {
 					cameraChanged = true;
+				}
+
+				static std::string medium_string = "";
+				if (medium_name_map.contains(medium_combo_selected_id)) {
+					medium_string = medium_name_map[medium_combo_selected_id];
+				}
+
+				if (ImGui::BeginCombo("camera medium", medium_string.c_str())) {
+					for (const auto& [medium_id, medium_name] : medium_name_map) {
+						if (ImGui::Selectable(medium_name.c_str(), medium_id == medium_combo_selected_id)) {
+							medium_combo_selected_id = medium_id;
+							cameraChanged = true;
+
+							cs.medium_id = medium_combo_selected_id;
+						}
+					}
+					ImGui::EndCombo();
 				}
 
 				//ImGui::PopItemWidth();
@@ -1947,19 +2285,9 @@ public:
 					cameraChanged = true;
 				}
 
-				ImGui::SliderInt("ray_sample_no", &scene_options.ray_sample_no, 1, 500);
+				ImGui::SliderInt("render_threads", &system_config.render_threads_no, 1, 16);
 				if (ImGui::IsItemDeactivatedAfterEdit()) {
-					integrator_changed = true;
-				}
-
-				ImGui::SliderInt("ray_bounce_no", &scene_options.ray_bounce_no, 0, 16);
-				if (ImGui::IsItemDeactivatedAfterEdit()) {
-					integrator_changed = true;
-				}
-
-				ImGui::SliderInt("render_threads", &scene_options.render_threads_no, 1, 16);
-				if (ImGui::IsItemDeactivatedAfterEdit()) {
-					integrator_changed = true;
+					system_config_changed = true;
 				}
 
 				ImGui::PushStyleColor(ImGuiCol_PlotHistogram, (ImVec4)ImColor(0.2f, 0.8f, 0.3f));
@@ -1978,6 +2306,10 @@ public:
 				if (cameraChanged) {
 					Log("cameraChanged");
 					PBR_API_set_perspective_camera(cs);
+				}
+
+				if (system_config_changed) {
+					PbrApiSetSystemConfig(system_config);
 				}
 
 				ImGui::Separator();
@@ -1999,8 +2331,6 @@ public:
 				ImGui::Text("Method:");
 				ImGui::SameLine();
 
-				
-
 				if (ImGui::RadioButton("whitted", &scene_options.render_method, 0)) {
 					PbrApiSelectIntegrator(scene_options.render_method);
 					integrator_changed = true;
@@ -2008,14 +2338,21 @@ public:
 
 				ImGui::SameLine();
 
-				if (ImGui::RadioButton("path tracing", &scene_options.render_method, 1)) {
+				if (ImGui::RadioButton("path", &scene_options.render_method, 1)) {
 					PbrApiSelectIntegrator(scene_options.render_method);
 					integrator_changed = true;
 				}
 
 				ImGui::SameLine();
 
-				if (ImGui::RadioButton("photon mapping", &scene_options.render_method, 2)) {
+				if (ImGui::RadioButton("vpath", &scene_options.render_method, 4)) {
+					PbrApiSelectIntegrator(scene_options.render_method);
+					integrator_changed = true;
+				}
+
+				ImGui::SameLine();
+
+				if (ImGui::RadioButton("pm", &scene_options.render_method, 2)) {
 					PbrApiSelectIntegrator(scene_options.render_method);
 					integrator_changed = true;
 				}
@@ -2027,12 +2364,22 @@ public:
 					integrator_changed = true;
 				}
 
-				if (scene_options.render_method == 0) {
+				if (scene_options.render_method == 0) { // whitted
+					ImGui::SliderInt("ray_sample_no", &whitted_int_config.ray_sample_no, 1, 500);
+					if (ImGui::IsItemDeactivatedAfterEdit()) {
+						integrator_changed = true;
+					}
+
+					ImGui::SliderInt("ray_bounce_no", &whitted_int_config.ray_bounce_no, 0, 16);
+					if (ImGui::IsItemDeactivatedAfterEdit()) {
+						integrator_changed = true;
+					}
+
 					if (integrator_changed) {
 						json integrator_info;
-						integrator_info["ray_sample_no"] = scene_options.ray_sample_no;
-						integrator_info["ray_bounce_no"] = scene_options.ray_bounce_no;
-						integrator_info["render_threads_no"] = scene_options.render_threads_no;
+						integrator_info["ray_sample_no"] = whitted_int_config.ray_sample_no;
+						integrator_info["ray_bounce_no"] = whitted_int_config.ray_bounce_no;
+						//integrator_info["render_threads_no"] = whitted_int_config.render_threads_no;
 
 						json data;
 						data["whitted"] = integrator_info;
@@ -2040,12 +2387,22 @@ public:
 						integrator_changed = false;
 					}
 				}
-				else if (scene_options.render_method == 1) {
+				else if (scene_options.render_method == 1) { // path
+					ImGui::SliderInt("ray_sample_no", &path_int_config.ray_sample_no, 1, 500);
+					if (ImGui::IsItemDeactivatedAfterEdit()) {
+						integrator_changed = true;
+					}
+
+					ImGui::SliderInt("ray_bounce_no", &path_int_config.ray_bounce_no, 0, 16);
+					if (ImGui::IsItemDeactivatedAfterEdit()) {
+						integrator_changed = true;
+					}
+
 					if (integrator_changed) {
 						json integrator_info;
-						integrator_info["ray_sample_no"] = scene_options.ray_sample_no;
-						integrator_info["ray_bounce_no"] = scene_options.ray_bounce_no;
-						integrator_info["render_threads_no"] = scene_options.render_threads_no;
+						integrator_info["ray_sample_no"] = path_int_config.ray_sample_no;
+						integrator_info["ray_bounce_no"] = path_int_config.ray_bounce_no;
+						//integrator_info["render_threads_no"] = path_int_config.render_threads_no;
 
 						json data;
 						data["path"] = integrator_info;
@@ -2053,9 +2410,41 @@ public:
 						integrator_changed = false;
 					}
 				}
-				else if (scene_options.render_method == 2) {
-					//bool integrator_changed = false;
-					ImGui::SliderInt("emit photons", &scene_options.emitPhotons, 0, 100000);
+				else if (scene_options.render_method == 4) { // vpath
+					ImGui::SliderInt("ray_sample_no", &vpath_int_config.ray_sample_no, 1, 500);
+					if (ImGui::IsItemDeactivatedAfterEdit()) {
+						integrator_changed = true;
+					}
+
+					ImGui::SliderInt("ray_bounce_no", &vpath_int_config.ray_bounce_no, 0, 16);
+					if (ImGui::IsItemDeactivatedAfterEdit()) {
+						integrator_changed = true;
+					}
+
+					if (integrator_changed) {
+						json integrator_info;
+						integrator_info["ray_sample_no"] = vpath_int_config.ray_sample_no;
+						integrator_info["ray_bounce_no"] = vpath_int_config.ray_bounce_no;
+						//integrator_info["render_threads_no"] = vpath_int_config.render_threads_no;
+
+						json data;
+						data["vpath"] = integrator_info;
+						PbrApiSetIntegrator(data);
+						integrator_changed = false;
+					}
+				}
+				else if (scene_options.render_method == 2) {  // pm
+					ImGui::SliderInt("ray_sample_no", &pm_int_config.ray_sample_no, 1, 500);
+					if (ImGui::IsItemDeactivatedAfterEdit()) {
+						integrator_changed = true;
+					}
+
+					ImGui::SliderInt("ray_bounce_no", &pm_int_config.ray_bounce_no, 0, 16);
+					if (ImGui::IsItemDeactivatedAfterEdit()) {
+						integrator_changed = true;
+					}
+
+					ImGui::SliderInt("emit photons", &pm_int_config.emit_photons, 0, 100000);
 					if (ImGui::IsItemDeactivatedAfterEdit()) {
 						integrator_changed = true;
 					}
@@ -2063,28 +2452,27 @@ public:
 					ImGui::Text("gather method:");
 					ImGui::SameLine();
 
-					if (ImGui::RadioButton("count", &scene_options.gatherMethod, 0)) {
+					if (ImGui::RadioButton("count", &pm_int_config.gather_method, 0)) {
 						integrator_changed = true;
 					}
 
 					ImGui::SameLine();
 
-					if (ImGui::RadioButton("x/1000", &scene_options.gatherMethod, 1)) {
+					if (ImGui::RadioButton("x/1000", &pm_int_config.gather_method, 1)) {
 						integrator_changed = true;
 					}
 
-					ImGui::SliderInt("gather photons", &scene_options.gatherPhotons, 0, 500);
+					ImGui::SliderInt("gather photons", &pm_int_config.gather_photons, 0, 500);
 					if (ImGui::IsItemDeactivatedAfterEdit()) {
 						integrator_changed = true;
 					}
 
-					ImGui::SliderFloat("gather photons radius(0=no limit)", &scene_options.gatherPhotonsR, 0, 2);
+					ImGui::SliderFloat("gather photons radius(0=no limit)", &pm_int_config.gather_photons_r, 0, 2);
 					if (ImGui::IsItemDeactivatedAfterEdit()) {
 						integrator_changed = true;
 					}
 
-					ImGui::InputFloat("energy scale", &scene_options.energyScale);
-					//ImGui::SliderFloat("energy scale", &scene_options.energyScale, 0, 200000);
+					ImGui::InputFloat("energy scale", &pm_int_config.energy_scale);
 					if (ImGui::IsItemDeactivatedAfterEdit()) {
 						integrator_changed = true;
 					}
@@ -2092,121 +2480,113 @@ public:
 					ImGui::Text("filter:");
 					ImGui::SameLine();
 
-					if (ImGui::RadioButton("None", &scene_options.filter, 0)) {
+					if (ImGui::RadioButton("None", &pm_int_config.filter, 0)) {
 						integrator_changed = true;
 					}
 
 					ImGui::SameLine();
 
-					if (ImGui::RadioButton("Cone", &scene_options.filter, 1)) {
+					if (ImGui::RadioButton("Cone", &pm_int_config.filter, 1)) {
 						integrator_changed = true;
 					}
 
 					ImGui::SameLine();
 
-					if (ImGui::RadioButton("Gaussian", &scene_options.filter, 2)) {
+					if (ImGui::RadioButton("Gaussian", &pm_int_config.filter, 2)) {
 						integrator_changed = true;
 					}
 
-					if (ImGui::Checkbox("reemit photons", &scene_options.reemitPhotons)) {
+					if (ImGui::Checkbox("reemit photons", &pm_int_config.reemit_photons)) {
 						integrator_changed = true;
 					}
 
-					if (ImGui::Checkbox("render direct", &scene_options.renderDirect)) {
+					if (ImGui::Checkbox("render direct", &pm_int_config.render_direct)) {
 						integrator_changed = true;
 					}
 
-					if (ImGui::Checkbox("render specular", &scene_options.renderSpecular)) {
-						integrator_changed = true;
-					}
-
-					ImGui::SameLine();
-
-					if (ImGui::RadioButton("Monte Carlo##1", &scene_options.specularMethod, 0)) {
+					if (ImGui::Checkbox("render specular", &pm_int_config.render_specular)) {
 						integrator_changed = true;
 					}
 
 					ImGui::SameLine();
 
-					if (ImGui::RadioButton("whitted##", &scene_options.specularMethod, 1)) {
+					if (ImGui::RadioButton("Monte Carlo##1", &pm_int_config.specular_method, 0)) {
 						integrator_changed = true;
 					}
 
-					//ImGui::SameLine();
+					ImGui::SameLine();
 
-					ImGui::SliderInt("samples", &scene_options.specularRTSamples, 1, 50);
+					if (ImGui::RadioButton("whitted##", &pm_int_config.specular_method, 1)) {
+						integrator_changed = true;
+					}
+
+					ImGui::SliderInt("samples", &pm_int_config.specular_rt_samples, 1, 50);
 					if (ImGui::IsItemDeactivatedAfterEdit()) {
 						integrator_changed = true;
 					}
 
-					if (ImGui::Checkbox("render caustic", &scene_options.renderCaustic)) {
+					if (ImGui::Checkbox("render caustic", &pm_int_config.render_caustic)) {
 						integrator_changed = true;
 					}
 
-					if (ImGui::Checkbox("render diffuse", &scene_options.renderDiffuse)) {
+					if (ImGui::Checkbox("render diffuse", &pm_int_config.render_diffuse)) {
 						integrator_changed = true;
 					}
 
-					if (ImGui::Checkbox("render global", &scene_options.renderGlobal)) {
-						integrator_changed = true;
-					}
-
-					ImGui::SliderInt("max iterations", &scene_options.maxIterations, 1, 200);
-					if (ImGui::IsItemDeactivatedAfterEdit()) {
+					if (ImGui::Checkbox("render global", &pm_int_config.render_global)) {
 						integrator_changed = true;
 					}
 
 					if (integrator_changed) {
 						json integrator_info;
-						integrator_info["ray_sample_no"] = scene_options.ray_sample_no;
-						integrator_info["ray_bounce_no"] = scene_options.ray_bounce_no;
-						integrator_info["render_threads_no"] = scene_options.render_threads_no;
+						integrator_info["ray_sample_no"] = pm_int_config.ray_sample_no;
+						integrator_info["ray_bounce_no"] = pm_int_config.ray_bounce_no;
+						//integrator_info["render_threads_no"] = pm_int_config.render_threads_no;
 
-						integrator_info["emitPhotons"] = scene_options.emitPhotons;
-						integrator_info["gatherPhotons"] = scene_options.gatherPhotons;
-						integrator_info["gatherPhotonsR"] = scene_options.gatherPhotonsR;
-						integrator_info["gatherMethod"] = scene_options.gatherMethod;
-						integrator_info["filter"] = scene_options.filter;
-						integrator_info["energyScale"] = scene_options.energyScale;
-						integrator_info["reemitPhotons"] = scene_options.reemitPhotons;
+						integrator_info["emit_photons"] = pm_int_config.emit_photons;
+						integrator_info["gather_photons"] = pm_int_config.gather_photons;
+						integrator_info["gather_photons_r"] = pm_int_config.gather_photons_r;
+						integrator_info["gather_method"] = pm_int_config.gather_method;
+						integrator_info["filter"] = pm_int_config.filter;
+						integrator_info["energy_scale"] = pm_int_config.energy_scale;
+						integrator_info["reemit_photons"] = pm_int_config.reemit_photons;
 
-						integrator_info["renderDirect"] = scene_options.renderDirect;
-						integrator_info["renderSpecular"] = scene_options.renderSpecular;
-						integrator_info["renderCaustic"] = scene_options.renderCaustic;
-						integrator_info["renderDiffuse"] = scene_options.renderDiffuse;
-						integrator_info["renderGlobal"] = scene_options.renderGlobal; 
+						integrator_info["render_direct"] = pm_int_config.render_direct;
+						integrator_info["render_specular"] = pm_int_config.render_specular;
+						integrator_info["render_caustic"] = pm_int_config.render_caustic;
+						integrator_info["render_diffuse"] = pm_int_config.render_diffuse;
+						integrator_info["render_global"] = pm_int_config.render_global;
 
-						integrator_info["specularMethod"] = scene_options.specularMethod;
-						integrator_info["specularRTSamples"] = scene_options.specularRTSamples;
-
-						integrator_info["maxIterations"] = scene_options.maxIterations;
-						
+						integrator_info["specular_method"] = pm_int_config.specular_method;
+						integrator_info["specular_rt_samples"] = pm_int_config.specular_rt_samples;
 
 						json data;
 						data["pm"] = integrator_info;
 						PbrApiSetIntegrator(data);
 						integrator_changed = false;
 					}
-				} else if (scene_options.render_method == 3) {
-
-					//bool integrator_changed = false;
-					ImGui::SliderInt("emit photons", &scene_options.emitPhotons, 0, 100000);
+				} else if (scene_options.render_method == 3) { // ppm
+					ImGui::SliderInt("ray_sample_no", &ppm_int_config.ray_sample_no, 1, 500);
 					if (ImGui::IsItemDeactivatedAfterEdit()) {
 						integrator_changed = true;
 					}
 
-					ImGui::SliderFloat("alpha", &scene_options.alpha, 0, 1);
+					ImGui::SliderInt("ray_bounce_no", &ppm_int_config.ray_bounce_no, 0, 16);
 					if (ImGui::IsItemDeactivatedAfterEdit()) {
 						integrator_changed = true;
 					}
 
-					ImGui::SliderFloat("initial radius", &scene_options.initalRadius, 0, 10);
+					ImGui::SliderFloat("alpha", &ppm_int_config.alpha, 0, 1);
 					if (ImGui::IsItemDeactivatedAfterEdit()) {
 						integrator_changed = true;
 					}
 
-					ImGui::InputFloat("energy scale", &scene_options.energyScale);
-					//ImGui::SliderFloat("energy scale", &scene_options.energyScale, 0, 200000);
+					ImGui::SliderFloat("initial radius", &ppm_int_config.inital_radius, 0, 10);
+					if (ImGui::IsItemDeactivatedAfterEdit()) {
+						integrator_changed = true;
+					}
+
+					ImGui::InputFloat("energy scale", &ppm_int_config.energy_scale);
 					if (ImGui::IsItemDeactivatedAfterEdit()) {
 						integrator_changed = true;
 					}
@@ -2214,94 +2594,58 @@ public:
 					ImGui::Text("filter:");
 					ImGui::SameLine();
 
-					if (ImGui::RadioButton("None", &scene_options.filter, 0)) {
+					if (ImGui::RadioButton("None", &ppm_int_config.filter, 0)) {
 						integrator_changed = true;
 					}
 
 					ImGui::SameLine();
 
-					if (ImGui::RadioButton("Cone", &scene_options.filter, 1)) {
+					if (ImGui::RadioButton("Cone", &ppm_int_config.filter, 1)) {
 						integrator_changed = true;
 					}
 
 					ImGui::SameLine();
 
-					if (ImGui::RadioButton("Gaussian", &scene_options.filter, 2)) {
+					if (ImGui::RadioButton("Gaussian", &ppm_int_config.filter, 2)) {
 						integrator_changed = true;
 					}
 
-					/*if (ImGui::Checkbox("reemit photons", &scene_options.reemitPhotons)) {
-						integrator_changed = true;
-					}*/
-
-					if (ImGui::Checkbox("render direct", &scene_options.renderDirect)) {
+					if (ImGui::Checkbox("render direct", &ppm_int_config.render_direct)) {
 						integrator_changed = true;
 					}
 
-					/*if (ImGui::Checkbox("render specular", &scene_options.renderSpecular)) {
+					if (ImGui::Checkbox("render caustic", &ppm_int_config.render_caustic)) {
 						integrator_changed = true;
 					}
 
-					ImGui::SameLine();
-
-					if (ImGui::RadioButton("Monte Carlo", &scene_options.specularMethod, 0)) {
+					if (ImGui::Checkbox("render diffuse", &ppm_int_config.render_diffuse)) {
 						integrator_changed = true;
 					}
 
-					ImGui::SameLine();
-
-					if (ImGui::RadioButton("whitted", &scene_options.specularMethod, 1)) {
+					if (ImGui::Checkbox("render global", &ppm_int_config.render_global)) {
 						integrator_changed = true;
 					}
 
-					//ImGui::SameLine();
-
-					if (ImGui::SliderInt("samples", &scene_options.specularRTSamples, 1, 50)) {
-						integrator_changed = true;
-					}*/
-
-					if (ImGui::Checkbox("render caustic", &scene_options.renderCaustic)) {
-						integrator_changed = true;
-					}
-
-					if (ImGui::Checkbox("render diffuse", &scene_options.renderDiffuse)) {
-						integrator_changed = true;
-					}
-
-					if (ImGui::Checkbox("render global", &scene_options.renderGlobal)) {
-						integrator_changed = true;
-					}
-
-					ImGui::SliderInt("max iterations", &scene_options.maxIterations, 1, 200);
+					ImGui::SliderInt("max iterations", &ppm_int_config.max_iterations, 1, 200);
 					if (ImGui::IsItemDeactivatedAfterEdit()) {
 						integrator_changed = true;
 					}
 
 					if (integrator_changed) {
 						json integrator_info;
-						integrator_info["ray_sample_no"] = scene_options.ray_sample_no;
-						integrator_info["ray_bounce_no"] = scene_options.ray_bounce_no;
-						integrator_info["render_threads_no"] = scene_options.render_threads_no;
+						integrator_info["ray_sample_no"] = ppm_int_config.ray_sample_no;
+						integrator_info["ray_bounce_no"] = ppm_int_config.ray_bounce_no;
+						//integrator_info["render_threads_no"] = ppm_int_config.render_threads_no;
 
-						integrator_info["emitPhotons"] = scene_options.emitPhotons;
-						integrator_info["alpha"] = scene_options.alpha;
-						integrator_info["initalRadius"] = scene_options.initalRadius;
-						//integrator_info["gatherMethod"] = scene_options.gatherMethod;
-						integrator_info["filter"] = scene_options.filter;
-						integrator_info["energyScale"] = scene_options.energyScale;
-						//integrator_info["reemitPhotons"] = scene_options.reemitPhotons;
-
-						integrator_info["renderDirect"] = scene_options.renderDirect;
-						//integrator_info["renderSpecular"] = scene_options.renderSpecular;
-						integrator_info["renderCaustic"] = scene_options.renderCaustic;
-						integrator_info["renderDiffuse"] = scene_options.renderDiffuse;
-						integrator_info["renderGlobal"] = scene_options.renderGlobal;
-
-						//integrator_info["specularMethod"] = scene_options.specularMethod;
-						//integrator_info["specularRTSamples"] = scene_options.specularRTSamples;
-
-						integrator_info["maxIterations"] = scene_options.maxIterations;
-
+						integrator_info["alpha"] = ppm_int_config.alpha;
+						integrator_info["initalRadius"] = ppm_int_config.inital_radius;
+						integrator_info["filter"] = ppm_int_config.filter;
+						integrator_info["energy_scale"] = ppm_int_config.energy_scale;
+						integrator_info["render_direct"] = ppm_int_config.render_direct;
+						integrator_info["render_caustic"] = ppm_int_config.render_caustic;
+						integrator_info["render_diffuse"] = ppm_int_config.render_diffuse;
+						integrator_info["render_global"] = ppm_int_config.render_global;
+						integrator_info["max_iterations"] = ppm_int_config.max_iterations;
 
 						json data;
 						data["ppm"] = integrator_info;

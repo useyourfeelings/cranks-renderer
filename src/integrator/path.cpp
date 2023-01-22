@@ -9,17 +9,43 @@ PathIntegrator::PathIntegrator(int maxDepth, std::shared_ptr<Camera> camera,
     const std::string& lightSampleStrategy)
     : SamplerIntegrator(camera, sampler, pixelBounds),
     rrThreshold(rrThreshold),
-    lightSampleStrategy(lightSampleStrategy) {}
+    lightSampleStrategy(lightSampleStrategy) {
+
+    default_config = json({
+        {"name", "path"},
+        {"ray_sample_no", 1},
+        {"ray_bounce_no", 10},
+        {"render_threads_no", 12},
+    });
+    SetOptions(default_config);
+}
 
 void PathIntegrator::Preprocess(const Scene& scene, Sampler& sampler) {
     lightDistribution = CreateLightSampleDistribution(lightSampleStrategy, scene);
 }
 
-void PathIntegrator::SetOptions(const json& data) {
-    sampler->SetSamplesPerPixel(data["ray_sample_no"]);
-    SetRayBounceNo(data["ray_bounce_no"]);
-    SetRenderThreadsCount(data["render_threads_no"]);
+void PathIntegrator::SetOptions(const json& new_config) {
+    std::cout << "PathIntegrator::SetOptions " << new_config;
+    auto current_config = config;
+    current_config.merge_patch(new_config);
+
+    ray_sample_no = current_config["ray_sample_no"];
+    sampler->SetSamplesPerPixel(current_config["ray_sample_no"]);
+    SetRayBounceNo(current_config["ray_bounce_no"]);
+    //SetRenderThreadsCount(current_config["render_threads_no"]);
+
+    config = current_config;
 }
+
+//json PathIntegrator::GetConfig() {
+//    json config;
+//
+//    config["ray_sample_no"] = ray_sample_no;
+//    config["render_threads_no"] = render_threads_no;
+//    config["ray_bounce_no"] = maxDepth;
+//
+//    return config;
+//}
 
 Spectrum PathIntegrator::Li(MemoryBlock& mb, const RayDifferential& r, Scene& scene, Sampler& sampler, int pool_id, int depth)  {
     Spectrum L(0.f), beta(1.f);

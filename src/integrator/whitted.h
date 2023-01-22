@@ -8,14 +8,16 @@ class WhittedIntegrator : public SamplerIntegrator {
 public:
     WhittedIntegrator(int maxDepth, std::shared_ptr<Camera> camera,
         std::shared_ptr<Sampler> sampler,
-        const BBox2i& pixelBounds)
-        : SamplerIntegrator(camera, sampler, pixelBounds) {}
+        const BBox2i& pixelBounds);
 
     void SetOptions(const json& data);
+    json GetConfig();
     Spectrum Li(MemoryBlock& mb, const RayDifferential& ray, Scene& scene, Sampler& sampler, int pool_id = 0, int depth = 0);
 
 private:
 };
+
+
 
 
 #endif

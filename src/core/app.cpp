@@ -8,6 +8,7 @@
 #include "../shape/triangle.h"
 #include "../integrator/whitted.h"
 #include "../integrator/path.h"
+#include "../integrator/vpath.h"
 #include "../integrator/pm.h"
 #include "../integrator/ppm.h"
 #include "texture.h"
@@ -15,6 +16,7 @@
 #include "../tool/image.h"
 #include "../tool/model.h"
 #include "setting.h"
+#include "medium.h"
 
 PbrApp::PbrApp() :
 	project_changed(true) {
@@ -25,7 +27,9 @@ PbrApp::PbrApp() :
 	//integrator = nullptr;
 
 	material_list = std::make_shared<std::map<int, std::shared_ptr<Material>>>();
-	scene = std::make_unique<Scene>(material_list);
+	medium_list = std::make_shared<std::map<int, std::shared_ptr<Medium>>>();
+
+	scene = std::make_unique<Scene>(material_list, medium_list);
 	camera = std::shared_ptr<Camera>(new PerspectiveCamera());
 	SetSampler();
 
@@ -37,14 +41,14 @@ PbrApp::PbrApp() :
 
 	// default material
 	json defualt_material = json({
-		{"id", 1},
+		//{"id", 1},
 		{"name", "defualt_material"},
 		{"type", "matte"},
 		{"kd", {0.8, 0.8, 0.8}},
 		{"sigma", 0.2},
 		});
-	auto material = GenMaterial(defualt_material, 1, 1);
-	(*material_list)[material->GetID()] = material;
+	//auto material = GenMaterial(defualt_material);
+	//(*material_list)[material->GetID()] = material;
 }
 
 int PbrApp::SaveProject(const std::string& path, const std::string& name) {
@@ -55,12 +59,40 @@ int PbrApp::SaveProject(const std::string& path, const std::string& name) {
 	project_json["name"] = name;
 	project_json["scene"] = scene_tree;
 
+	// save material
 	json m = json::object();
 	for (const auto& [key, material] : *material_list) {
 		m[std::to_string(key)] = material->GetJson();
 	}
 	project_json["material"] = m;
 
+	// save medium
+	m = json::object();
+	for (const auto& [key, medium] : *medium_list) {
+		m[std::to_string(key)] = medium->GetJson();
+	}
+	project_json["medium"] = m;
+
+	// save object_info
+	project_json["object_info"] = json();
+	project_json["object_info"]["latest_obj_id"] = Object::GetLatestObjectID();
+
+	// save integrators
+	json integrators_json;
+
+	for (int i = 0; i < integrators.size(); ++ i) {
+		integrators_json[std::format("{}", i)] = integrators[i]->GetConfig();
+	}
+
+	project_json["integrators"] = integrators_json;
+
+	// system config
+	json system_config;
+	system_config["render_threads_no"] = render_threads_no;
+
+	project_json["system"] = system_config;
+
+	// save project_json
 	try {
 		std::ofstream f(path, std::fstream::trunc);
 
@@ -108,15 +140,49 @@ int PbrApp::LoadProject(const std::string& path) {
 	f.close();
 
 	material_list->clear();
+	medium_list->clear();
 
+	// set latest_obj_id
+	Object::LoadLatestObjectID(project_json["object_info"]["latest_obj_id"]);
+
+	// load material
 	if (project_json.contains("material")) {
 		for (auto& [node_id, node] : project_json["material"].items()) {
-			auto material = GenMaterial(node, 1, 1);
+			auto material = GenMaterial(node);
 			(* material_list)[material->GetID()] = material;
 		}
 	}
+
+	// load material
+	if (project_json.contains("medium")) {
+		for (auto& [node_id, node] : project_json["medium"].items()) {
+			auto medium = MakeHomogeneousMedium(node);
+			(*medium_list)[medium->GetID()] = medium;
+		}
+	}
 	
+	// load scene
 	scene->Reload(project_json["scene"]);
+
+	// load integrators
+	if (project_json.contains("integrators")) {
+		for (auto& [node_id, node] : project_json["integrators"].items()) {
+			integrators[std::stoi(node_id)]->SetOptions(node);
+		}
+	}
+
+	// load system_config
+	if (project_json.contains("system")) {
+		json system_config = project_json["system"];
+
+		if (system_config.contains("render_threads_no")) {
+			render_threads_no = system_config["render_threads_no"];
+		}
+	}
+
+	for (int i = 0; i < integrators.size(); ++i) {
+		integrators[i]->SetRenderThreadsCount(render_threads_no);
+	}
 
 	return 0;
 }
@@ -158,7 +224,7 @@ json PbrApp::NewMaterial() {
 		{"kd", {0.8, 0.8, 0.8}},
 		{"sigma", 0.2},
 		});
-	auto material = GenMaterial(defualt_material, 0, 1);
+	auto material = GenMaterial(defualt_material);
 
 	(*material_list)[material->GetID()] = material;
 
@@ -174,7 +240,7 @@ int PbrApp::UpdateMaterial(const json& m_info) {
 		std::cout << "UpdateMaterial 1" << std::endl;
 		//(*material_list)[m_info["id"]].reset(GenMaterial(m_info, 1).get()); // reset. kill all weak_ptr
 		(*material_list)[m_info["id"]].reset();
-		(*material_list)[m_info["id"]] = GenMaterial(m_info, 1, 0); // reset. kill all weak_ptr
+		(*material_list)[m_info["id"]] = GenMaterial(m_info); // reset. kill all weak_ptr
 	}
 
 	return 0;
@@ -183,8 +249,8 @@ int PbrApp::UpdateMaterial(const json& m_info) {
 int PbrApp::DeleteMaterial(const json& m_info) {
 	std::cout << "DeleteMaterial " << m_info << std::endl;
 
-	if (m_info["id"] == 1)
-		return 0; // keep default material
+	//if (m_info["id"] == 1)
+	//	return 0; // keep default material
 
 	material_list->erase(m_info["id"]);
 
@@ -199,6 +265,68 @@ std::string PbrApp::RenameMaterial(int material_id, const std::string& new_name)
 	}
 	else {
 		throw("invalid material 1");
+	}
+}
+
+// medium
+
+json PbrApp::GetMediumTree() {
+	json m = json::object();
+	for (const auto& [medium_id, medium] : *medium_list) {
+		m[std::to_string(medium_id)] = medium->GetJson();
+	}
+
+	return m;
+}
+
+json PbrApp::NewMedium() {
+	json defualt_medium = json({
+		{"name", "new medium"},
+		{"type", "homo"},
+		{"sigma_a", {0.8, 0.8, 0.8}},
+		{"sigma_s", {0.8, 0.8, 0.8}},
+		{"g", 0.3},
+		});
+
+	auto medium = MakeHomogeneousMedium(defualt_medium);
+
+	(*medium_list)[medium->GetID()] = medium;
+
+	return medium->GetJson();
+}
+
+int PbrApp::UpdateMedium(const json& m_info) {
+	std::cout << "UpdateMedium " << m_info << std::endl;
+	//auto m = (*material_list)[m_info["id"]];
+	//m->Update(m_info);
+
+	if (medium_list->contains(m_info["id"])) {
+		std::cout << "UpdateMedium 1" << std::endl;
+		//(*material_list)[m_info["id"]].reset(GenMaterial(m_info, 1).get()); // reset. kill all weak_ptr
+		(*medium_list)[m_info["id"]].reset();
+		(*medium_list)[m_info["id"]] = MakeHomogeneousMedium(m_info); // reset. kill all weak_ptr
+	}
+
+	return 0;
+}
+
+int PbrApp::DeleteMedium(const json& m_info) {
+	std::cout << "DeleteMedium " << m_info << std::endl;
+
+	//if (m_info["id"] == 1)
+	//	return 0; // keep default material
+
+	medium_list->erase(m_info["id"]);
+
+	return 0;
+}
+
+std::string PbrApp::RenameMedium(int medium_id, const std::string& new_name) {
+	if (medium_list->contains(medium_id)) {
+		return (*medium_list)[medium_id]->Rename(new_name);
+	}
+	else {
+		throw("invalid medium 1");
 	}
 }
 
@@ -256,17 +384,12 @@ void PbrApp::RenderScene() {
 
 	if (camera == nullptr) {
 		setting.LoadDefaultSetting();
-		/*SetPerspectiveCamera(Point3f(setting.Get("camera_pos")[0], default_setting.camera_pos[1], default_setting.camera_pos[2]),
-			Point3f(default_setting.camera_look[0], default_setting.camera_look[1], default_setting.camera_look[2]),
-			Vector3f(default_setting.camera_up[0], default_setting.camera_up[1], default_setting.camera_up[2]),
-			default_setting.camera_fov, default_setting.camera_aspect_ratio, default_setting.camera_near, default_setting.camera_far,
-			default_setting.camera_resX, default_setting.camera_resY);*/
 
 		SetPerspectiveCamera(Point3f(setting.Get("camera_pos")[0], setting.Get("camera_pos")[1], setting.Get("camera_pos")[2]),
 			Point3f(setting.Get("camera_look")[0], setting.Get("camera_look")[1], setting.Get("camera_look")[2]),
 			Vector3f(setting.Get("camera_up")[0], setting.Get("camera_up")[1], setting.Get("camera_up")[2]),
 			setting.Get("camera_fov"), setting.Get("camera_asp"), setting.Get("camera_near"), 
-			setting.Get("camera_far"), setting.Get("camera_resX"), setting.Get("camera_resY"));
+			setting.Get("camera_far"), setting.Get("camera_resX"), setting.Get("camera_resY"), 0);
 	}
 
 	//SetFilm(camera->resolutionX, camera->resolutionY);
@@ -292,7 +415,7 @@ void PbrApp::SetCamera(Point3f pos, Point3f look, Vector3f up) {
 
 void PbrApp::SetPerspectiveCamera(Point3f pos, Point3f look, Vector3f up, 
 	float fov, float aspect_ratio, float near, float far, 
-	int resX, int resY) {
+	int resX, int resY, int medium_id) {
 	Log("SetPerspectiveCamera");
 
 	/*sampler->SetSamplesPerPixel(ray_sample_no);
@@ -301,17 +424,13 @@ void PbrApp::SetPerspectiveCamera(Point3f pos, Point3f look, Vector3f up,
 
 	if (camera != nullptr) {
 		camera->SetPerspectiveData(pos, look, up, fov, aspect_ratio, near, far, resX, resY);
+
+		if (medium_list->contains(medium_id)) {
+			camera->SetMedium(medium_list->at(medium_id));
+		}
+
 		return;
 	}
-
-
-	/*if (film_list.empty() || film_list.back()->status != 0)
-		SetFilm(100, 100);
-
-	auto film = film_list.back();*/
-
-
-	//this->camera = std::shared_ptr<Camera>(new PerspectiveCamera(pos, look, up, fov, aspect_ratio, near, far, resX, resY));
 
 }
 
@@ -333,28 +452,28 @@ void PbrApp::SetRandomSampler() {
 }
 
 void PbrApp::InitIntegrator() {
-	//if (this->integrator != nullptr)
-	//	return;
-
-	integrators.resize(4);
 
 	// whitted
 	int maxDepth = 1;
 	BBox2i bounds(Point2i(0, 0), Point2i(camera->resolutionX, camera->resolutionY));
 
-	integrators[0].reset(new WhittedIntegrator(maxDepth, camera, sampler, bounds));
+	integrators.push_back(std::make_unique<WhittedIntegrator>(maxDepth, camera, sampler, bounds));
 
 	// path
 	maxDepth = 20;
 	float rrThreshold = 0;
 
-	integrators[1].reset(new PathIntegrator(maxDepth, camera, sampler, bounds, rrThreshold, "uniform"));
+	integrators.push_back(std::make_unique<PathIntegrator>(maxDepth, camera, sampler, bounds, rrThreshold, "uniform"));
 
 	// pm
-	integrators[2].reset(new PMIntegrator(camera, sampler));
+	integrators.push_back(std::make_unique<PMIntegrator>(camera, sampler));
 
 	// ppm
-	integrators[3].reset(new PPMIntegrator(camera, sampler));
+	integrators.push_back(std::make_unique<PPMIntegrator>(camera, sampler));
+
+	// vpath
+	integrators.push_back(std::make_unique<VolumePathIntegrator>(maxDepth, camera, sampler, bounds, rrThreshold, "uniform"));
+
 }
 
 void PbrApp::SelectIntegrator(int method) {
@@ -367,6 +486,8 @@ int PbrApp::SetIntegrator(const json& info) {
 		integrators[0]->SetOptions(info["whitted"]);
 	} else if (info.contains("path")) {
 		integrators[1]->SetOptions(info["path"]);
+	} else if (info.contains("vpath")) {
+		integrators[4]->SetOptions(info["vpath"]);
 	} else if (info.contains("pm")) {
 		integrators[2]->SetOptions(info["pm"]);
 	} else if (info.contains("ppm")) {
@@ -374,6 +495,37 @@ int PbrApp::SetIntegrator(const json& info) {
 	}
 
 	return 0;
+}
+
+int PbrApp::SetSystemConfig(const json& config) {
+	if (config.contains("render_threads_no")) {
+		render_threads_no = config["render_threads_no"];
+
+		for (int i = 0; i < integrators.size(); ++i) {
+			integrators[i]->SetRenderThreadsCount(int(config["render_threads_no"]));
+		}
+	}
+
+	return 0;
+}
+
+json PbrApp::GetSceneConfig() {
+	return scene->GetConfig();
+}
+
+json PbrApp::GetSystemConfig() {
+	json config;
+
+	config["render_threads_no"] = render_threads_no;
+
+	return config;
+}
+
+json PbrApp::GetIntegratorConfig(int id) {
+	if(0 <= id && id < integrators.size())
+		return integrators[id]->GetConfig();
+
+	return json({});
 }
 
 void PbrApp::SaveSetting() {

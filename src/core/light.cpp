@@ -3,8 +3,8 @@
 
 Light::~Light() {}
 
-Light::Light(const std::string& name, int flags, const Transform& LightToWorld, int nSamples)
-    : Object(name),
+Light::Light(const json& new_config, int flags, const Transform& LightToWorld, int nSamples)
+    : Object(new_config, ObjectTypeScene),
     flags(flags),
     nSamples(std::max(1, nSamples)),
     LightToWorld(LightToWorld),
@@ -18,7 +18,7 @@ Spectrum Light::Le(const RayDifferential& ray) const {
     return Spectrum(0.f); 
 }
 
-// uniform¹âÔ´·Ö²¼¡£Ã¿¸öµÆÈ¡Ò»ÑùµÄÈ¨ÖØ¡£
+// uniformå…‰æºåˆ†å¸ƒã€‚æ¯ä¸ªç¯å–ä¸€æ ·çš„æƒé‡ã€‚
 UniformLightDistribution::UniformLightDistribution(const Scene& scene) {
     std::vector<float> prob(scene.lights.size(), float(1));
     distrib.reset(new Distribution1D(prob.data(), int(prob.size())));

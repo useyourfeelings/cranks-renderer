@@ -11,6 +11,7 @@
 #include "material.h"
 #include "scene.h"
 
+// å¤§é‡çš„åŸºç¡€å½¢çŠ¶ã€‚ä¸ä½œä¸ºObjectã€‚
 class Primitive {//: public Object {
 public:
     // Primitive Interface
@@ -21,7 +22,7 @@ public:
     virtual BBox3f WorldBound() const = 0;
     virtual bool Intersect(const Ray& r, float* tHit, SurfaceInteraction*) const = 0;
     virtual bool Intersect(const Ray& r) const = 0;
-    //virtual const AreaLight* GetAreaLight() const = 0; // pbrt page 249 Èç¹û´ËÎïÌå·¢¹â£¬»á´øÒ»¸öAreaLight¡£
+    //virtual const AreaLight* GetAreaLight() const = 0; // pbrt page 249 å¦‚æœæ­¤ç‰©ä½“å‘å…‰ï¼Œä¼šå¸¦ä¸€ä¸ªAreaLightã€‚
     //virtual const Material* GetMaterial() const = 0;
     virtual void ComputeScatteringFunctions(MemoryBlock& mb, SurfaceInteraction* isect,
         //const std::map<int, std::shared_ptr<Material>>& material_list,
@@ -72,7 +73,7 @@ private:
     std::shared_ptr<Shape> shape;
     //std::shared_ptr<Material> material;
     //int material_id;
-    //Object* parent_obj; // ÎŞ±£»¤¡£±ØĞëÊÖ¶¯È·±£É¾³ıparentÊ±°Ñ´ËÎïÌåÉ¾³ı¡£
+    //Object* parent_obj; // æ— ä¿æŠ¤ã€‚å¿…é¡»æ‰‹åŠ¨ç¡®ä¿åˆ é™¤parentæ—¶æŠŠæ­¤ç‰©ä½“åˆ é™¤ã€‚
     std::weak_ptr<Object> scene_obj;
     //std::shared_ptr<AreaLight> areaLight;
     //MediumInterface mediumInterface;
@@ -83,7 +84,7 @@ private:
 class BasicModel : public Object {
 public:
     // TriangleMesh Public Methods
-    BasicModel(const std::string& name, const Transform& ObjectToWorld, 
+    BasicModel(const json& new_config, const Transform& ObjectToWorld, 
         //const float* P,
         //const Vector3f* S,
         //const Normal3f* N,
@@ -93,7 +94,8 @@ public:
         //const int* faceIndices
         //int material_id
         std::shared_ptr<Material> material,
-        std::shared_ptr<Scene> scene
+        std::shared_ptr<Scene> scene,
+        std::shared_ptr<Medium> medium
     );
 
     virtual std::shared_ptr<Material> GetMaterial();
@@ -107,6 +109,7 @@ public:
 
     int material_id;
     std::weak_ptr<Material> material;
+    std::weak_ptr<Medium> medium;
     std::weak_ptr<Scene> scene;
 };
 

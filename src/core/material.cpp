@@ -4,7 +4,7 @@
 #include "reflection.h"
 #include "pbr.h"
 
-std::shared_ptr<Material> GenMaterial(const json& material_config, int keep_id, int inc_last_id) {
+std::shared_ptr<Material> GenMaterial(const json& material_config) {
     //std::cout << "PbrApp::GenMaterial()" << material_config.dump() << std::endl;
 
     std::shared_ptr<Material> material = nullptr;
@@ -19,7 +19,7 @@ std::shared_ptr<Material> GenMaterial(const json& material_config, int keep_id, 
 
         std::shared_ptr<Texture<Spectrum>> checker_tex = nullptr; // CreateCheckerboardSpectrumTexture(Transform());
 
-        material = std::make_shared<MatteMaterial>(material_config, keep_id, inc_last_id, kd_tex, sigma_tex, nullptr, checker_tex);
+        material = std::make_shared<MatteMaterial>(material_config, kd_tex, sigma_tex, nullptr, checker_tex);
     }
     else if (material_type == "glass") {
         auto kr = material_config["kr"];
@@ -33,7 +33,7 @@ std::shared_ptr<Material> GenMaterial(const json& material_config, int keep_id, 
         std::shared_ptr<Texture<float>> vroughness = std::make_shared<ConstantTexture<float>>(material_config["vroughness"]);
         std::shared_ptr<Texture<float>> bumpmap = std::make_shared<ConstantTexture<float>>(material_config["bumpmap"]);
 
-        material = std::make_shared<GlassMaterial>(material_config, keep_id, inc_last_id, kr_tex, kt_tex, uroughness, vroughness, eta, bumpmap, remaproughness);
+        material = std::make_shared<GlassMaterial>(material_config, kr_tex, kt_tex, uroughness, vroughness, eta, bumpmap, remaproughness);
     }
     else if (material_type == "mirror") {
         auto kr = material_config["kr"];
@@ -41,7 +41,7 @@ std::shared_ptr<Material> GenMaterial(const json& material_config, int keep_id, 
 
         std::shared_ptr<Texture<float>> bumpmap = std::make_shared<ConstantTexture<float>>(material_config["bumpmap"]);
 
-        material = std::make_shared<MirrorMaterial>(material_config, keep_id, inc_last_id, kr_tex, bumpmap);
+        material = std::make_shared<MirrorMaterial>(material_config, kr_tex, bumpmap);
     }
     else if (material_type == "plastic") {
         auto kd = material_config["kd"];
@@ -53,7 +53,7 @@ std::shared_ptr<Material> GenMaterial(const json& material_config, int keep_id, 
         std::shared_ptr<Texture<float>> roughness = std::make_shared<ConstantTexture<float>>(material_config["roughness"]);
         std::shared_ptr<Texture<float>> bumpmap = std::make_shared<ConstantTexture<float>>(material_config["bumpmap"]);
 
-        material = std::make_shared<PlasticMaterial>(material_config, keep_id, inc_last_id, kd_tex, ks_tex, roughness, bumpmap, remaproughness);
+        material = std::make_shared<PlasticMaterial>(material_config, kd_tex, ks_tex, roughness, bumpmap, remaproughness);
     }
     else if (material_type == "metal") {
         auto k = material_config["k"];
@@ -65,7 +65,7 @@ std::shared_ptr<Material> GenMaterial(const json& material_config, int keep_id, 
         std::shared_ptr<Texture<float>> roughness = std::make_shared<ConstantTexture<float>>(material_config["roughness"]);
         std::shared_ptr<Texture<float>> bumpmap = std::make_shared<ConstantTexture<float>>(material_config["bumpmap"]);
 
-        material = std::make_shared<MetalMaterial>(material_config, keep_id, inc_last_id, eta_tex, k_tex, roughness, bumpmap, remaproughness);
+        material = std::make_shared<MetalMaterial>(material_config, eta_tex, k_tex, roughness, bumpmap, remaproughness);
     }
 
 
@@ -128,7 +128,7 @@ void GlassMaterial::ComputeScatteringFunctions(MemoryBlock& mb, SurfaceInteracti
 
     bool isSpecular = urough == 0 && vrough == 0;
 
-    // allowMultipleLobes ÊÇ·ñ°Ñ¶à¸öbxdfÄó³ÉÒ»¸ö
+    // allowMultipleLobes æ˜¯å¦æŠŠå¤šä¸ªbxdfææˆä¸€ä¸ª
     // pbrt page 577
     if (isSpecular && allowMultipleLobes) { 
         //si->bsdf->Add(ARENA_ALLOC(arena, FresnelSpecular)(R, T, 1.f, eta, mode));
@@ -157,7 +157,7 @@ void GlassMaterial::ComputeScatteringFunctions(MemoryBlock& mb, SurfaceInteracti
         if (!T.IsBlack()) {
             if (isSpecular) {
                 //si->bsdf->Add(std::make_shared<SpecularTransmission>(T, 1.f, eta, mode));
-                si->bsdf->Add(MB_ALLOC(mb, SpecularTransmission)(T, 1.f, eta, mode)); // Ð´ËÀÁË1£¿ÊÇ¸öÎÊÌâ¡£
+                si->bsdf->Add(MB_ALLOC(mb, SpecularTransmission)(T, 1.f, eta, mode)); // å†™æ­»äº†1ï¼Ÿæ˜¯ä¸ªé—®é¢˜ã€‚
             }
                 
             
@@ -189,42 +189,6 @@ void MirrorMaterial::ComputeScatteringFunctions(MemoryBlock& mb, SurfaceInteract
 void Material::Bump(const std::shared_ptr<Texture<float>>& d,
     SurfaceInteraction* si) {
 }
-
-const json& Material::GetJson() const {
-    return config;
-}
-
-int Material::GetID() const {
-    return config["id"];
-}
-
-void Material::Update(const json& new_config) { // update whole material
-    std::cout << "Material::Update " << new_config << std::endl;
-    std::string final_name = config["name"];
-
-    if (new_config.contains("name")) {
-        // delete old
-        material_name_set.erase(std::string(config["name"]));
-
-        // gen new
-        std::string new_name = new_config["name"];
-        final_name = new_name;
-
-        int index = 2;
-        while (material_name_set.contains(final_name)) {
-            final_name = new_name + std::format("_{}", index++);
-        }
-
-        material_name_set.insert(final_name);
-    }
-
-    config = new_config;
-    config["name"] = final_name;
-
-
-    
-}
-
 
 void PlasticMaterial::ComputeScatteringFunctions(
     MemoryBlock& mb, 

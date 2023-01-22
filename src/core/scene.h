@@ -16,7 +16,8 @@
 
 class Scene : public std::enable_shared_from_this<Scene> {
 public:
-	Scene(std::shared_ptr<std::map<int, std::shared_ptr<Material>>> material_list);
+	Scene(std::shared_ptr<std::map<int, std::shared_ptr<Material>>> material_list,
+		std::shared_ptr<std::map<int, std::shared_ptr<Medium>>> medium_list);
 
 	bool Intersect(const Ray& ray, float* tHit, SurfaceInteraction* isect, int pool_id = 0);
 	bool Intersect(const Ray& ray, int except_id);
@@ -33,6 +34,8 @@ public:
 	void InitBVH();
 	void RebuildBVH();
 
+	json GetConfig() const;
+
 	int Reload(const json& scene_json);
 
 	int SetNodesStructure(int structure);
@@ -48,29 +51,6 @@ public:
 
 	std::shared_ptr<BVH> bvh = nullptr;
 
-	/*
-	{
-		1:{
-			//"id":1
-			"name":"root"
-			"type":"folder"
-			"children":{
-				{ 2:
-					{
-						//"id":2
-						"name":"ggg"
-						"type":"object"
-						"children":[]
-					}
-				}
-				{...},
-				{...},
-				...
-			}
-		}
-	}
-	*/
-
 private:
 	std::unordered_map<int, std::shared_ptr<Object>> id_obj_map;
 
@@ -79,10 +59,9 @@ private:
 	json sceneTree; // list all objects
 
 	std::weak_ptr<std::map<int, std::shared_ptr<Material>>> material_list;
+	std::weak_ptr<std::map<int, std::shared_ptr<Medium>>> medium_list;
 
 	int nodes_structure; // 0-brute force 1-bvh
-	int latest_obj_id;
-	int latest_tree_node_id;
 
 	std::mutex mutex;
 };

@@ -18,7 +18,7 @@ enum class LightFlags : int {
 
 class Light: public Object {
 public:
-	Light(const std::string& name, int flags, const Transform& LightToWorld, int nSamples = 1);
+	Light(const json& new_config, int flags, const Transform& LightToWorld, int nSamples = 1);
 	virtual ~Light();
 
 	virtual Spectrum Sample_Li(const Interaction& ref, const Point2f& u, Vector3f* wi, float* pdf) const = 0;

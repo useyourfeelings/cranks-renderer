@@ -51,7 +51,7 @@ void GeometricPrimitive::ComputeScatteringFunctions(
 }
 
 BasicModel::BasicModel(
-    const std::string& name,
+    const json& new_config,
     const Transform& ObjectToWorld,
     //const Point3f* P
     //const float* P,
@@ -63,12 +63,14 @@ BasicModel::BasicModel(
     //const int* fIndices
     //int material_id
     std::shared_ptr<Material> material,
-    std::shared_ptr<Scene> scene
+    std::shared_ptr<Scene> scene,
+    std::shared_ptr<Medium> medium
 )
-    : Object(name),
+    : Object(new_config, ObjectTypeScene),
     //material_id(material_id)
     material(material),
-    scene(scene)
+    scene(scene),
+    medium(medium)
     //alphaMask(alphaMask),
     //shadowAlphaMask(shadowAlphaMask)
 {

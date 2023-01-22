@@ -5,11 +5,11 @@
 #include "../core/object.h"
 #include "../core/scene.h"
 
-// meshÊı¾İ
+// meshæ•°æ®
 class TriangleMesh: public Object {
 public:
     // TriangleMesh Public Methods
-    TriangleMesh(const std::string& name, const Transform& ObjectToWorld, int nTriangles,
+    TriangleMesh(const json& config, const Transform& ObjectToWorld, int nTriangles,
         const int* vertexIndices, int nVertices,
         //const Point3f* P
         const float* P,
@@ -21,13 +21,14 @@ public:
         //const int* faceIndices
         //int material_id
         std::shared_ptr<Material> material,
-        std::shared_ptr<Scene> scene
+        std::shared_ptr<Scene> scene,
+        std::shared_ptr<Medium> medium
     );
 
     // TriangleMesh Data
-    const int nTriangles; // Èı½ÇĞÎÊı
-    const int nVertices; // µãÊı
-    std::vector<int> vertexIndices; // Èı½ÇĞÎÃ¿¸ö¶¥µãµÄindex¡£Ã¿¸öÈı½ÇĞÎÈı¸öindex£¬Ë³ĞòÅÅ¡£
+    const int nTriangles; // ä¸‰è§’å½¢æ•°
+    const int nVertices; // ç‚¹æ•°
+    std::vector<int> vertexIndices; // ä¸‰è§’å½¢æ¯ä¸ªé¡¶ç‚¹çš„indexã€‚æ¯ä¸ªä¸‰è§’å½¢ä¸‰ä¸ªindexï¼Œé¡ºåºæ’ã€‚
     std::unique_ptr<Point3f[]> p;
     std::unique_ptr<Vector3f[]> n;
     //std::unique_ptr<Vector3f[]> s;
@@ -41,9 +42,10 @@ private:
     int material_id;
     std::weak_ptr<Material> material;
     std::weak_ptr<Scene> scene;
+    std::weak_ptr<Medium> medium;
 };
 
-// Èı½ÇĞÎ
+// ä¸‰è§’å½¢
 class Triangle : public Shape {
 public:
     // Triangle Public Methods
@@ -76,7 +78,7 @@ public:
 private:
 
     std::shared_ptr<TriangleMesh> mesh;
-    const int* v; // Ö¸ÏòmeshµÄ¸ÃÈı½Çindex´¦
+    const int* v; // æŒ‡å‘meshçš„è¯¥ä¸‰è§’indexå¤„
     //int faceIndex;
 };
 

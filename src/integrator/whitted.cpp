@@ -3,10 +3,35 @@
 #include "../core/reflection.h"
 #include "../tool/logger.h"
 
-void WhittedIntegrator::SetOptions(const json& data) {
-    sampler->SetSamplesPerPixel(data["ray_sample_no"]);
-    SetRayBounceNo(data["ray_bounce_no"]);
-    SetRenderThreadsCount(data["render_threads_no"]);
+
+WhittedIntegrator::WhittedIntegrator(int maxDepth, std::shared_ptr<Camera> camera,
+        std::shared_ptr<Sampler> sampler,
+        const BBox2i& pixelBounds)
+    : SamplerIntegrator(camera, sampler, pixelBounds) {
+
+    default_config = json({
+        {"name", "whitted"},
+        {"ray_sample_no", 1},
+        {"ray_bounce_no", 10},
+        {"render_threads_no", 12},
+    });
+
+    SetOptions(default_config);
+}
+
+void WhittedIntegrator::SetOptions(const json& new_config) {
+    std::cout << "WhittedIntegrator::SetOptions " << new_config;
+    auto current_config = config;
+    current_config.merge_patch(new_config);
+
+    std::cout << default_config;
+
+    ray_sample_no = current_config["ray_sample_no"];
+    sampler->SetSamplesPerPixel(current_config["ray_sample_no"]);
+    SetRayBounceNo(current_config["ray_bounce_no"]);
+    //SetRenderThreadsCount(current_config["render_threads_no"]);
+
+    config = current_config;
 }
 
 Spectrum WhittedIntegrator::Li(MemoryBlock& mb, const RayDifferential& ray, Scene& scene, Sampler& sampler, int pool_id, int depth) {

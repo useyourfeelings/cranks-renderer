@@ -18,7 +18,12 @@ void Camera::SetFilm() {
     this->film.reset(new Film(Point2i(resolutionX, resolutionY)));
 };
 
-PerspectiveCamera::PerspectiveCamera() {
+void Camera::SetMedium(std::shared_ptr<Medium> new_medium) {
+    medium = new_medium;
+}
+
+PerspectiveCamera::PerspectiveCamera(std::shared_ptr<Medium> medium):
+    Camera(medium) {
     dxCamera = (RasterToCamera(Point3f(1, 0, 0)) - RasterToCamera(Point3f(0, 0, 0)));
     dyCamera = (RasterToCamera(Point3f(0, 1, 0)) - RasterToCamera(Point3f(0, 0, 0)));
 };
@@ -52,24 +57,24 @@ void PerspectiveCamera::SetPerspectiveData(Point3f pos, Point3f look, Vector3f u
         screenMax.y = 1.f / asp;
     }
 
-    // screenWindowÊÇÇ÷½üÓÚndcµÄÒ»¸ö¶«Î÷
+    // screenWindowæ˜¯è¶‹è¿‘äºŽndcçš„ä¸€ä¸ªä¸œè¥¿
 
-    // camera×ªµ½ndc
+    // cameraè½¬åˆ°ndc
     //CameraToScreen = Perspective(fov, asp, 1e-2f, 1000.f);
     CameraToScreen = Perspective(fov, asp, near, far);
 
-    // ´Óndc×ªµ½2dÏñËØ×ø±ê¡£
+    // ä»Žndcè½¬åˆ°2dåƒç´ åæ ‡ã€‚
     ScreenToRaster =
-        //Scale(film->fullResolution.x, film->fullResolution.y, 1) * // ÔÙscale¡£·Å´óµ½filmµÄÕæÊµ´óÐ¡£¬Ò²¾ÍÊÇ×îÖÕÍ¼ÏñµÄ2d×ø±ê¡£
-        Scale(resX, resY, 1) * // ÔÙscale¡£·Å´óµ½filmµÄÕæÊµ´óÐ¡£¬Ò²¾ÍÊÇ×îÖÕÍ¼ÏñµÄ2d×ø±ê¡£
-        Scale(1 / (screenMax.x - screenMin.x),     // ÔÙscale¹éÒ»£¬Ó³Éäµ½[0, 1]¡£×¢ÒâyÊÇ¸ºµÄ£¬¾ÍÊÇÔ½ÍùÏÂÔ½´ó¡£
+        //Scale(film->fullResolution.x, film->fullResolution.y, 1) * // å†scaleã€‚æ”¾å¤§åˆ°filmçš„çœŸå®žå¤§å°ï¼Œä¹Ÿå°±æ˜¯æœ€ç»ˆå›¾åƒçš„2dåæ ‡ã€‚
+        Scale(resX, resY, 1) * // å†scaleã€‚æ”¾å¤§åˆ°filmçš„çœŸå®žå¤§å°ï¼Œä¹Ÿå°±æ˜¯æœ€ç»ˆå›¾åƒçš„2dåæ ‡ã€‚
+        Scale(1 / (screenMax.x - screenMin.x),     // å†scaleå½’ä¸€ï¼Œæ˜ å°„åˆ°[0, 1]ã€‚æ³¨æ„yæ˜¯è´Ÿçš„ï¼Œå°±æ˜¯è¶Šå¾€ä¸‹è¶Šå¤§ã€‚
             1 / (screenMin.y - screenMax.y), 1) *
-        Translate(Vector3f(-screenMin.x, -screenMax.y, 0)); // ÏÈTranslate£¬¸ù¾ÝÉÏÃæµÄscreen¡£ÕûÌåÍùÓÒÏÂÅ²£¬×óÉÏÅ²µ½Ô­µã¡£
+        Translate(Vector3f(-screenMin.x, -screenMax.y, 0)); // å…ˆTranslateï¼Œæ ¹æ®ä¸Šé¢çš„screenã€‚æ•´ä½“å¾€å³ä¸‹æŒªï¼Œå·¦ä¸ŠæŒªåˆ°åŽŸç‚¹ã€‚
 
-    RasterToScreen = Inverse(ScreenToRaster); // Äæ
+    RasterToScreen = Inverse(ScreenToRaster); // é€†
 
-    // 2dµ½ndc£¬ÔÙµ½camera¡£
-    // ¿ÉÒÔ´ÓÏàÆ¬ÉÏµÄÄ³¸öµã»¹Ô­µ½camera¿Õ¼ä¡£
+    // 2dåˆ°ndcï¼Œå†åˆ°cameraã€‚
+    // å¯ä»¥ä»Žç›¸ç‰‡ä¸Šçš„æŸä¸ªç‚¹è¿˜åŽŸåˆ°cameraç©ºé—´ã€‚
     RasterToCamera = Inverse(CameraToScreen) * RasterToScreen;
 }
 
@@ -107,17 +112,16 @@ PerspectiveCamera::PerspectiveCamera(Point3f pos, Point3f look, Vector3f up, flo
 //    return 1;
 //}
 
-float PerspectiveCamera::GenerateRayDifferential(const CameraSample& sample,
-    RayDifferential* ray) const {
+float PerspectiveCamera::GenerateRayDifferential(const CameraSample& sample, RayDifferential* ray) const {
     //ProfilePhase prof(Prof::GenerateCameraRay);
     // Compute raster and camera sample positions
     Point3f pFilm = Point3f(sample.pFilm.x, sample.pFilm.y, 0);
 
-    //Point3f pCamera = RasterToCamera(pFilm); // ´ÓÏàÆ¬ÉÏµÄÄ³¸öµã»¹Ô­µ½camera¿Õ¼äµÄnearÃæÉÏ¡£
+    //Point3f pCamera = RasterToCamera(pFilm); // ä»Žç›¸ç‰‡ä¸Šçš„æŸä¸ªç‚¹è¿˜åŽŸåˆ°cameraç©ºé—´çš„nearé¢ä¸Šã€‚
 
-    Point3f pCamera_zfront = RasterToCamera(pFilm); // ´ÓÏàÆ¬ÉÏµÄÄ³¸öµã»¹Ô­µ½camera¿Õ¼äµÄnearÃæÉÏ¡£
+    Point3f pCamera_zfront = RasterToCamera(pFilm); // ä»Žç›¸ç‰‡ä¸Šçš„æŸä¸ªç‚¹è¿˜åŽŸåˆ°cameraç©ºé—´çš„nearé¢ä¸Šã€‚
 
-    // perspective×ª»»µÄndc×ø±êÏµÊÇyup¡£µ«³¡¾°ÊÇzup¡£ËùÒÔÖ±½Ó½»»»Ò»ÏÂyz¡£
+    // perspectiveè½¬æ¢çš„ndcåæ ‡ç³»æ˜¯yupã€‚ä½†åœºæ™¯æ˜¯zupã€‚æ‰€ä»¥ç›´æŽ¥äº¤æ¢ä¸€ä¸‹yzã€‚
     Point3f pCamera(pCamera_zfront.x, pCamera_zfront.z, pCamera_zfront.y);
 
     //Log("GenerateRayDifferential RasterToCamera");
@@ -125,14 +129,14 @@ float PerspectiveCamera::GenerateRayDifferential(const CameraSample& sample,
     //Log("screen to camera");
     //pCamera.LogSelf();
 
-    // Ïà»ú¿Õ¼äÀïÏà»ú¾ÍÔÚÔ­µã¡£pCamera-0¼´¿ÉµÃµ½¹âµÄ·½Ïò¡£
+    // ç›¸æœºç©ºé—´é‡Œç›¸æœºå°±åœ¨åŽŸç‚¹ã€‚pCamera-0å³å¯å¾—åˆ°å…‰çš„æ–¹å‘ã€‚
     Vector3f dir = Normalize(Vector3f(pCamera.x, pCamera.y, pCamera.z));
 
-    *ray = RayDifferential(Point3f(0, 0, 0), dir); // Ïà»ú¿Õ¼äµÄ¹â
+    *ray = RayDifferential(Point3f(0, 0, 0), dir); // ç›¸æœºç©ºé—´çš„å…‰
     //Log("ray init");
     //ray->LogSelf();
     
-    /* ÔÝÊ±ºöÂÔ
+    /* æš‚æ—¶å¿½ç•¥
     // Modify ray for depth of field
     if (lensRadius > 0) {
         // Sample point on lens
@@ -172,9 +176,9 @@ float PerspectiveCamera::GenerateRayDifferential(const CameraSample& sample,
         ray->ryDirection = Normalize(Vector3f(pCamera) + dyCamera);
     }
     //ray->time = Lerp(sample.time, shutterOpen, shutterClose);
-    //ray->medium = medium;
+    ray->medium = medium.lock();
 
-    *ray = CameraToWorld(*ray); // »Øµ½world
+    *ray = CameraToWorld(*ray); // å›žåˆ°world
 
     //Log("ray to world");
     //CameraToWorld.LogSelf();

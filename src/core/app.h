@@ -43,6 +43,12 @@ public:
 	std::string RenameMaterial(int material_id, const std::string& new_name);
 	std::string RenameObject(int obj_id, const std::string& new_name);
 
+	json GetMediumTree();
+	json NewMedium();
+	int UpdateMedium(const json& m_info);
+	int DeleteMedium(const json& m_info);
+	std::string RenameMedium(int medium_id, const std::string& new_name);
+
 	//
 
 	void RenderScene();
@@ -55,7 +61,7 @@ public:
 	void SetCamera(Point3f pos, Point3f look, Vector3f up);
 	void SetPerspectiveCamera(Point3f pos, Point3f look, Vector3f up, 
 		float fov, float aspect_ratio, float near, float far, 
-		int resX, int resY);
+		int resX, int resY, int medium_id);
 
 	void SetSceneOptions(int nodes_structure);
 
@@ -63,10 +69,17 @@ public:
 	void SetRandomSampler();
 	void InitIntegrator();
 	int SetIntegrator(const json& info);
+
+	int SetSystemConfig(const json& config);
+
 	//void SetWhittedIntegrator();
 	//void SetPathIntegrator();
 	//void SetPMIntegrator();
 	void SelectIntegrator(int method);
+
+	json GetSceneConfig();
+	json GetIntegratorConfig(int id);
+	json GetSystemConfig();
 
 	void SaveSetting();
 
@@ -82,7 +95,9 @@ public:
 	std::mutex image_mutex;
 	std::shared_ptr<std::map<int, std::shared_ptr<Material>>> material_list;
 
-	std::vector<std::unique_ptr<Integrator>> integrators; // 0-whitted 1-path 2-pm
+	std::shared_ptr<std::map<int, std::shared_ptr<Medium>>> medium_list;
+
+	std::vector<std::unique_ptr<Integrator>> integrators; // 0-whitted 1-path 2-pm 3-ppm 4-vpath
 	//std::unique_ptr<Integrator> whittedIntegrator;
 	//std::unique_ptr<Integrator> pathIntegrator;
 	//std::unique_ptr<Integrator> pmIntegrator;
@@ -92,6 +107,8 @@ public:
 private:
 	bool project_changed;
 	int render_method = 2; // 0-whitted 1-path 2-pm
+
+	int render_threads_no = 12;
 };
 
 inline PbrApp app;

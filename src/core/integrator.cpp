@@ -20,7 +20,7 @@ void SamplerIntegrator::Render(Scene& scene) {
     // Compute number of tiles, _nTiles_, to use for parallel rendering
     //BBox2i sampleBounds = this->pixelBounds;// camera->film->GetSampleBounds();
     BBox2i sampleBounds = BBox2i(Point2i(0, 0), Point2i(camera->resolutionX, camera->resolutionY));
-    // sampleBounds ÀàËÆ600 400
+    // sampleBounds ç±»ä¼¼600 400
 
     //this->render_progress_total = camera->resolutionX * camera->resolutionY;
     //this->render_progress_now = 0;
@@ -36,48 +36,8 @@ void SamplerIntegrator::Render(Scene& scene) {
     tast_args.x_end = sampleBounds.pMax.x - 1;
     tast_args.y_end = sampleBounds.pMax.y - 1;
 
-    //tast_args.x_start = 0;
-    //tast_args.x_end = 100000000; // max int 2147483647    100000000
-    //tast_args.y_start = 0;
-    //tast_args.y_end = 10;
-
     // https://stackoverflow.com/questions/4324763/can-we-have-functions-inside-functions-in-c
     // https://en.cppreference.com/w/cpp/language/lambda
-
-    /*auto manager_func = [&](int task_index, const json& args) {
-        int y_interval = (int(args["y_end"]) - args["y_start"] + 1) / args["task_count"];
-        if((int(args["y_end"]) - args["y_start"] + 1) % args["task_count"] != 0)
-            y_interval++;
-
-        int y_start = args["y_start"] + y_interval * task_index;
-        int y_end = std::min(int(args["y_end"]), int(y_start + y_interval - 1));
-
-        return json({ 
-            { "task_index", task_index },
-            { "task_progress_total", (y_end - y_start + 1) * (int(args["x_end"]) - args["x_start"] + 1)},
-            { "x_start", args["x_start"]},
-            { "y_start", y_start },
-            { "x_end", args["x_end"] },
-            { "y_end", y_end} });
-    };*/
-
-    // ¸ÄÎªÊú×Å·ÖÏñËØ¡£Ò»°ã»á¸ü¾ùÔÈ¡£
-    /*auto manager_func = [&](int task_index, json args) {
-        int x_interval = (int(args["x_end"]) - args["x_start"] + 1) / args["task_count"];
-        if ((int(args["x_end"]) - args["x_start"] + 1) % args["task_count"] != 0)
-            x_interval++;
-
-        int x_start = args["x_start"] + x_interval * task_index;
-        int x_end = std::min(int(args["x_end"]), int(x_start + x_interval - 1));
-
-        return json({
-            { "task_index", task_index },
-            { "task_progress_total", (x_end - x_start + 1) * (int(args["y_end"]) - args["y_start"] + 1)},
-            { "y_start", args["y_start"]},
-            { "x_start", x_start },
-            { "y_end", args["y_end"] },
-            { "x_end", x_end} });
-    };*/
 
     auto manager_func = [](int task_index, MultiTaskCtx args) {
         int x_interval = (args.x_end - args.x_start + 1) / args.task_count;
@@ -88,7 +48,6 @@ void SamplerIntegrator::Render(Scene& scene) {
         int x_end = std::min(args.x_end, (x_start + x_interval - 1));
 
         args.task_index = task_index;
-        //args.task_progress_total = (x_end - x_start + 1) * args.y_end - args.y_start + 1;
         args.y_start = args.y_start;
         args.x_start = x_start;
         args.y_end = args.y_end;
@@ -107,23 +66,23 @@ void SamplerIntegrator::Render(Scene& scene) {
 
         MemoryBlock mb;
 
-        // Ö®ºóµÄ¼ÆËã´æÔÚ¶à´¦ÄÚ´æ·ÖÅä(¼ÆËãbsdfµÈ»·½Ú)¡£·Ç³£¿¨¡£
-        // ¿ÉÒÔ×ö¹²ÓÃµÄmemory blockÀ´¸´ÓÃ£¬±ÜÃâÆµ·±ÉêÇë/ÊÍ·ÅÄÚ´æ¡£
-        // Í¬Ò»¸öÏß³ÌÖĞÁ÷³ÌÊÇË³ĞòÖ´ĞĞµÄ£¬¿ÉÒÔ²»¿¼ÂÇÍ¬²½ÎÊÌâ¡£
-        // Ò»¸öÏß³ÌÖ»ÉêÇëÒ»×éblock¡£±ÈÈçÒ»´ÎLi()ÓĞ10¸ö²Ù×÷£¬ÄÇÃ´µÚÒ»´Î»áÊµ¼ÊÉêÇë10´Î¡£
-        // µÚÒ»´ÎLi()Íê³Éºó£¬10¸öblockÖĞµÄÊı¾İ¾ÍÃ»ÓÃÁË¡£ËùÓĞblock±ê¼ÇÎª¿ÉÓÃ¡£
-        // ½øĞĞµÚ¶ş´ÎLi()£¬Èç¹ûµÚ¶ş´ÎµÄ10¸ö²Ù×÷ÖĞĞèÒªµÄÄÚ´æ¿É±»Ö®Ç°ÉêÇëµÄblockÂú×ã£¬ÄÇÃ´¿ÉÒÔ¸´ÓÃ£¬·ñÔòÉêÇëĞÂµÄblock¡£ÒÀ´ËÀàÍÆ¡£
-        // Èç¹û¸÷¸ö²Ù×÷ĞèÒªµÄÄÚ´æ´óĞ¡´¦ÔÚÒ»¸ö½ÏĞ¡·¶Î§ÄÚ¡£¾ÍÄÜ¸ßĞ§¸´ÓÃ¡£
+        // ä¹‹åçš„è®¡ç®—å­˜åœ¨å¤šå¤„å†…å­˜åˆ†é…(è®¡ç®—bsdfç­‰ç¯èŠ‚)ã€‚éå¸¸å¡ã€‚
+        // å¯ä»¥åšå…±ç”¨çš„memory blockæ¥å¤ç”¨ï¼Œé¿å…é¢‘ç¹ç”³è¯·/é‡Šæ”¾å†…å­˜ã€‚
+        // åŒä¸€ä¸ªçº¿ç¨‹ä¸­æµç¨‹æ˜¯é¡ºåºæ‰§è¡Œçš„ï¼Œå¯ä»¥ä¸è€ƒè™‘åŒæ­¥é—®é¢˜ã€‚
+        // ä¸€ä¸ªçº¿ç¨‹åªç”³è¯·ä¸€ç»„blockã€‚æ¯”å¦‚ä¸€æ¬¡Li()æœ‰10ä¸ªæ“ä½œï¼Œé‚£ä¹ˆç¬¬ä¸€æ¬¡ä¼šå®é™…ç”³è¯·10æ¬¡ã€‚
+        // ç¬¬ä¸€æ¬¡Li()å®Œæˆåï¼Œ10ä¸ªblockä¸­çš„æ•°æ®å°±æ²¡ç”¨äº†ã€‚æ‰€æœ‰blockæ ‡è®°ä¸ºå¯ç”¨ã€‚
+        // è¿›è¡Œç¬¬äºŒæ¬¡Li()ï¼Œå¦‚æœç¬¬äºŒæ¬¡çš„10ä¸ªæ“ä½œä¸­éœ€è¦çš„å†…å­˜å¯è¢«ä¹‹å‰ç”³è¯·çš„blockæ»¡è¶³ï¼Œé‚£ä¹ˆå¯ä»¥å¤ç”¨ï¼Œå¦åˆ™ç”³è¯·æ–°çš„blockã€‚ä¾æ­¤ç±»æ¨ã€‚
+        // å¦‚æœå„ä¸ªæ“ä½œéœ€è¦çš„å†…å­˜å¤§å°å¤„åœ¨ä¸€ä¸ªè¾ƒå°èŒƒå›´å†…ã€‚å°±èƒ½é«˜æ•ˆå¤ç”¨ã€‚
 
         std::unique_ptr<Sampler> local_sampler = sampler->Clone();
 
         this->render_progress_total[task_index] = args.task_progress_total;
 
-        int progress_interval = args.task_progress_total / 40; // ·Öxx¼¶
+        int progress_interval = args.task_progress_total / 40; // åˆ†xxçº§
         int progress = 0;
         int next_progress_to_report = progress_interval;
 
-        // Ò»ÁĞÁĞËã
+        // ä¸€åˆ—åˆ—ç®—
         for (int i = args.x_start; i <= args.x_end; ++i) {
             for (int j = args.y_start; j <= args.y_end; ++j) {
 
@@ -158,10 +117,10 @@ void SamplerIntegrator::Render(Scene& scene) {
                 } while (local_sampler->StartNextSample());
             }
 
-            // Ã¿Íê³ÉÒ»ÁĞ¡£Èç¹û×Ô¼º»¹Ê£ÓĞÒ»¶¨µÄÈÎÎñ£¬³¢ÊÔÇëÒÑ¾­½áÊøµÄÏß³Ì°ïÃ¦Ëã¡£
+            // æ¯å®Œæˆä¸€åˆ—ã€‚å¦‚æœè‡ªå·±è¿˜å‰©æœ‰ä¸€å®šçš„ä»»åŠ¡ï¼Œå°è¯•è¯·å·²ç»ç»“æŸçš„çº¿ç¨‹å¸®å¿™ç®—ã€‚
             
-            // ¼ì²éÆäËûÏß³Ì½ø¶È£¬Èç¹ûÓĞÒÑÍê³ÉµÄ£¬·¢event¸ø¿ØÖÆÏß³ÌÇëÇó°ïÖú¡£
-            // ×èÈûµÈ´ı½á¹û¡£¿ØÖÆÏß³ÌÅĞ¶ÏÈ·Êµ¿ÉÒÔ·ÖÈÎÎñ£¬´´½¨ĞÂÏß³ÌÖ´ĞĞ£¬´Ë´¦¸üĞÂx_end¼´¿É¡£
+            // æ£€æŸ¥å…¶ä»–çº¿ç¨‹è¿›åº¦ï¼Œå¦‚æœæœ‰å·²å®Œæˆçš„ï¼Œå‘eventç»™æ§åˆ¶çº¿ç¨‹è¯·æ±‚å¸®åŠ©ã€‚
+            // é˜»å¡ç­‰å¾…ç»“æœã€‚æ§åˆ¶çº¿ç¨‹åˆ¤æ–­ç¡®å®å¯ä»¥åˆ†ä»»åŠ¡ï¼Œåˆ›å»ºæ–°çº¿ç¨‹æ‰§è¡Œï¼Œæ­¤å¤„æ›´æ–°x_endå³å¯ã€‚
             if (args.task_count > 1) {
                 if ((args.x_end - i > 10)){// && (float(i - args.x_start) / (args.x_end - args.x_start)) < 0.95) {
                     int t = 0;
@@ -221,7 +180,7 @@ Spectrum SamplerIntegrator::SpecularReflect(
     float pdf;
     BxDFType type = BxDFType(BSDF_REFLECTION | BSDF_SPECULAR);
 
-    // ²ÉÑùÒ»Êø¹â¡£Ö»È¡¾µÃæ·´ÉäµÄbxdf¡£¶ÔÓÚ¾µÃæ·´Éäbxdf£¬×îºó×ßµÄ¾ÍÊÇfresnel¡£
+    // é‡‡æ ·ä¸€æŸå…‰ã€‚åªå–é•œé¢åå°„çš„bxdfã€‚å¯¹äºé•œé¢åå°„bxdfï¼Œæœ€åèµ°çš„å°±æ˜¯fresnelã€‚
     Spectrum f = isect.bsdf->Sample_f(wo, &wi, sampler.Get2D(), &pdf, type);
 
     // Return contribution of specular reflection
@@ -249,7 +208,7 @@ Spectrum SamplerIntegrator::SpecularReflect(
         //        wi - dwody + 2.f * Vector3f(Dot(wo, ns) * dndy + dDNdy * ns);
         //}
 
-        // ÏÂÒ»ÂÖLi
+        // ä¸‹ä¸€è½®Li
         return f * Li(mb, rd, scene, sampler, pool_id, depth + 1) * std::abs(Dot(wi, ns)) / pdf;
     }
     else
@@ -343,7 +302,7 @@ Spectrum SamplerIntegrator::SpecularTransmit(
 
 ////////////////////
 
-// ¶ÔÈ«¾ÖµÄ¹âÔ´½øĞĞÆ½¾ù²ÉÑù¡£Ñ¡³öÒ»¸ö¹âÔ´¡£
+// å¯¹å…¨å±€çš„å…‰æºè¿›è¡Œå¹³å‡é‡‡æ ·ã€‚é€‰å‡ºä¸€ä¸ªå…‰æºã€‚
 Spectrum UniformSampleOneLight(const Interaction& it, Scene& scene,
     Sampler& sampler, int pool_id,
     bool handleMedia, const Distribution1D* lightDistrib) {
@@ -356,7 +315,7 @@ Spectrum UniformSampleOneLight(const Interaction& it, Scene& scene,
     int lightIndex = 0;
     float lightPdf = 1;
 
-    // Ëæ»ú²ÉÑùÒ»¸öµÆ
+    // éšæœºé‡‡æ ·ä¸€ä¸ªç¯
     if (lightDistrib) {
         lightIndex = lightDistrib->SampleDiscrete(sampler.Get1D(), &lightPdf);
         if (lightPdf == 0)
@@ -373,7 +332,42 @@ Spectrum UniformSampleOneLight(const Interaction& it, Scene& scene,
     return EstimateDirect(it, uScattering, *light, uLight, scene, sampler, pool_id, handleMedia) / lightPdf;
 }
 
-// ¼ÆËãÒ»¸öÖ±½Ó¹âÔ´×÷ÓÃÓÚ½»µã£¬²úÉúµÄ¹âÄÜ¡£
+// è®¡ç®—å…‰åœ¨ä¸¤ç‚¹ä¹‹é—´çš„è¡°å‡ã€‚
+// å¦‚æœä¸­é—´æœ‰ç‰©ä½“ï¼Œç›´æ¥è¿”å›0ã€‚
+// è¿™é‡Œä¹Ÿæ˜¯ç®€åŒ–çš„ã€‚å¦‚æœä¸­é—´çš„ç‰©ä½“ä¹Ÿæ˜¯é€æ˜ä»‹è´¨å‘¢ï¼Ÿ
+Spectrum RayTr(const Interaction& p0, const Interaction& p1, Scene& scene, Sampler& sampler, int pool_id) {
+    Ray ray(p0.SpawnRayTo(p1));
+
+    //if(!ray.medium.lock())
+
+
+    Spectrum Tr(1.f);
+    while (true) {
+        SurfaceInteraction isect;
+        float tHit;
+
+        bool hitSurface = scene.Intersect(ray, &tHit, &isect, pool_id);
+        
+        // ç¢°åˆ°ç‰©ä½“è¿”å›0
+        if (hitSurface)// && isect.primitive->GetMaterial() != nullptr)
+            return Spectrum(0.0f);
+
+        // ç®—å‰©ä½™èƒ½é‡
+        if (auto m = ray.medium.lock()) {
+            Tr *= m->Tr(ray, sampler);
+        }
+            
+
+        // Generate next ray segment or return final transmittance
+        if (!hitSurface)
+            break;
+
+        //ray = isect.SpawnRayTo(p1);
+    }
+    return Tr;
+}
+
+// è®¡ç®—ä¸€ä¸ªç›´æ¥å…‰æºä½œç”¨äºäº¤ç‚¹ï¼Œäº§ç”Ÿçš„å…‰èƒ½ã€‚
 Spectrum EstimateDirect(const Interaction& it, const Point2f& uScattering,
     const Light& light, const Point2f& uLight,
     Scene& scene, Sampler& sampler, int pool_id,
@@ -387,8 +381,8 @@ Spectrum EstimateDirect(const Interaction& it, const Point2f& uScattering,
     float lightPdf = 0, scatteringPdf = 0;
     //VisibilityTester visibility;
 
-    // ÏÈµÃµ½Ö±½Ó¹âµÄ³õÊ¼Öµ¡£ÓĞ¿ÉÄÜ±»ÕÚµ²¡£ºóĞøÔÙÅĞ¶Ï¡£
-    // ¹â´òµ½½»µã¡£Ëã³öwi£¬²ÉÑù³ö¹âÄÜ£¬¶ÔÓ¦pdf¡£
+    // å…ˆå¾—åˆ°ç›´æ¥å…‰çš„åˆå§‹å€¼ã€‚æœ‰å¯èƒ½è¢«é®æŒ¡ã€‚åç»­å†åˆ¤æ–­ã€‚
+    // å…‰æ‰“åˆ°äº¤ç‚¹ã€‚ç®—å‡ºwiï¼Œé‡‡æ ·å‡ºå…‰èƒ½ï¼Œå¯¹åº”pdfã€‚
     Spectrum Li = light.Sample_Li(it, uLight, &wi, &lightPdf);
 
     const SurfaceInteraction& isect = (const SurfaceInteraction&)it;
@@ -399,15 +393,22 @@ Spectrum EstimateDirect(const Interaction& it, const Point2f& uScattering,
         if (it.IsSurfaceInteraction()) {
             // Evaluate BSDF for light sampling strategy
             
-            // ¼ÆËãËùÓĞbxdfÔÚ(wo, wi)·½Ïò¹±Ï×µÄ¹â
+            // è®¡ç®—æ‰€æœ‰bxdfåœ¨(wo, wi)æ–¹å‘è´¡çŒ®çš„å…‰
             f = isect.bsdf->f(isect.wo, wi, bsdfFlags) * AbsDot(wi, isect.shading.n);
 
-            // ËùÓĞbxdfµÄpdfÆ½¾ùÖµ
+            // æ‰€æœ‰bxdfçš„pdfå¹³å‡å€¼
             scatteringPdf = isect.bsdf->Pdf(isect.wo, wi, bsdfFlags);
             //VLOG(2) << "  surf f*dot :" << f << ", scatteringPdf: " << scatteringPdf;
 
         }
         else {
+            // medium
+
+            // å·²çŸ¥å…‰æºå…¥å°„æ–¹å‘å’Œä»‹è´¨ä¸­æ‰€æ±‚å…‰çš„ä¼ æ’­æ–¹å‘ã€‚ç®—phaseå€¼
+            const MediumInteraction& mi = (const MediumInteraction&)it;
+            float p = mi.phase->p(mi.wo, wi);
+            f = Spectrum(p);
+            scatteringPdf = p;
         }
 
         if (!f.IsBlack()) {
@@ -415,9 +416,13 @@ Spectrum EstimateDirect(const Interaction& it, const Point2f& uScattering,
             if (handleMedia) {
                 //Li *= visibility.Tr(scene, sampler);
                 //VLOG(2) << "  after Tr, Li: " << Li;
+
+                // å¯¹äºä»‹è´¨ã€‚è®¡ç®—è¡°å‡ã€‚
+
+                Li *= RayTr(it, Interaction(light.pos, it.time, it.mediumInterface), scene, sampler, pool_id);
             }
             else {
-                // Èç¹ûÕÚµ²
+                // å¦‚æœé®æŒ¡
                 Ray temp_ray = isect.SpawnRayTo(light.pos);
 
                 SurfaceInteraction temp_isect;
@@ -436,7 +441,6 @@ Spectrum EstimateDirect(const Interaction& it, const Point2f& uScattering,
                     float weight = PowerHeuristic(1, lightPdf, 1, scatteringPdf); // todo??
                     auto add = f * Li * weight / lightPdf;
                     Ld += add ;
-                    //Ld += f * Li * weight / lightPdf;
                 }
             }
         }

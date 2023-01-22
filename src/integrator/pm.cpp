@@ -9,40 +9,89 @@ PMIntegrator::PMIntegrator(std::shared_ptr<Camera> camera,
     std::shared_ptr<Sampler> sampler
 )
     : camera(camera),
-    sampler(sampler),
-    filter(1),
-    emitPhotons(3000),
-    gatherPhotons(30),
-    gatherPhotonsR(0.1),
-    gatherMethod(0),
-    energyScale(10000),
-    reemitPhotons(1),
-    renderDirect(1)
-    {
-    }
+    sampler(sampler) {
 
-void PMIntegrator::SetOptions(const json& data) {
-    sampler->SetSamplesPerPixel(data["ray_sample_no"]);
-    SetRayBounceNo(data["ray_bounce_no"]);
-    SetRenderThreadsCount(data["render_threads_no"]);
+    default_config = json({
+        {"name", "pm"},
+        {"ray_sample_no", 1},
+        {"ray_bounce_no", 10},
+        {"render_threads_no", 12},
+        {"emit_photons", 5000},
+        {"gather_photons", 10},
+        {"gather_photons_r", 0.0f},
+        {"gather_method", 1},
+        {"filter", 1},
+        {"energy_scale", 10000.f},
+        {"reemit_photons", true},
+        {"render_direct", true},
+        {"render_specular", true},
+        {"render_caustic", true},
+        {"render_diffuse", true},
+        {"render_global", false},
+        {"specular_method", 1},
+        {"specular_rt_samples", 1}
+    });
 
-    emitPhotons = data["emitPhotons"];
-    gatherPhotons = data["gatherPhotons"];
-    gatherPhotonsR = data["gatherPhotonsR"];
-    gatherMethod = data["gatherMethod"];
-    filter = data["filter"];
-    energyScale = data["energyScale"];
-    reemitPhotons = data["reemitPhotons"];
-
-    renderDirect = data["renderDirect"];
-    renderSpecular = data["renderSpecular"];
-    renderCaustic = data["renderCaustic"];
-    renderDiffuse = data["renderDiffuse"];
-    renderGlobal = data["renderGlobal"];
-
-    specularMethod = data["specularMethod"];
-    specularRTSamples = data["specularRTSamples"];
+    SetOptions(default_config);
 }
+
+void PMIntegrator::SetOptions(const json& new_config) {
+    std::cout << "PMIntegrator::SetOptions " << new_config;
+    auto current_config = config;
+    current_config.merge_patch(new_config);
+
+    ray_sample_no = current_config["ray_sample_no"];
+    sampler->SetSamplesPerPixel(current_config["ray_sample_no"]);
+    SetRayBounceNo(current_config["ray_bounce_no"]);
+    //SetRenderThreadsCount(current_config["render_threads_no"]);
+
+    emitPhotons = current_config["emit_photons"];
+    gatherPhotons = current_config["gather_photons"];
+    gatherPhotonsR = current_config["gather_photons_r"];
+    gatherMethod = current_config["gather_method"];
+    filter = current_config["filter"];
+    energyScale = current_config["energy_scale"];
+    reemitPhotons = current_config["reemit_photons"];
+
+    renderDirect = current_config["render_direct"];
+    renderSpecular = current_config["render_specular"];
+    renderCaustic = current_config["render_caustic"];
+    renderDiffuse = current_config["render_diffuse"];
+    renderGlobal = current_config["render_global"];
+
+    specularMethod = current_config["specular_method"];
+    specularRTSamples = current_config["specular_rt_samples"];
+
+    config = current_config;
+}
+
+//json PMIntegrator::GetConfig() {
+//    json config;
+//
+//    config["ray_sample_no"] = ray_sample_no;
+//    config["render_threads_no"] = render_threads_no;
+//    config["ray_bounce_no"] = maxDepth;
+//
+//    config["emit_photons"] = emitPhotons;
+//    config["gather_photons"] = gatherPhotons;
+//    config["gather_photons_r"] = gatherPhotonsR;
+//    config["gather_method"] = gatherMethod;
+//
+//    config["reemit_photons"] = reemitPhotons;
+//
+//    config["filter"] = filter;
+//    config["energy_scale"] = energyScale;
+//    config["render_direct"] = renderDirect;
+//    config["render_specular"] = renderSpecular;
+//    config["render_caustic"] = renderCaustic;
+//    config["render_diffuse"] = renderDiffuse;
+//    config["render_global"] = renderGlobal;
+//
+//    config["specular_method"] = specularMethod;
+//    config["specular_rt_samples"] = specularRTSamples;
+//
+//    return config;
+//}
 
 json PMIntegrator::GetRenderStatus() {
     json status;
@@ -64,10 +113,10 @@ void PMIntegrator::EmitPhoton(Scene& scene) {
 
     MemoryBlock mb;
 
-    BSDFRESULT all_f_result[32]; // ´æÄ³¸öµãÉÏËùÓĞbxdfµÄsample_f½á¹û¡£
-    float reflectivity[32]; // bxdf¸ÅÂÊ¡£¾ö¶¨¹â×ÓµÄ²Ù×÷¡£
+    BSDFRESULT all_f_result[32]; // å­˜æŸä¸ªç‚¹ä¸Šæ‰€æœ‰bxdfçš„sample_fç»“æœã€‚
+    float reflectivity[32]; // bxdfæ¦‚ç‡ã€‚å†³å®šå…‰å­çš„æ“ä½œã€‚
 
-    // Ã¿¸öµÆ·¢Éä¹â×Ó
+    // æ¯ä¸ªç¯å‘å°„å…‰å­
     for (auto light: scene.lights) {
         std::cout << "light Emit Photon " << std::endl;
 
@@ -110,7 +159,7 @@ void PMIntegrator::EmitPhoton(Scene& scene) {
                 if (!hitScene)
                     break;
 
-                // ¸ù¾İmaterialÌí¼Óbxdf
+                // æ ¹æ®materialæ·»åŠ bxdf
                 isect.ComputeScatteringFunctions(mb, ray);
 
                 int bxdfCount = isect.bsdf->All_f(-ray.d, sampler->Get2D(), all_f_result);
@@ -125,7 +174,7 @@ void PMIntegrator::EmitPhoton(Scene& scene) {
                     //std::cout << std::format("reflectivity {}\n", reflectivity[i]);
                 }
 
-                // °´¸ÅÂÊÑ¡¶¨bxdf
+                // æŒ‰æ¦‚ç‡é€‰å®šbxdf
                 float random = sampler->Get1D() * bxdfCount;
                 i = 0;
                 for (; i < bxdfCount; ++i) {
@@ -133,7 +182,7 @@ void PMIntegrator::EmitPhoton(Scene& scene) {
                         break;
                 }
 
-                if (i >= bxdfCount) { // ÎüÊÕ
+                if (i >= bxdfCount) { // å¸æ”¶
                     //std::cout << "absorb\n";
                     break;
                 }
@@ -145,7 +194,7 @@ void PMIntegrator::EmitPhoton(Scene& scene) {
                     caustic = true;
                 }
                 else {
-                    // Åöµ½diffuse£¬ĞÎ³ÉÒ»¸ö×ÓÂ·¾¶¡£¼ì²éÊÇ·ñÎªcaustic¡£
+                    // ç¢°åˆ°diffuseï¼Œå½¢æˆä¸€ä¸ªå­è·¯å¾„ã€‚æ£€æŸ¥æ˜¯å¦ä¸ºcausticã€‚
                     if (caustic) {
                         causticPhotons.push_back(Photon({ isect.p, dir, photonEnergy }));
                     }
@@ -156,12 +205,12 @@ void PMIntegrator::EmitPhoton(Scene& scene) {
                     globalPhotons.push_back(Photon({ isect.p, dir, photonEnergy }));
                     //std::cout << "globalPhotons push " << photonEnergy.c[0] << " " << photonEnergy.c[1] << " " << photonEnergy.c[2] << std::endl;
 
-                    caustic = false; // ÖØĞÂ¿ªÊ¼
+                    caustic = false; // é‡æ–°å¼€å§‹
                 }
 
                 //std::cout << "type = " << type << std::endl;
 
-                // ¸üĞÂ¹â×ÓÄÜÁ¿
+                // æ›´æ–°å…‰å­èƒ½é‡
                 //photonEnergy = photonEnergy * all_f_result[i].f * AbsDot(all_f_result[i].wi, isect.shading.n) / all_f_result[i].f.Avg() / all_f_result[i].pdf;
                 photonEnergy = photonEnergy * all_f_result[i].f / all_f_result[i].f.Avg();
 
@@ -196,7 +245,7 @@ void PMIntegrator::RenderPhoton(Scene& scene) {
     has_new_photo = 0;
 
     BBox2i sampleBounds = BBox2i(Point2i(0, 0), Point2i(camera->resolutionX, camera->resolutionY));
-    // sampleBounds ÀàËÆ600 400
+    // sampleBounds ç±»ä¼¼600 400
 
     this->render_progress_now.resize(render_threads_no);
     this->render_progress_total.resize(render_threads_no);
@@ -336,8 +385,8 @@ Spectrum PMIntegrator::Li(MemoryBlock &mb, const RayDifferential& ray, Scene& sc
         // direct
         if (renderDirect) {
             if (isect.bsdf->NumComponents(BxDFType(BSDF_ALL & ~(BSDF_SPECULAR | BSDF_GLOSSY))) > 0) {
-                // ¼ÆËãÖ±½Ó¹â¡£
-                // ¶ÔËùÓĞ¹âÔ´²ÉÑù£¬Ñ¡³öÒ»¸ö¹âÔ´£¬¼ÆËãbsdf¡£µÃµ½×îºóµÄ¹âÄÜ¡£
+                // è®¡ç®—ç›´æ¥å…‰ã€‚
+                // å¯¹æ‰€æœ‰å…‰æºé‡‡æ ·ï¼Œé€‰å‡ºä¸€ä¸ªå…‰æºï¼Œè®¡ç®—bsdfã€‚å¾—åˆ°æœ€åçš„å…‰èƒ½ã€‚
 
                 auto distrib = lightDistribution->Lookup(isect.p);
                 Spectrum Ld = UniformSampleOneLight(isect, scene, *(sampler->Clone()), false, distrib);
@@ -361,8 +410,8 @@ Spectrum PMIntegrator::Li(MemoryBlock &mb, const RayDifferential& ray, Scene& sc
 
                     if (!samplingFlag) {
                         for (int i = 0; i < specularRTSamples; ++i) {
-                            // ÒÔwo²ÉÒ»ÊøÈëÉä¹â£¬Ëã³öf¡£
-                            // Í¬Ê±µÃµ½Ò»¸öËæ»ú·½Ïò£¬×÷ÎªÏÂÒ»²ãµÄpath¡£
+                            // ä»¥woé‡‡ä¸€æŸå…¥å°„å…‰ï¼Œç®—å‡ºfã€‚
+                            // åŒæ—¶å¾—åˆ°ä¸€ä¸ªéšæœºæ–¹å‘ï¼Œä½œä¸ºä¸‹ä¸€å±‚çš„pathã€‚
                             Spectrum f = isect.bsdf->Sample_f(wo, &wi, sampler->Get2D(), &pdf, BxDFType(BSDF_ALL), &flags);
 
                             if (f.IsBlack() || pdf == 0.f) {
@@ -375,8 +424,8 @@ Spectrum PMIntegrator::Li(MemoryBlock &mb, const RayDifferential& ray, Scene& sc
                         L += (Ls / specularRTSamples);
                     }
                     else {
-                        // ÒÔwo²ÉÒ»ÊøÈëÉä¹â£¬Ëã³öf¡£
-                        // Í¬Ê±µÃµ½Ò»¸öËæ»ú·½Ïò£¬×÷ÎªÏÂÒ»²ãµÄpath¡£
+                        // ä»¥woé‡‡ä¸€æŸå…¥å°„å…‰ï¼Œç®—å‡ºfã€‚
+                        // åŒæ—¶å¾—åˆ°ä¸€ä¸ªéšæœºæ–¹å‘ï¼Œä½œä¸ºä¸‹ä¸€å±‚çš„pathã€‚
                         Spectrum f = isect.bsdf->Sample_f(wo, &wi, sampler->Get2D(), &pdf, BxDFType(BSDF_ALL), &flags);
 
                         if (f.IsBlack() || pdf == 0.f) {
@@ -457,7 +506,7 @@ Spectrum PMIntegrator::Li(MemoryBlock &mb, const RayDifferential& ray, Scene& sc
         knnResult.payloads.reserve(1000);
 
         // caustic
-        if (renderCaustic) {
+        if (renderCaustic && causticPhotonMap.Size() != 0) {
             Spectrum L_caustic(0.f);
 
             int near = gatherPhotons;
@@ -503,7 +552,7 @@ Spectrum PMIntegrator::Li(MemoryBlock &mb, const RayDifferential& ray, Scene& sc
         }
 
         // diffuse
-        if (renderDiffuse) {
+        if (renderDiffuse && diffusePhotonMap.Size() != 0) {
             if (isect.bsdf->NumComponents(BxDFType(BSDF_ALL & ~(BSDF_SPECULAR | BSDF_GLOSSY))) > 0) {
 
                 Spectrum L_caustic(0.f);
@@ -552,7 +601,7 @@ Spectrum PMIntegrator::Li(MemoryBlock &mb, const RayDifferential& ray, Scene& sc
         }
 
         // global
-        if (renderGlobal) {
+        if (renderGlobal && globalPhotonMap.Size() != 0) {
             if (isect.bsdf->NumComponents(BxDFType(BSDF_ALL)) > 0) { //  & ~(BSDF_SPECULAR | BSDF_GLOSSY
 
                 Spectrum L_caustic(0.f);

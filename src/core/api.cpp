@@ -73,12 +73,34 @@ std::string PBR_API_rename_object(int obj_id, const std::string& new_name) {
 	return app.RenameObject(obj_id, new_name);
 }
 
+json PBR_API_get_medium_tree() {
+	return app.GetMediumTree();
+}
+
+json PBR_API_new_medium() {
+	return app.NewMedium();
+}
+
+int PBR_API_update_medium(const json& m_info) {
+	app.UpdateMedium(m_info);
+	return 0;
+}
+
+int PBR_API_delete_medium(const json& medium_info) {
+	app.DeleteMedium(medium_info);
+	return 0;
+}
+
+std::string PBR_API_rename_medium(int medium_id, const std::string& new_name) {
+	return app.RenameMedium(medium_id, new_name);
+}
+
 int PBR_API_set_perspective_camera(const CameraSetting& s) {
 	Log("PBR_API_set_perspective_camera %f %f %f", s.pos[0], s.pos[1], s.pos[2]);
 	app.SetPerspectiveCamera(Point3f(s.pos[0], s.pos[1], s.pos[2]),
 		Point3f(s.look[0], s.look[1], s.look[2]),
 		Vector3f(s.up[0], s.up[1], s.up[2]),
-		s.fov, s.asp, s.near_far[0], s.near_far[1], s.resolution[0], s.resolution[1]);
+		s.fov, s.asp, s.near_far[0], s.near_far[1], s.resolution[0], s.resolution[1], s.medium_id);
 
 	//auto a = { pos[0], pos[1], pos[2] };
 	setting.Set("camera_pos", std::initializer_list({ s.pos[0], s.pos[1], s.pos[2] }));
@@ -100,6 +122,21 @@ int PBR_API_set_perspective_camera(const CameraSetting& s) {
 
 int PBR_API_SET_SCENE_OPTIONS(const SceneOptions& s) {
 	app.SetSceneOptions(s.nodes_structure);
+
+	return 0;
+}
+
+int PbrApiSetSystemConfig(const SystemConfig& config) {
+	json system_config;
+	system_config["render_threads_no"] = config.render_threads_no;
+	
+	app.SetSystemConfig(system_config);
+	return 0;
+}
+
+int PbrApiGetSystemConfig(SystemConfig& config) {
+	json system_config = app.GetSystemConfig();
+	config.render_threads_no = system_config["render_threads_no"];
 
 	return 0;
 }
@@ -186,3 +223,101 @@ int PBR_API_get_mipmap_image(int index, std::vector<unsigned char>& data, int &x
 	app.GetTestMipmapImage(index, data, x, y);
 	return 0;
 }
+
+int PbrApiGetSceneConfig(SceneOptions& config) {
+	json scene_config = app.GetSceneConfig();
+	config.nodes_structure = scene_config["nodes_structure"];
+	config.render_method = scene_config["render_method"];
+
+	//config.render_threads_no = 12;
+
+	return 0;
+}
+
+int PbrApiGetIntegratorsConfig(WhittedIntConfig& whitted_config, 
+	PathIntConfig& path_onfig, VpathIntConfig& vpath_config, PMIntConfig& pm_config, PPMIntConfig& ppm_config) {
+
+	// todo: clean index
+
+	json config = app.GetIntegratorConfig(0);
+	std::cout << config << std::endl;
+
+	whitted_config.ray_bounce_no = config["ray_bounce_no"];
+	whitted_config.ray_sample_no = config["ray_sample_no"];
+	//whitted_config.render_threads_no = config["render_threads_no"];
+
+	config = app.GetIntegratorConfig(1);
+	std::cout << config << std::endl;
+
+	path_onfig.ray_bounce_no = config["ray_bounce_no"];
+	path_onfig.ray_sample_no = config["ray_sample_no"];
+	//path_onfig.render_threads_no = config["render_threads_no"];
+
+	config = app.GetIntegratorConfig(4);
+	std::cout << config << std::endl;
+
+	vpath_config.ray_bounce_no = config["ray_bounce_no"];
+	vpath_config.ray_sample_no = config["ray_sample_no"];
+	//vpath_config.render_threads_no = config["render_threads_no"];
+
+	config = app.GetIntegratorConfig(2);
+	std::cout << config << std::endl;
+
+	pm_config.ray_sample_no = config["ray_sample_no"];
+	pm_config.ray_bounce_no = config["ray_bounce_no"];
+	//pm_config.render_threads_no = config["render_threads_no"];
+	pm_config.emit_photons = config["emit_photons"];
+	pm_config.gather_photons = config["gather_photons"];
+	pm_config.gather_photons_r = config["gather_photons_r"];
+	pm_config.gather_method = config["gather_method"];
+	pm_config.energy_scale = config["energy_scale"];
+	pm_config.reemit_photons = config["reemit_photons"];
+	pm_config.render_direct = config["render_direct"];
+	pm_config.render_specular = config["render_specular"];
+	pm_config.render_caustic = config["render_caustic"];
+	pm_config.render_diffuse = config["render_diffuse"];
+	pm_config.render_global = config["render_global"];
+	pm_config.filter = config["filter"];
+	pm_config.specular_method = config["specular_method"];
+	pm_config.specular_rt_samples = config["specular_rt_samples"];
+
+
+	config = app.GetIntegratorConfig(3);
+	std::cout << config << std::endl;
+
+	//ppm_config.render_threads_no = config["render_threads_no"];
+	ppm_config.ray_bounce_no = config["ray_bounce_no"];
+	ppm_config.energy_scale = config["energy_scale"];
+	ppm_config.render_direct = config["render_direct"];
+	ppm_config.render_caustic = config["render_caustic"];
+	ppm_config.render_diffuse = config["render_diffuse"];
+	ppm_config.render_global = config["render_global"];
+	ppm_config.filter = config["filter"];
+	ppm_config.max_iterations = config["max_iterations"];
+	ppm_config.inital_radius = config["inital_radius"];
+	ppm_config.alpha = config["alpha"];
+	//ppm_config.render_threads_no = config["render_threads_no"];
+
+	return 0;
+}
+
+
+//int PbrApiGetWhittedIntConfig(WhittedIntConfig& config) {
+//
+//}
+//
+//int PbrApiGetPathIntConfig(PathIntConfig& config) {
+//
+//}
+//
+//int PbrApiGetVpathIntConfig(VpathIntConfig& config) {
+//
+//}
+//
+//int PbrApiGetPMIntConfig(PMIntConfig& config) {
+//
+//}
+//
+//int PbrApiGetPPMIntConfig(PPMIntConfig& config) {
+//
+//}

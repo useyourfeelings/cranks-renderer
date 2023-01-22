@@ -10,36 +10,78 @@ PPMIntegrator::PPMIntegrator(std::shared_ptr<Camera> camera,
 )
     : camera(camera),
     sampler(sampler),
-    filter(1),
-    emitPhotons(5000),
-    energyScale(10000),
-    renderDirect(1),
-    currentIteration(0),
-    maxIterations(10),
-    alpha(0.5),
-    initalRadius(20)
-    {
-    }
+    currentIteration(0){
 
-void PPMIntegrator::SetOptions(const json& data) {
-    sampler->SetSamplesPerPixel(data["ray_sample_no"]);
-    SetRayBounceNo(data["ray_bounce_no"]);
-    SetRenderThreadsCount(data["render_threads_no"]);
+    default_config = json({
+        {"name", "ppm"},
+        {"ray_sample_no", 1},
+        {"ray_bounce_no", 10},
+        {"render_threads_no", 12},
 
-    emitPhotons = data["emitPhotons"];
-    filter = data["filter"];
-    energyScale = data["energyScale"];
+        {"emit_photons", 1000},
+        {"filter", 1},
+        {"energy_scale", 10000.f},
+        {"render_direct", true},
+        //{"render_specular", 1},
+        {"render_caustic", true},
+        {"render_diffuse", true},
+        {"render_global", false},
+        {"max_iterations", 100},
+        {"alpha", 0.5},
+        {"inital_radius", 50}
+    });
 
-    renderDirect = data["renderDirect"];
-    renderCaustic = data["renderCaustic"];
-    renderDiffuse = data["renderDiffuse"];
-    renderGlobal = data["renderGlobal"];
+    SetOptions(default_config);
+}
+
+void PPMIntegrator::SetOptions(const json& new_config) {
+    std::cout << "PPMIntegrator::SetOptions " << new_config;
+    auto current_config = config;
+    current_config.merge_patch(new_config);
+
+    ray_sample_no = current_config["ray_sample_no"];
+    sampler->SetSamplesPerPixel(current_config["ray_sample_no"]);
+    SetRayBounceNo(current_config["ray_bounce_no"]);
+    //SetRenderThreadsCount(current_config["render_threads_no"]);
+
+    emitPhotons = current_config["emit_photons"];
+    filter = current_config["filter"];
+    energyScale = current_config["energy_scale"];
+
+    renderDirect = current_config["render_direct"];
+    renderCaustic = current_config["render_caustic"];
+    renderDiffuse = current_config["render_diffuse"];
+    renderGlobal = current_config["render_global"];
 
     // ppm
-    maxIterations = data["maxIterations"];
-    alpha = data["alpha"];
-    initalRadius = data["initalRadius"];
+    maxIterations = current_config["max_iterations"];
+    alpha = current_config["alpha"];
+    initalRadius = current_config["inital_radius"];
+
+    config = current_config;
 }
+
+//json PPMIntegrator::GetConfig() {
+//    json config;
+//
+//    config["ray_sample_no"] = ray_sample_no;
+//    config["render_threads_no"] = render_threads_no;
+//    config["ray_bounce_no"] = maxDepth;
+//
+//    config["emit_photons"] = emitPhotons;
+//    config["filter"] = filter;
+//    config["energy_scale"] = energyScale;
+//    config["render_direct"] = renderDirect;
+//    config["render_caustic"] = renderCaustic;
+//    config["render_diffuse"] = renderDiffuse;
+//    config["render_global"] = renderGlobal;
+//
+//    config["max_iterations"] = maxIterations;
+//    config["alpha"] = alpha;
+//    config["inital_radius"] = initalRadius;
+//
+//    return config;
+//}
 
 json PPMIntegrator::GetRenderStatus() {
     json status;
@@ -62,7 +104,7 @@ void PPMIntegrator::TraceRay(Scene& scene, std::vector<MemoryBlock> &mbs) {
     totalPhotons = 0;
 
     BBox2i sampleBounds = BBox2i(Point2i(0, 0), Point2i(camera->resolutionX, camera->resolutionY));
-    // sampleBounds ÀàËÆ600 400
+    // sampleBounds ç±»ä¼¼600 400
 
     hitpoints.clear();
     hitpoints.reserve(camera->resolutionX * camera->resolutionY * 3);
@@ -209,7 +251,7 @@ void PPMIntegrator::TraceARay(MemoryBlock& mb, const RayDifferential& ray, Scene
         // diffuse
         if (isect->bsdf->NumComponents(BxDFType(BSDF_ALL & ~(BSDF_SPECULAR | BSDF_GLOSSY))) > 0) {
 
-            std::lock_guard<std::mutex> lock(hitpointsMutex); // ¶àÏß³Ì
+            std::lock_guard<std::mutex> lock(hitpointsMutex); // å¤šçº¿ç¨‹
             Hitpoint hitpoint;
 
             //if(depth > 0)
@@ -241,8 +283,8 @@ void PPMIntegrator::TraceARay(MemoryBlock& mb, const RayDifferential& ray, Scene
                 float pdf;
                 BxDFType flags;
 
-                if (0) { // ÕâÀïÏÈ±ğÕÛÌÚ²ÉÑùÁË¡£
-                    // µ± depth > 3 ×öÍ³Ò»²ÉÑù
+                if (0) { // è¿™é‡Œå…ˆåˆ«æŠ˜è…¾é‡‡æ ·äº†ã€‚
+                    // å½“ depth > 3 åšç»Ÿä¸€é‡‡æ ·
                     Spectrum f = isect->bsdf->Sample_f(wo, &wi, sampler->Get2D(), &pdf, BxDFType(BSDF_ALL), &flags);
 
                     if (f.IsBlack() || pdf == 0.f) {
@@ -268,7 +310,7 @@ void PPMIntegrator::TraceARay(MemoryBlock& mb, const RayDifferential& ray, Scene
                         
                     }
                 }
-                else { // ·ñÔòÇø·Öray
+                else { // å¦åˆ™åŒºåˆ†ray
                     if (isect->bsdf->NumComponents(BxDFType(BSDF_SPECULAR | BSDF_REFLECTION)) > 0) {
                         Spectrum f = isect->bsdf->Sample_f(wo, &wi, sampler->Get2D(), &pdf, BxDFType(BSDF_SPECULAR | BSDF_REFLECTION), &flags);
 
@@ -318,10 +360,10 @@ void PPMIntegrator::EmitPhoton(Scene& scene) {
 
     MemoryBlock mb;
 
-    BSDFRESULT all_f_result[32]; // ´æÄ³¸öµãÉÏËùÓĞbxdfµÄsample_f½á¹û¡£
-    float reflectivity[32]; // bxdf¸ÅÂÊ¡£¾ö¶¨¹â×ÓµÄ²Ù×÷¡£
+    BSDFRESULT all_f_result[32]; // å­˜æŸä¸ªç‚¹ä¸Šæ‰€æœ‰bxdfçš„sample_fç»“æœã€‚
+    float reflectivity[32]; // bxdfæ¦‚ç‡ã€‚å†³å®šå…‰å­çš„æ“ä½œã€‚
 
-    // Ã¿¸öµÆ·¢Éä¹â×Ó
+    // æ¯ä¸ªç¯å‘å°„å…‰å­
     for (auto light : scene.lights) {
         std::cout << "light Emit Photon " << std::endl;
 
@@ -362,7 +404,7 @@ void PPMIntegrator::EmitPhoton(Scene& scene) {
                 if (!hitScene)
                     break;
 
-                // ¸ù¾İmaterialÌí¼Óbxdf
+                // æ ¹æ®materialæ·»åŠ bxdf
                 isect.ComputeScatteringFunctions(mb, ray);
 
                 int bxdfCount = isect.bsdf->All_f(-ray.d, sampler->Get2D(), all_f_result);
@@ -375,7 +417,7 @@ void PPMIntegrator::EmitPhoton(Scene& scene) {
                     }
                 }
 
-                // °´¸ÅÂÊÑ¡¶¨bxdf
+                // æŒ‰æ¦‚ç‡é€‰å®šbxdf
                 float random = sampler->Get1D() * bxdfCount;
                 i = 0;
                 for (; i < bxdfCount; ++i) {
@@ -383,7 +425,7 @@ void PPMIntegrator::EmitPhoton(Scene& scene) {
                         break;
                 }
 
-                if (i >= bxdfCount) { // ÎüÊÕ
+                if (i >= bxdfCount) { // å¸æ”¶
                     //std::cout << "absorb\n";
                     break;
                 }
@@ -395,7 +437,7 @@ void PPMIntegrator::EmitPhoton(Scene& scene) {
                     caustic = true;
                 }
                 else {
-                    // Åöµ½diffuse£¬ĞÎ³ÉÒ»¸ö×ÓÂ·¾¶¡£¼ì²éÊÇ·ñÎªcaustic¡£
+                    // ç¢°åˆ°diffuseï¼Œå½¢æˆä¸€ä¸ªå­è·¯å¾„ã€‚æ£€æŸ¥æ˜¯å¦ä¸ºcausticã€‚
                     if (caustic) {
                         causticPhotons.push_back(Photon({ isect.p, dir, photonEnergy }));
                     }
@@ -406,12 +448,12 @@ void PPMIntegrator::EmitPhoton(Scene& scene) {
                     globalPhotons.push_back(Photon({ isect.p, dir, photonEnergy }));
                     //std::cout << "globalPhotons push " << photonEnergy.c[0] << " " << photonEnergy.c[1] << " " << photonEnergy.c[2] << std::endl;
 
-                    caustic = false; // ÖØĞÂ¿ªÊ¼
+                    caustic = false; // é‡æ–°å¼€å§‹
                 }
 
                 //std::cout << "type = " << type << std::endl;
 
-                // ¸üĞÂ¹â×ÓÄÜÁ¿
+                // æ›´æ–°å…‰å­èƒ½é‡
                 photonEnergy = photonEnergy * all_f_result[i].f / all_f_result[i].f.Avg();
 
                 //std::cout << std::format("f = {} {} {}, avg = {}, after = {} {} {}\n",
@@ -629,7 +671,7 @@ void PPMIntegrator::UpdateHitpoint(Scene& scene, int i, int pool_id) {
             hitpoint.photonCount[0] += newPhotonNum * alpha;
         }
         else {
-            // ²»±ä
+            // ä¸å˜
             camera->AddSample(Point2f(hitpoint.x, hitpoint.y), hitpoint.energy[0] * hitpoint.energyWeight / totalPhotons, 1, 1);
         }
         
@@ -698,7 +740,7 @@ void PPMIntegrator::UpdateHitpoint(Scene& scene, int i, int pool_id) {
                 hitpoint.photonCount[1] += newPhotonNum * alpha;
             }
             else {
-                // ²»±ä
+                // ä¸å˜
                 camera->AddSample(Point2f(hitpoint.x, hitpoint.y), hitpoint.energy[1] * hitpoint.energyWeight / totalPhotons, 1, 1);
             }
 
@@ -769,7 +811,7 @@ void PPMIntegrator::UpdateHitpoint(Scene& scene, int i, int pool_id) {
                 hitpoint.photonCount[2] += newPhotonNum * alpha;
             }
             else {
-                // ²»±ä
+                // ä¸å˜
                 camera->AddSample(Point2f(hitpoint.x, hitpoint.y), hitpoint.energy[2] * hitpoint.energyWeight / totalPhotons, 1, 1);
             }
         }
@@ -789,7 +831,7 @@ void PPMIntegrator::Render(Scene& scene) {
 
     lightDistribution = CreateLightSampleDistribution("uniform", scene);
 
-    std::vector<MemoryBlock> mbs(16); // hispointsÔÚTraceRayÖĞ¼ÆËã¡£ÓÀ¾Ã±£³Ö¡£
+    std::vector<MemoryBlock> mbs(16); // hispointsåœ¨TraceRayä¸­è®¡ç®—ã€‚æ°¸ä¹…ä¿æŒã€‚
 
     TraceRay(scene, mbs);
 

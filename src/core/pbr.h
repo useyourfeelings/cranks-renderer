@@ -24,6 +24,8 @@ class BSDF;
 //class RGBSpectrum;
 //class Spectrum;
 class Film;
+class Medium;
+class MediumInteraction;
 
 template <typename T> class Texture;
 
@@ -34,9 +36,11 @@ template <typename T> class Texture;
 
 // const
 //static float Error1 = 1;// 2;// 1.5;//0.001;
+static float ShadowEpsilon = 0.0001f;
 static float Pi = 3.14159265358979323846;
 static float InvPi = 0.31830988618379067154;
 static float Inv2Pi = 0.15915494309189533577;
+static float Inv4Pi = 0.07957747154594766788;
 static float PiOver2 = 1.57079632679489661923;
 static float PiOver4 = 0.78539816339744830961;
 
@@ -105,15 +109,15 @@ inline int Quadratic(float a, float b, float c, float *r1, float *r2) {
 	
 	//*r1 = (-b + sqrtd) / (2 * a);
 	//*r2 = (-b - sqrtd) / (2 * a);
-	// ±ÜÃâÇ÷½üÓÚ0
+	// é¿å…è¶‹è¿‘äº0
 
 	// <<Accuracy and Stability of Numerical Algorithms>> 1.7 1.8
-	// ±ÜÃâ¿ÉÄÜµÄÏà¼õÎª0
+	// é¿å…å¯èƒ½çš„ç›¸å‡ä¸º0
 
 	//*r1 = (b - sqrtd) / (-2 * a);
 	//*r2 = (b + sqrtd) / (-2 * a);
 
-	// Èç¹ûb<0¾ÍÌô¼õ·¨£¬Èç¹û´óÓÚ0¾ÍÌô¼Ó·¨¡£Ëã³öÒ»¸öÎó²îĞ¡µÄ½â£¬ÔÙËãÁíÒ»¸ö¡£
+	// å¦‚æœb<0å°±æŒ‘å‡æ³•ï¼Œå¦‚æœå¤§äº0å°±æŒ‘åŠ æ³•ã€‚ç®—å‡ºä¸€ä¸ªè¯¯å·®å°çš„è§£ï¼Œå†ç®—å¦ä¸€ä¸ªã€‚
 	if (b < 0)
 		q = (b - sqrtd) * -0.5;
 	else

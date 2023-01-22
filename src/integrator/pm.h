@@ -24,6 +24,7 @@ public:
 
     void Render(Scene& scene);
     void SetOptions(const json& data);
+    json GetConfig();
 
 private:
     json GetRenderStatus();
@@ -44,16 +45,16 @@ private:
     float gatherPhotonsR;
     int gatherMethod;
     float energyScale;
-    int reemitPhotons;
+    bool reemitPhotons;
 
-    int renderDirect = 1;
-    int renderSpecular = 1;
-    int renderCaustic = 1;
-    int renderDiffuse = 1;
-    int renderGlobal = 0;
+    bool renderDirect;
+    bool renderSpecular;
+    bool renderCaustic;
+    bool renderDiffuse;
+    bool renderGlobal;
 
-    int specularMethod = 0; // 0-monte carlo 1-whitted
-    int specularRTSamples = 5;
+    int specularMethod; // 0-monte carlo 1-whitted
+    int specularRTSamples;
 
     KDTree<Photon> causticPhotonMap;
     KDTree<Photon> diffusePhotonMap;

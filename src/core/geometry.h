@@ -299,17 +299,42 @@ inline Vector3<T> operator*(U s, const Vector3<T>& v) {
 	return v * s;
 }
 
-// vÎªnormalÈ·¶¨Ò»¸öÆ½Ãæ¡£Èç¹ûv2ÓëÆ½ÃæÍ¬·½Ïò·µ»Øv¡£·ñÔò·µ»Ø-v¡£
+// vä¸ºnormalç¡®å®šä¸€ä¸ªå¹³é¢ã€‚å¦‚æœv2ä¸å¹³é¢åŒæ–¹å‘è¿”å›vã€‚å¦åˆ™è¿”å›-vã€‚
 template <typename T>
 inline Vector3<T> Faceforward(const Vector3<T>& v, const Vector3<T>& v2) {
 	return (Dot(v, v2) < 0.f) ? -v : v;
 }
 
+template <typename T>
+inline void CoordinateSystem(const Vector3<T>& v1, Vector3<T>* v2,
+	Vector3<T>* v3) {
+	if (std::abs(v1.x) > std::abs(v1.y))
+		*v2 = Vector3<T>(-v1.z, 0, v1.x) / std::sqrt(v1.x * v1.x + v1.z * v1.z);
+	else
+		*v2 = Vector3<T>(0, v1.z, -v1.y) / std::sqrt(v1.y * v1.y + v1.z * v1.z);
+	*v3 = Cross(v1, *v2);
+}
+
+inline Vector3f SphericalDirection(float sinTheta, float cosTheta, float phi,
+	const Vector3f& x, const Vector3f& y,
+	const Vector3f& z) {
+	return sinTheta * std::cos(phi) * x + sinTheta * std::sin(phi) * y + cosTheta * z;
+}
+
 class Ray {
 public:
 	Ray() : tMax(Infinity), time(0.f) {}
+
+	Ray(const Ray& r):
+		o(r.o),
+		d(r.d),
+		tMax(r.tMax),
+		time(r.time),
+		medium(r.medium) {
+	}
+
 	Ray(const Point3f& o, const Vector3f& d, float tMax = Infinity,
-		float time = 0.f) :o(o), d(d), tMax(tMax), time(time) {
+		float time = 0.f, std::shared_ptr<Medium> medium = nullptr) :o(o), d(d), tMax(tMax), time(time), medium(medium) {
 	}
 
 	Point3f operator()(float t) const { return o + d * t; }
@@ -320,8 +345,10 @@ public:
 
 	Point3f o;
 	Vector3f d;
-	float tMax; // restrict ray length
+	mutable float tMax; // restrict ray length
 	float time; // for animation
+
+	std::weak_ptr<Medium> medium;
 };
 
 class RayDifferential : public Ray {
@@ -329,13 +356,13 @@ public:
 	// RayDifferential Public Methods
 	RayDifferential() { hasDifferentials = false; }
 	RayDifferential(const Point3f& o, const Vector3f& d, float tMax = Infinity,
-		float time = 0.f)
-		: Ray(o, d, tMax, time) {
+		float time = 0.f, std::shared_ptr<Medium> medium = nullptr)
+		: Ray(o, d, tMax, time, medium) {
 		hasDifferentials = false;
 	}
 	RayDifferential(const Ray& ray) : Ray(ray) { hasDifferentials = false; }
 
-	// Ã»¶®
+	// æ²¡æ‡‚
 	void ScaleDifferentials(float s) {
 		rxOrigin = o + (rxOrigin - o) * s;
 		ryOrigin = o + (ryOrigin - o) * s;
@@ -354,6 +381,7 @@ public:
 };
 
 
+// pbrt 3.9.5
 inline Point3f OffsetRayOrigin(const Point3f& p, const Vector3f& pError, const Vector3f& n, const Vector3f& w) {
 	float d = Dot(Abs(n), pError);
 	Vector3f offset = d * Vector3f(n);
@@ -490,47 +518,47 @@ inline bool BBox3<T>::Intersect(const Ray& ray, const Vector3f& invDir, const in
 	const BBox3& bounds = *this;
 	
 	// Check for ray intersection against $x$ and $y$ slabs
-	// ËãxºÍyÖá
+	// ç®—xå’Œyè½´
 	float tMin = (bounds[dirIsNeg[0]].x - ray.o.x) * invDir.x;
 	float tyMax = (bounds[1 - dirIsNeg[1]].y - ray.o.y) * invDir.y;
 
-	// ¼ÓÉÏÎó²î
+	// åŠ ä¸Šè¯¯å·®
 	tyMax *= 1 + 2 * gamma(3);
-	// Èç¹ûÎŞ½»¼¯·µ»Øfalse
+	// å¦‚æœæ— äº¤é›†è¿”å›false
 	if (tMin > tyMax) return false;
 
 	float tMax = (bounds[1 - dirIsNeg[0]].x - ray.o.x) * invDir.x;
 	float tyMin = (bounds[dirIsNeg[1]].y - ray.o.y) * invDir.y;
 
-	// ¼ÓÉÏÎó²î
+	// åŠ ä¸Šè¯¯å·®
 	tMax *= 1 + 2 * gamma(3);
-	// Èç¹ûÎŞ½»¼¯·µ»Øfalse
+	// å¦‚æœæ— äº¤é›†è¿”å›false
 	if (tyMin > tMax) return false;
 
 	// Update _tMax_ and _tyMax_ to ensure robust bounds intersection
-	// ¼ÓÉÏÎó²î
+	// åŠ ä¸Šè¯¯å·®
 	//tMax *= 1 + 2 * gamma(3);
 	//tyMax *= 1 + 2 * gamma(3);
 
-	// Èç¹ûÎŞ½»¼¯·µ»Øfalse
+	// å¦‚æœæ— äº¤é›†è¿”å›false
 	//if (tMin > tyMax || tyMin > tMax) return false;
 	
-	// È¡½»¼¯
+	// å–äº¤é›†
 	if (tyMin > tMin) tMin = tyMin;
 	if (tyMax < tMax) tMax = tyMax;
 
 	// Check for ray intersection against $z$ slab
-	// ËãzÖá
+	// ç®—zè½´
 	float tzMin = (bounds[dirIsNeg[2]].z - ray.o.z) * invDir.z;
 	if (tzMin > tMax) return false;
 
-	// ËãzÖá
+	// ç®—zè½´
 	float tzMax = (bounds[1 - dirIsNeg[2]].z - ray.o.z) * invDir.z;
 
 	// Update _tzMax_ to ensure robust bounds intersection
 	tzMax *= 1 + 2 * gamma(3);
 
-	// ÅĞ¶Ï½»¼¯
+	// åˆ¤æ–­äº¤é›†
 	if (tMin > tzMax) return false;
 	if (tzMin > tMin) tMin = tzMin;
 	if (tzMax < tMax) tMax = tzMax;

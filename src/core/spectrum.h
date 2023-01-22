@@ -142,8 +142,28 @@ public:
         return ret;
     }
 
+    friend CoefficientSpectrum Exp(const CoefficientSpectrum& s) {
+        CoefficientSpectrum ret;
+        for (int i = 0; i < s.nSpectrumSamples; ++i) ret.c[i] = std::exp(s.c[i]);
+        //DCHECK(!ret.HasNaNs());
+        return ret;
+    }
+
+    CoefficientSpectrum operator-() const {
+        CoefficientSpectrum ret;
+        for (int i = 0; i < nSpectrumSamples; ++i) ret.c[i] = -c[i];
+        return ret;
+    }
+
+    float operator[](int i) const {
+        //DCHECK(i >= 0 && i < nSpectrumSamples);
+        return c[i];
+    }
+
     int nSpectrumSamples;
     //std::vector<float> c; // very lagging
+
+    static const int nSamples = 3;// nSpectrumSamples;
 
     float c[3];
 };

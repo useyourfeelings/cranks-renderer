@@ -33,14 +33,14 @@ BBox3f Triangle::WorldBound() const {
     return Union(BBox3f(p0, p1), p2);
 }
 
-// Ä¿Ç°µÄÀí½â¡£
-// ÔÊĞíshared_ptr±»É¾³ı£¬´ËÊ±weak_ptr¿ÉÅĞ¶Ïshared_ptr»¹ÊÇ·ñÓĞĞ§¡£
-// µ«Èç¹ûshared_ptr±»Ìæ»»£¬weak_ptrÎŞ·¨×Ô¶¯¸üĞÂ£¬»¹ÊÇ°ó¶¨ÀÏµÄshared_ptr¡£
-// ÄÜ·ñÕâÑù¡£±£Áômaterial_id£¬Èç¹ûweak_ptrÅĞ¶Ïshared_ptrÊ§Ğ§£¬Ôò³¢ÊÔ¸ù¾İmaterial_idÈ¥ÕÒĞÂµÄshared_ptr²¢¸üĞÂweak_ptr¡£
-// Èç¹ûÊÇ±»É¾£¬Ôòmaterial_idÕÒ²»µ½ĞÂµÄshared_ptr£¬·µ»ØÄ¬ÈÏmaterial¡£
-// Èç¹ûÊÇ¸üĞÂ£¬Ôòweak_ptr¸üĞÂÎªĞÂµÄshared_ptr¡£
+// ç›®å‰çš„ç†è§£ã€‚
+// å…è®¸shared_ptrè¢«åˆ é™¤ï¼Œæ­¤æ—¶weak_ptrå¯åˆ¤æ–­shared_ptrè¿˜æ˜¯å¦æœ‰æ•ˆã€‚
+// ä½†å¦‚æœshared_ptrè¢«æ›¿æ¢ï¼Œweak_ptræ— æ³•è‡ªåŠ¨æ›´æ–°ï¼Œè¿˜æ˜¯ç»‘å®šè€çš„shared_ptrã€‚
+// èƒ½å¦è¿™æ ·ã€‚ä¿ç•™material_idï¼Œå¦‚æœweak_ptråˆ¤æ–­shared_ptrå¤±æ•ˆï¼Œåˆ™å°è¯•æ ¹æ®material_idå»æ‰¾æ–°çš„shared_ptrå¹¶æ›´æ–°weak_ptrã€‚
+// å¦‚æœæ˜¯è¢«åˆ ï¼Œåˆ™material_idæ‰¾ä¸åˆ°æ–°çš„shared_ptrï¼Œè¿”å›é»˜è®¤materialã€‚
+// å¦‚æœæ˜¯æ›´æ–°ï¼Œåˆ™weak_ptræ›´æ–°ä¸ºæ–°çš„shared_ptrã€‚
 // 
-// ×ÜÌåÊÇ½èÖúmaterial_idÀ´ÅĞ¶Ïshared_ptrµÄÕæÊµÇé¿ö£¬½øĞĞ¸üĞÂ¡£
+// æ€»ä½“æ˜¯å€ŸåŠ©material_idæ¥åˆ¤æ–­shared_ptrçš„çœŸå®æƒ…å†µï¼Œè¿›è¡Œæ›´æ–°ã€‚
 std::shared_ptr<Material> TriangleMesh::GetMaterial() {
     auto m = material.lock();
     if (m) {
@@ -72,7 +72,7 @@ std::shared_ptr<Material> TriangleMesh::GetMaterial() {
 }
 
 TriangleMesh::TriangleMesh(
-    const std::string& name,
+    const json& config,
     const Transform& ObjectToWorld, int nTriangles, const int* vertexIndices,
     int nVertices,
     //const Point3f* P
@@ -85,15 +85,17 @@ TriangleMesh::TriangleMesh(
     //const int* fIndices
     //int material_id
     std::shared_ptr<Material> material,
-    std::shared_ptr<Scene> scene
+    std::shared_ptr<Scene> scene,
+    std::shared_ptr<Medium> medium
 )
-    : Object(name),
+    : Object(config, ObjectTypeScene),
     nTriangles(nTriangles),
     nVertices(nVertices),
     vertexIndices(vertexIndices, vertexIndices + 3 * nTriangles),
     //material_id(material_id)
     material(material),
-    scene(scene)
+    scene(scene),
+    medium(medium)
     //alphaMask(alphaMask),
     //shadowAlphaMask(shadowAlphaMask)
     {
@@ -212,7 +214,7 @@ bool Triangle::Intersect(const Ray& ray, float* tHit, SurfaceInteraction* isect)
         *isect = SurfaceInteraction(
             hitPoint,
             pError,
-            mesh->n[this->v[0]], // Ö±½ÓÓÃÄ£ĞÍµÄnormal // hitPoint - Point3f(0, 0, 0),
+            mesh->n[this->v[0]], // ç›´æ¥ç”¨æ¨¡å‹çš„normal // hitPoint - Point3f(0, 0, 0),
             Point2f(u, v), -ray.d,
             fake_dpdu, fake_dpdv,// fake test dpdu, dpdv,
             ray.time, this);

@@ -8,12 +8,13 @@
 #include "material.h"
 #include "primitive.h"
 
-Scene::Scene(std::shared_ptr<std::map<int, std::shared_ptr<Material>>> material_list):
+Scene::Scene(std::shared_ptr<std::map<int, std::shared_ptr<Material>>> material_list,
+	std::shared_ptr<std::map<int, std::shared_ptr<Medium>>> medium_list):
 	material_list(material_list),
-	nodes_structure(1),
-	latest_obj_id(0) {
-
-	InitSceneTree();
+	medium_list(medium_list),
+	nodes_structure(1)
+{
+	//InitSceneTree();
 }
 
 int Scene::SetNodesStructure(int structure) {
@@ -69,6 +70,15 @@ void Scene::PrintScene() const {
 	}
 }
 
+json Scene::GetConfig() const {
+	json config;
+
+	config["nodes_structure"] = this->nodes_structure;
+	config["render_method"] = 1;
+
+	return config;
+}
+
 const json& Scene::GetSceneTree() {
 	std::cout << "Scene::GetSceneTree() "<<sceneTree << std::endl;
 	return sceneTree;
@@ -107,8 +117,8 @@ std::tuple<int, json> Scene::AddObject(const json& obj_info) {
 	json new_obj_info = obj_info;
 
 	if (type == "folder") {
-		auto obj = std::make_shared<Object>(name);
-		obj->SetSceneID(++latest_obj_id);
+		auto obj = std::make_shared<Object>(new_obj_info, ObjectTypeFolder);
+		//obj->SetSceneID(++latest_obj_id);
 		obj_id = obj->Id();
 
 		id_obj_map[obj_id] = obj;
@@ -144,15 +154,27 @@ std::tuple<int, json> Scene::AddObject(const json& obj_info) {
 
 		std::shared_ptr<Shape> shape = std::make_shared<Sphere>(t, Inverse(t), radius, zmin, zmax, phimax);
 
+		// get material
 		std::shared_ptr<Material> material = nullptr;
 		if (auto ml = material_list.lock()){
-			material = ml->at(int(obj_info["material_id"]));
+			material = ml->at(int(obj_info["material_id"])); // todo å¤„ç†æ²¡æ‰¾åˆ°çš„æƒ…å†µ
 			std::cout << "AddObject get material " << material->GetID() << std::endl;
 		}
 
-		auto obj = std::make_shared<BasicModel>(name, t, material, shared_from_this());
+		// get medium
+		std::shared_ptr<Medium> medium = nullptr;
+		if (auto ml = medium_list.lock()) {
+			if (obj_info.contains("medium_id")) {
+				if (ml->contains(int(obj_info["medium_id"]))) {
+					medium = ml->at(int(obj_info["medium_id"])); // todo å¤„ç†æ²¡æ‰¾åˆ°çš„æƒ…å†µ
+					std::cout << "AddObject get medium " << medium->GetID() << std::endl;
+				}
+			}
+		}
 
-		obj->SetSceneID(++latest_obj_id);
+		auto obj = std::make_shared<BasicModel>(new_obj_info, t, material, shared_from_this(), medium);
+
+		//obj->SetSceneID(++latest_obj_id);
 		obj_id = obj->Id();
 		id_obj_map[obj_id] = obj;
 
@@ -190,14 +212,26 @@ std::tuple<int, json> Scene::AddObject(const json& obj_info) {
 		//auto material = GenMaterial(obj_info["material"]);
 		//auto material = material_list.at(int(obj_info["material_id"]));
 
+		// get material
 		std::shared_ptr<Material> material = nullptr;
 		if (auto ml = material_list.lock()) {
 			material = ml->at(int(obj_info["material_id"]));
 			std::cout << "AddObject get material " << material->GetID() << std::endl;
 		}
 
+		// get medium
+		std::shared_ptr<Medium> medium = nullptr;
+		if (auto ml = medium_list.lock()) {
+			if (obj_info.contains("medium_id")) {
+				if (ml->contains(int(obj_info["medium_id"]))) {
+					medium = ml->at(int(obj_info["medium_id"])); // todo å¤„ç†æ²¡æ‰¾åˆ°çš„æƒ…å†µ
+					std::cout << "AddObject get medium " << medium->GetID() << std::endl;
+				}
+			}
+		}
+
 		//auto obj = std::make_shared<TriangleMesh>(name, t, tri_count, vertex_index, vertex_count, points, obj_info["material_id"], nullptr);
-		auto obj = std::make_shared<TriangleMesh>(name, t, tri_count, vertex_index, vertex_count, points, normals, material, shared_from_this());
+		auto obj = std::make_shared<TriangleMesh>(new_obj_info, t, tri_count, vertex_index, vertex_count, points, normals, material, shared_from_this(), medium);
 
 		delete[] vertex_index;
 		delete[] points;
@@ -210,7 +244,7 @@ std::tuple<int, json> Scene::AddObject(const json& obj_info) {
 			primitives.push_back(std::make_shared<GeometricPrimitive>("NoName", shape, obj));
 		}
 
-		obj->SetSceneID(++latest_obj_id);
+		//obj->SetSceneID(++latest_obj_id);
 		obj_id = obj->Id();
 		std::cout << "obj_id = " << obj_id << std::endl;
 		//primitives.push_back(obj);
@@ -235,9 +269,9 @@ std::tuple<int, json> Scene::AddObject(const json& obj_info) {
 	else if (type == "point_light") {
 		auto t = Translate(Vector3f(world_pos[0], world_pos[1], world_pos[2]));
 
-		auto obj = std::make_shared<PointLight>(name, t, Spectrum(obj_info["power"][0], obj_info["power"][1], obj_info["power"][2]));
+		auto obj = std::make_shared<PointLight>(new_obj_info, t, Spectrum(obj_info["power"][0], obj_info["power"][1], obj_info["power"][2]));
 
-		obj->SetSceneID(++latest_obj_id);
+		//obj->SetSceneID(++latest_obj_id);
 		obj_id = obj->Id();
 		id_obj_map[obj_id] = obj;
 
@@ -260,13 +294,13 @@ std::tuple<int, json> Scene::AddObject(const json& obj_info) {
 	else if (type == "infinite_light") {
 		auto t = Translate(Vector3f(world_pos[0], world_pos[1], world_pos[2]));
 
-		auto obj = std::make_shared<InfiniteAreaLight>(name, t, 
+		auto obj = std::make_shared<InfiniteAreaLight>(new_obj_info, t,
 			Spectrum(obj_info["power"][0], obj_info["power"][1], obj_info["power"][2]),
 			obj_info["strength"], 
 			obj_info["samples"],
 			obj_info["file_name"]);
 
-		obj->SetSceneID(++latest_obj_id);
+		//obj->SetSceneID(++latest_obj_id);
 		obj_id = obj->Id();
 		infiniteLights.push_back(obj);
 		id_obj_map[obj_id] = obj;
@@ -286,7 +320,7 @@ std::tuple<int, json> Scene::AddObject(const json& obj_info) {
 		id_node_map[obj_id] = new_obj_info;
 	}
 
-	//std::cout << "after add " << sceneTree << std::endl;
+	std::cout << "AddObject ok " << sceneTree << std::endl;
 
 	return { 0, new_obj_info };
 }
@@ -309,7 +343,7 @@ int Scene::DeleteObject(const json& obj_info) {
 
 	//id_obj_map.erase(scene_id);
 
-	// Ä¿Ç°ÏÈÒ»ÂÉÖØĞÂ¼ÓÔØ
+	// ç›®å‰å…ˆä¸€å¾‹é‡æ–°åŠ è½½
 	json new_scene_tree = sceneTree;
 	Reload(new_scene_tree);
 	RebuildBVH();
@@ -328,7 +362,7 @@ int Scene::UpdateObject(const json& obj_info) {
 	node = &(*node)[std::to_string(node_id)];
 	node->update(obj_info);
 
-	// Ä¿Ç°ÏÈÒ»ÂÉÖØĞÂ¼ÓÔØ
+	// ç›®å‰å…ˆä¸€å¾‹é‡æ–°åŠ è½½
 	json new_scene_tree = sceneTree;
 	Reload(new_scene_tree);
 	RebuildBVH();
@@ -351,7 +385,7 @@ std::string Scene::RenameObject(int node_id, const std::string &new_name) {
 
 	return final_name;
 
-	// Ä¿Ç°ÏÈÒ»ÂÉÖØĞÂ¼ÓÔØ
+	// ç›®å‰å…ˆä¸€å¾‹é‡æ–°åŠ è½½
 	//json new_scene_tree = sceneTree;
 	//Reload(new_scene_tree);
 	//RebuildBVH();
@@ -379,7 +413,7 @@ int Scene::Reload(const json& load_scene_tree) {
 	id_obj_map.clear();
 	id_node_map.clear();
 	bvh.reset();
-	latest_obj_id = 0;
+	//latest_obj_id = 0;
 	sceneTree = json();
 
 	std::cout << "Scene::Reload 2" << std::endl;
@@ -393,22 +427,25 @@ int Scene::Reload(const json& load_scene_tree) {
 			json new_node = node;
 			new_node.erase("children");
 
-			if (node["name"] == "root")
+			/*if (node["name"] == "root")
 				new_node["tree_path"] = {};
 			else {
 				new_node["tree_path"] = tree_path;
-			}
+			}*/
+
+			new_node["tree_path"] = tree_path;
 			
 			AddObject(new_node);
 			
 			if (new_node["type"] == "folder") {
-				tree_path.push_back(latest_obj_id);
+				//tree_path.push_back(latest_obj_id);
+				tree_path.push_back(int(node["id"]));
 				myself(myself, node["children"], tree_path);
 			}
 		}
 	};
 
-	load_obj(load_obj, load_scene_tree, json({0}));
+	load_obj(load_obj, load_scene_tree, {});
 
 	//std::cout << "reload " << count << " objects\n";
 	
@@ -420,10 +457,16 @@ bool Scene::Intersect(const Ray& ray, float* tHit, SurfaceInteraction* isect, in
 	//std::cout << "Scene::Intersect pool_id " << pool_id << " thread id " << std::this_thread::get_id() << std::endl;
 	//mutex.unlock();
 
-	if(nodes_structure == 1)
-		return bvh->Intersect(ray, tHit, isect, pool_id);
+	if (nodes_structure == 1) {
+		if (!bvh->Intersect(ray, tHit, isect, pool_id))
+			return false;
 
-	// ±éÀúËùÓĞ¡£ÕÒ×îĞ¡µÄt¡£
+		ray.tMax = *tHit;
+		return true;
+	}
+		
+
+	// éå†æ‰€æœ‰ã€‚æ‰¾æœ€å°çš„tã€‚
 
 	SurfaceInteraction isect_result;
 	SurfaceInteraction isect_temp;

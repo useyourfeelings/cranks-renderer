@@ -28,8 +28,10 @@ public:
     virtual ~Integrator() {};
     virtual void Render(Scene& scene) = 0;
 
-    virtual void SetOptions(const json& data) {
+    virtual void SetOptions(const json& data) = 0;
 
+    json GetConfig() {
+        return config;
     }
 
     void SetRayBounceNo(int n) {
@@ -88,8 +90,12 @@ public:
     int render_status;// , render_progress_now, render_progress_total;
     int has_new_photo;
     int maxDepth;
+    int ray_sample_no;
     std::chrono::steady_clock::time_point render_start_time;
     float render_duration; // s
+
+    json default_config;
+    json config;
 };
 
 class SamplerIntegrator : public Integrator {

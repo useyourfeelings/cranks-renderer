@@ -6,6 +6,7 @@
 #include "pbr.h"
 #include "transform.h"
 #include "spectrum.h"
+//#include "medium.h"
 
 struct CameraSample {
     Point2f pFilm;
@@ -18,7 +19,9 @@ public:
     //Camera(const Transform& CameraToWorld, std::shared_ptr<Film> film):film(film), CameraToWorld(CameraToWorld) {};
     //Camera(std::shared_ptr<Film> film) :film(film) {};
 
-    Camera() {};
+    Camera(std::shared_ptr<Medium> medium):
+        medium(medium) {
+    };
     
     virtual ~Camera() {};
 
@@ -34,12 +37,17 @@ public:
 
     void SetFilm();
 
+    void SetMedium(std::shared_ptr<Medium> medium);
+
     Transform CameraToWorld;
     std::shared_ptr<Film> film;
 
     std::list<std::shared_ptr<Film>> films;
 
     int resolutionX, resolutionY;
+
+    //const Medium* medium; // 处于什么介质
+    std::weak_ptr<Medium> medium; // 处于什么介质
 };
 
 class PerspectiveCamera : public Camera  {
@@ -47,7 +55,7 @@ public:
     // PerspectiveCamera Public Methods
     //PerspectiveCamera(const Transform &CameraToWorld, const BBox2f& screenWindow, float fov, float asp, std::shared_ptr<Film> film, float near, float far);
 
-    PerspectiveCamera();
+    PerspectiveCamera(std::shared_ptr<Medium> medium = nullptr);
     //PerspectiveCamera(Point3f pos, Point3f look, Vector3f up, float fov, float asp, float near, float far, int resX, int resY);
     //float GenerateRay(const CameraSample& sample, Ray*) const;
     

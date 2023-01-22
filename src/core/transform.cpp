@@ -111,7 +111,7 @@ Matrix4x4 Inverse(const Matrix4x4& m) {
 }
 
 
-// °Ñ8¸ö¶¥µã¶¼×ªÒ»ÏÂÔÙºÏ²¢
+// æŠŠ8ä¸ªé¡¶ç‚¹éƒ½è½¬ä¸€ä¸‹å†åˆå¹¶
 BBox3f Transform::operator()(const BBox3f& b) const {
     const Transform& M = *this;
     BBox3f ret(M(Point3f(b.pMin.x, b.pMin.y, b.pMin.z)));
@@ -190,12 +190,13 @@ inline Vector3<T> Transform::operator()(const Vector3<T>& v, Vector3<T>* absErro
 
 
 inline Ray Transform::operator()(const Ray& r) const {
+    // todo: error
     Point3f o = (*this)(r.o);
     Vector3f d = (*this)(r.d);
 
     //o.LogSelf();
 
-    return Ray(o, d, r.tMax, r.time);
+    return Ray(o, d, r.tMax, r.time, r.medium.lock());
 }
 
  Ray Transform::operator()(const Ray& r, Vector3f* oError, Vector3f* dError) const {
@@ -206,13 +207,13 @@ inline Ray Transform::operator()(const Ray& r) const {
     float tMax = r.tMax;
     float lengthSquared = d.LengthSquared();
     if (lengthSquared > 0) {
-        float dt = Dot(Abs(d), *oError) / lengthSquared; // Dot(Abs(d), *oError) ¼ÆËãoErrorÔÚd·½ÏòµÄ³¤¶È
+        float dt = Dot(Abs(d), *oError) / lengthSquared; // Dot(Abs(d), *oError) è®¡ç®—oErroråœ¨dæ–¹å‘çš„é•¿åº¦
 
-        // Ëãdt²»ÓÖ²úÉúÎó²îÁËÂğ£¿
-        // ÎªÊ²Ã´ÊÇ/lengthSquared£¿¶ø²»ÊÇ/length
-        // /lengthSquaredÈÃ°Ù·Ö±È¸üĞ¡¡£¡£
+        // ç®—dtä¸åˆäº§ç”Ÿè¯¯å·®äº†å—ï¼Ÿ
+        // ä¸ºä»€ä¹ˆæ˜¯/lengthSquaredï¼Ÿè€Œä¸æ˜¯/length
+        // /lengthSquaredè®©ç™¾åˆ†æ¯”æ›´å°ã€‚ã€‚
 
-        o += d * dt; // ÑÓÉì³öÈ¥
+        o += d * dt; // å»¶ä¼¸å‡ºå»
         //        tMax -= dt;
     }
     return Ray(o, d, tMax, r.time);
@@ -262,7 +263,7 @@ Transform Transform::operator*(const Transform& t2) const {
 
 RayDifferential Transform::operator()(const RayDifferential& r) const {
     Ray tr = (*this)(Ray(r));
-    RayDifferential ret(tr.o, tr.d, tr.tMax, tr.time);
+    RayDifferential ret(tr.o, tr.d, tr.tMax, tr.time, tr.medium.lock());
     ret.hasDifferentials = r.hasDifferentials;
     ret.rxOrigin = (*this)(r.rxOrigin);
     ret.ryOrigin = (*this)(r.ryOrigin);
@@ -307,8 +308,8 @@ Transform Scale(float x, float y, float z) {
     return Transform(m, mInv);
 }
 
-// ÈÆxyzÖáĞı×ª¡£Äæ¾ØÕó¾ÍÊÇT¡£
-// ÕâÀïµÄ·ûºÅÎÊÌâ£¿Ó¦¸ÃÊÇ¸úÔ¼¶¨ÓĞ¹Ø¡£×óÓÒÊÖ
+// ç»•xyzè½´æ—‹è½¬ã€‚é€†çŸ©é˜µå°±æ˜¯Tã€‚
+// è¿™é‡Œçš„ç¬¦å·é—®é¢˜ï¼Ÿåº”è¯¥æ˜¯è·Ÿçº¦å®šæœ‰å…³ã€‚å·¦å³æ‰‹
 
 Transform RotateX(float theta) {
     auto sint = sin(theta);
