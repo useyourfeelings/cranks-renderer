@@ -949,6 +949,8 @@ public:
 			std::cout << "medium_tree " << medium_tree << std::endl;
 
 			medium_name_map.clear();
+			medium_name_map[0] = "None"; // empty medium
+
 			for (auto& [medium_id, medium] : medium_tree.items()) {
 				//std::cout << "medium_tree id  " << medium["id"] << " name " << medium["name"] << std::endl;
 				medium_name_map[medium["id"]] = medium["name"];

@@ -28,8 +28,13 @@ public:
         //const std::map<int, std::shared_ptr<Material>>& material_list,
         TransportMode mode) const = 0;
 
+    virtual std::shared_ptr<Medium> GetMedium() const = 0;
 
     virtual std::string GetInfoString() = 0;
+
+    virtual int GetSceneObjectID() const = 0;
+
+    virtual std::string GetSceneObjectName() const = 0;
 };
 
 class GeometricPrimitive : public Primitive {
@@ -64,8 +69,24 @@ public:
         //const std::map<int, std::shared_ptr<Material>>& material_list,
         TransportMode mode) const;
 
+    std::shared_ptr<Medium> GetMedium() const;
+
     std::string GetInfoString() {
         return shape->GetInfoString();
+    }
+
+    int GetSceneObjectID() const {
+        if (auto so = scene_obj.lock()) {
+            return so->GetID();
+        }
+        return 0;
+    }
+
+    std::string GetSceneObjectName() const {
+        if (auto so = scene_obj.lock()) {
+            return so->Name();
+        }
+        return 0;
     }
 
 private:
@@ -100,6 +121,8 @@ public:
 
     virtual std::shared_ptr<Material> GetMaterial();
 
+    virtual std::shared_ptr<Medium> GetMedium();
+
     //std::unique_ptr<Point3f[]> p;
     //std::unique_ptr<Normal3f[]> n;
     //std::unique_ptr<Vector3f[]> s;
@@ -108,6 +131,8 @@ public:
     //std::vector<int> faceIndices;
 
     int material_id;
+    int medium_id;
+
     std::weak_ptr<Material> material;
     std::weak_ptr<Medium> medium;
     std::weak_ptr<Scene> scene;

@@ -8,7 +8,7 @@ bool GeometricPrimitive::Intersect(const Ray& r, float* tHit, SurfaceInteraction
     if (!shape->Intersect(r, tHit, isect))
         return false;
 
-    Log("shape->Intersect");
+    //Log("shape->Intersect");
 
     isect->primitive = this;
     return true;
@@ -50,6 +50,17 @@ void GeometricPrimitive::ComputeScatteringFunctions(
 
 }
 
+std::shared_ptr<Medium> GeometricPrimitive::GetMedium() const {
+
+    if (auto parent = scene_obj.lock()) {
+        return parent->GetMedium();
+
+    }
+
+    return nullptr;
+
+}
+
 BasicModel::BasicModel(
     const json& new_config,
     const Transform& ObjectToWorld,
@@ -75,6 +86,11 @@ BasicModel::BasicModel(
     //shadowAlphaMask(shadowAlphaMask)
 {
     material_id = material->GetID();
+
+    if (medium) // medium可不设定
+        medium_id = medium->GetID();
+    else
+        medium_id = 0;
 }
 
 std::shared_ptr<Material> BasicModel::GetMaterial() {
@@ -96,6 +112,35 @@ std::shared_ptr<Material> BasicModel::GetMaterial() {
         }
         else {
             throw("failed to get material");
+        }
+        //else {
+        //    // material is gone
+        //    material_id = -1;
+        //    return nullptr;
+        //}
+    }
+}
+
+std::shared_ptr<Medium> BasicModel::GetMedium() {
+    auto m = medium.lock();
+    if (m) {
+        return m;
+    }
+    else {
+        // try get real material
+        auto scene_ptr = scene.lock();
+        assert(scene_ptr);
+        auto m = scene_ptr->GetMedium(medium_id);
+
+        if (m) {
+            // update
+            medium = m;
+            medium_id = m->GetID();
+            return m;
+        }
+        else {
+            //throw("failed to get medium");
+            return nullptr;
         }
         //else {
         //    // material is gone

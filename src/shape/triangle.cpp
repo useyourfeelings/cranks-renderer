@@ -71,6 +71,38 @@ std::shared_ptr<Material> TriangleMesh::GetMaterial() {
     }
 }
 
+std::shared_ptr<Medium> TriangleMesh::GetMedium() {
+    auto m = medium.lock();
+    if (m) {
+        //std::cout << "TriangleMesh::GetMaterial() ok" << m->GetJson() << std::endl;
+        return m;
+    }
+    else {
+        // try get real material
+        auto scene_ptr = scene.lock();
+        assert(scene_ptr);
+        auto m = scene_ptr->GetMedium(medium_id);
+
+        if (m) {
+            // update
+            medium = m;
+            medium_id = m->GetID();
+            //std::cout << "TriangleMesh::GetMaterial() new" << m->GetJson() << std::endl;
+            return m;
+        }
+        else {
+            //throw("failed to get medium");
+
+            return nullptr;
+        }
+        //else {
+        //    // material is gone
+        //    material_id = -1;
+        //    return nullptr;
+        //}
+    }
+}
+
 TriangleMesh::TriangleMesh(
     const json& config,
     const Transform& ObjectToWorld, int nTriangles, const int* vertexIndices,
@@ -101,6 +133,12 @@ TriangleMesh::TriangleMesh(
     {
 
     material_id = material->GetID();
+
+    if(medium) // medium可不设定
+        medium_id = medium->GetID();
+    else
+        medium_id = 0;
+
     /*++nMeshes;
     nTris += nTriangles;
     triMeshBytes += sizeof(*this) + this->vertexIndices.size() * sizeof(int) +
@@ -211,13 +249,18 @@ bool Triangle::Intersect(const Ray& ray, float* tHit, SurfaceInteraction* isect)
         //std::cout << std::format("Intersect v[0] v[1] v[2] {} {} {}\n", this->v[0], this->v[1], this->v[2]);
         //std::cout << std::format("Intersect {} {} {}\n", mesh->n[this->v[0]].x, mesh->n[this->v[0]].y, mesh->n[this->v[0]].z);
 
+        bool from_outside = false;
+
+        if (Dot(mesh->n[this->v[0]], -ray.d) > 0.0f)
+            from_outside = true;
+
         *isect = SurfaceInteraction(
             hitPoint,
             pError,
             mesh->n[this->v[0]], // 直接用模型的normal // hitPoint - Point3f(0, 0, 0),
             Point2f(u, v), -ray.d,
             fake_dpdu, fake_dpdv,// fake test dpdu, dpdv,
-            ray.time, this);
+            ray.time, this, from_outside);
 
         return true;
     }

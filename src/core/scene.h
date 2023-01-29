@@ -44,6 +44,7 @@ public:
 	int InitSceneTree();
 
 	std::shared_ptr<Material> GetMaterial(int material_id);
+	std::shared_ptr<Medium> GetMedium(int medium_id);
 
 	std::vector<std::shared_ptr<Light>> lights;
 	std::vector<std::shared_ptr<Light>> infiniteLights;

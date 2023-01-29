@@ -383,9 +383,15 @@ public:
 
 // pbrt 3.9.5
 inline Point3f OffsetRayOrigin(const Point3f& p, const Vector3f& pError, const Vector3f& n, const Vector3f& w) {
-	float d = Dot(Abs(n), pError);
-	Vector3f offset = d * Vector3f(n);
-	if (Dot(w, n) < 0) offset = -offset;
+	float d = Dot(Abs(n), pError); // 投影长度
+
+	Vector3f offset = d * Vector3f(n); // n方向的offset。加或减都可以把交点移出误差box，确保下次计算相交时不会再此处重复相交。
+
+	// 如果从正面入射，加offset。
+	// 如果从反面入射，减offset。
+	if (Dot(w, n) < 0)
+		offset = -offset;
+
 	Point3f po = p + offset;
 	// Round offset point _po_ away from _p_
 	/*for (int i = 0; i < 3; ++i) {

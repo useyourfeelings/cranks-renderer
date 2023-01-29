@@ -4,9 +4,10 @@
 SurfaceInteraction::SurfaceInteraction(
     const Point3f& p, const Vector3f& pError, const Vector3f& shape_n, const Point2f& uv,
     const Vector3f& wo, const Vector3f& dpdu, const Vector3f& dpdv,
-    float time, const Shape* shape)
+    float time, const Shape* shape, bool from_outside)
     //: Interaction(p, shape_n, Normalize(Cross(dpdu, dpdv)), pError, wo, time),
     : Interaction(p, shape_n, shape_n, pError, wo, time),
+    from_outside(from_outside),
     uv(uv),
     dpdu(dpdu),
     dpdv(dpdv),
@@ -91,3 +92,24 @@ void SurfaceInteraction::ComputeScatteringFunctions(MemoryBlock& mb, const RayDi
 //    const AreaLight* area = primitive->GetAreaLight();
 //    return area ? area->L(*this, w) : Spectrum(0.f);
 //}
+
+std::shared_ptr<Medium> SurfaceInteraction::GetMedium() {
+    if(primitive)
+        return primitive->GetMedium();
+
+    return nullptr;
+}
+
+int SurfaceInteraction::GetHitObjectID() {
+    if (primitive)
+        return primitive->GetSceneObjectID();
+
+    return 0;
+}
+
+std::string SurfaceInteraction::GetHitObjectName() {
+    if (primitive)
+        return primitive->GetSceneObjectName();
+
+    return 0;
+}

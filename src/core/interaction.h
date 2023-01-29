@@ -73,7 +73,7 @@ public:
     float time;
 
     Vector3f pError;
-    Vector3f wo; // 射出方向
+    Vector3f wo;
     Vector3f n; 
     Vector3f shape_n; // 对于shape的normal
 
@@ -85,12 +85,12 @@ class SurfaceInteraction : public Interaction {
 public:
     SurfaceInteraction() {}
     SurfaceInteraction(const Point3f& p,
-        const Vector3f& shape_n,
         const Vector3f& pError,
+        const Vector3f& shape_n,
         const Point2f& uv, const Vector3f& wo,
         const Vector3f& dpdu, const Vector3f& dpdv,
         float time,
-        const Shape* sh);
+        const Shape* sh, bool from_outside);
 
     //Ray SpawnRay(const Vector3f& d) const {
     //	Point3f o = OffsetRayOrigin(p, pError, n, d);
@@ -117,6 +117,11 @@ public:
         const RayDifferential& ray,
         TransportMode mode = TransportMode::Radiance);
 
+    std::shared_ptr<Medium> GetMedium();
+
+    int GetHitObjectID();
+    std::string GetHitObjectName();
+
     Spectrum Le(const Vector3f& w) const;
 
     void LogSelf();
@@ -138,6 +143,8 @@ public:
 
     mutable Vector3f dpdx, dpdy;
     mutable float dudx = 0, dvdx = 0, dudy = 0, dvdy = 0;
+
+    bool from_outside; // 从模型外面还是里面打过来
 };
 
 

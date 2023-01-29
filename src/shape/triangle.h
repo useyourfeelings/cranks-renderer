@@ -37,9 +37,11 @@ public:
     //std::vector<int> faceIndices;
 
     std::shared_ptr<Material> GetMaterial();
+    std::shared_ptr<Medium> GetMedium();
 
 private:
     int material_id;
+    int medium_id;
     std::weak_ptr<Material> material;
     std::weak_ptr<Scene> scene;
     std::weak_ptr<Medium> medium;

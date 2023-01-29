@@ -405,6 +405,19 @@ std::shared_ptr<Material> Scene::GetMaterial(int material_id) {
 	}
 }
 
+std::shared_ptr<Medium> Scene::GetMedium(int medium_id) {
+	if (auto ml = medium_list.lock()) {
+		if (ml->contains(medium_id))
+			return ml->at(medium_id);
+		else
+			//return ml->at(1); // return default material. todo
+			return nullptr;
+	}
+	else {
+		throw("medium_list gone"); //return nullptr;
+	}
+}
+
 int Scene::Reload(const json& load_scene_tree) {
 	std::cout << "Scene::Reload 1" << std::endl;
 	lights.clear();

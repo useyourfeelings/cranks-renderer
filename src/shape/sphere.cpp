@@ -16,14 +16,14 @@ bool Sphere::Intersect(const Ray& ray, float* tHit, SurfaceInteraction* isect) c
 
 	// https://en.wikipedia.org/wiki/Line%E2%80%93sphere_intersection
 
-	// ÉèsÎªÇòÃæÉÏµÄ½»µã
-	// ¶ÔÓÚÇò ||s - c||=r
-	// ¶ÔÓÚray s = o + dt
+	// è®¾sä¸ºçƒé¢ä¸Šçš„äº¤ç‚¹
+	// å¯¹äºçƒ ||s - c||=r
+	// å¯¹äºray s = o + dt
 	// ||o + dt - c|| = r
 	// c = 0, 0, 0
-	// (o + dt) dot (o + dt) = r*r  ×Ô¼ºµã³Ë×Ô¼ºÊÇ³¤¶ÈµÄÆ½·½
-	// Ëã³öÀ´µÃµ½ oo + 2tod + ttdd = rr
-	// ½âtµÄÒ»Ôª¶ş´Î·½³Ì
+	// (o + dt) dot (o + dt) = r*r  è‡ªå·±ç‚¹ä¹˜è‡ªå·±æ˜¯é•¿åº¦çš„å¹³æ–¹
+	// ç®—å‡ºæ¥å¾—åˆ° oo + 2tod + ttdd = rr
+	// è§£tçš„ä¸€å…ƒäºŒæ¬¡æ–¹ç¨‹
 	// a = dd
 	// b = 2od
 	// c = oo - rr
@@ -32,7 +32,7 @@ bool Sphere::Intersect(const Ray& ray, float* tHit, SurfaceInteraction* isect) c
 	int user_error = 1;
 
 	if (user_error == 0) {
-		// rayµ½Ä£ĞÍ¿Õ¼ä¡£ÇòÔÚÔ­µã¡£
+		// rayåˆ°æ¨¡å‹ç©ºé—´ã€‚çƒåœ¨åŸç‚¹ã€‚
 		r = WorldToObject(ray);
 		r.LogSelf();
 
@@ -73,7 +73,7 @@ bool Sphere::Intersect(const Ray& ray, float* tHit, SurfaceInteraction* isect) c
 	else {
 		Vector3f oErr, dErr;
 
-		// rayµ½Ä£ĞÍ¿Õ¼ä¡£ÇòÔÚÔ­µã¡£
+		// rayåˆ°æ¨¡å‹ç©ºé—´ã€‚çƒåœ¨åŸç‚¹ã€‚
 		r = WorldToObject(ray, &oErr, &dErr);
 		//r.LogSelf();
 
@@ -118,7 +118,7 @@ bool Sphere::Intersect(const Ray& ray, float* tHit, SurfaceInteraction* isect) c
 		*tHit = t;
 
 		// pbrt page 225
-		// ¿ÉÏÔÖøÈ¥³ınoise¡£
+		// å¯æ˜¾è‘—å»é™¤noiseã€‚
 		// 
 		// Refine sphere intersection point
 		hitPoint *= radius / Distance(hitPoint, Point3f(0, 0, 0));
@@ -136,9 +136,9 @@ bool Sphere::Intersect(const Ray& ray, float* tHit, SurfaceInteraction* isect) c
 	// todo 
 
 	/*
-		x = r sin(¦È) cos(¦Õ)
-		y = r sin(¦È) sin(¦Õ)
-		z = r cos(¦È)
+		x = r sin(Î¸) cos(Ï†)
+		y = r sin(Î¸) sin(Ï†)
+		z = r cos(Î¸)
 	*/
 
 	// radius default = 1
@@ -155,70 +155,70 @@ bool Sphere::Intersect(const Ray& ray, float* tHit, SurfaceInteraction* isect) c
 
 	float theta = std::acos(Clamp(hitPoint.z / radius, -1, 1));
 
-	float u = phi / phiMax; // ¦Õ°Ù·Ö±È
-	float v = (theta - thetaMin) / (thetaMax - thetaMin); // ¦È´Ó-1¿ªÊ¼µÄ°Ù·Ö±È¡£×ÜÁ¿2¡£
+	float u = phi / phiMax; // Ï†ç™¾åˆ†æ¯”
+	float v = (theta - thetaMin) / (thetaMax - thetaMin); // Î¸ä»-1å¼€å§‹çš„ç™¾åˆ†æ¯”ã€‚æ€»é‡2ã€‚
 
-	// ºáÇĞÃæµÄ°ë¾¶
+	// æ¨ªåˆ‡é¢çš„åŠå¾„
 	float zRadius = std::sqrt(hitPoint.x * hitPoint.x + hitPoint.y * hitPoint.y);
 
 	float cosPhi = hitPoint.x / zRadius;
 	float sinPhi = hitPoint.y / zRadius;
 
-	// Æ«Î¢·Ö
-	// ÒÔu£¬Ò²¾ÍÊÇ¦ÕµÄ°Ù·Ö±È±ä»¯£¬×÷ÎªÎ¢Ğ¡±äÁ¿£¬¶ÔÇòÌå·½³ÌÇóµ¼¡£¼°dpdu¡£
+	// åå¾®åˆ†
+	// ä»¥uï¼Œä¹Ÿå°±æ˜¯Ï†çš„ç™¾åˆ†æ¯”å˜åŒ–ï¼Œä½œä¸ºå¾®å°å˜é‡ï¼Œå¯¹çƒä½“æ–¹ç¨‹æ±‚å¯¼ã€‚åŠdpduã€‚
 
-	// ËûÎªÊ²Ã´ÓÃ°Ù·Ö±È×÷ÎªÎ¢Ğ¡Á¿¶ø²»ÊÇÖ±½ÓÓÃ¦Õ£¿ÒòÎªuv¾ÍÊÇ°Ù·Ö±È£¬¾ÍÊÇÒªÕë¶Ô°Ù·Ö±ÈÀ´Ëã£¬ÓÃÔÚtextureÓ³ÉäÖĞ¡£
+	// ä»–ä¸ºä»€ä¹ˆç”¨ç™¾åˆ†æ¯”ä½œä¸ºå¾®å°é‡è€Œä¸æ˜¯ç›´æ¥ç”¨Ï†ï¼Ÿå› ä¸ºuvå°±æ˜¯ç™¾åˆ†æ¯”ï¼Œå°±æ˜¯è¦é’ˆå¯¹ç™¾åˆ†æ¯”æ¥ç®—ï¼Œç”¨åœ¨textureæ˜ å°„ä¸­ã€‚
 
-	// Î¢·ÖµÄÀí½â
-	// ±ÈÈç¶Ôx = r sin(¦È) cos(¦Õ)ÇóuµÄÆ«µ¼¡£µÃµ½xµÄ±ä»¯ÂÊ(Ö®ÓÚ¦ÕµÄ°Ù·Ö±È)¡£
-	// Í¬ÀíµÃµ½yzµÄ±ä»¯ÂÊ¡£ÄÇÃ´xyzÔÚ¼¸ºÎÒâÒåÉÏÊµ¼ÊÊÇÒ»¸öÏòÁ¿/·½Ïò¡£
-	// Ë¼¿¼Ò»ÏÂ2dÉÏµÄÎ¢·ÖÍ¬ÑùÊÇÒ»ÖÖ·½Ïò¡£
+	// å¾®åˆ†çš„ç†è§£
+	// æ¯”å¦‚å¯¹x = r sin(Î¸) cos(Ï†)æ±‚uçš„åå¯¼ã€‚å¾—åˆ°xçš„å˜åŒ–ç‡(ä¹‹äºÏ†çš„ç™¾åˆ†æ¯”)ã€‚
+	// åŒç†å¾—åˆ°yzçš„å˜åŒ–ç‡ã€‚é‚£ä¹ˆxyzåœ¨å‡ ä½•æ„ä¹‰ä¸Šå®é™…æ˜¯ä¸€ä¸ªå‘é‡/æ–¹å‘ã€‚
+	// æ€è€ƒä¸€ä¸‹2dä¸Šçš„å¾®åˆ†åŒæ ·æ˜¯ä¸€ç§æ–¹å‘ã€‚
 
 	/*
 
 	dx / du
-	= d(r sin(¦È) cos(¦Õ)) / du
-	= rsin(¦È) d cos(u * phiMax) / du         // float u = phi / phiMax;´úÈë
-	= -rsin(¦È)sin(¦Õ)phiMax
+	= d(r sin(Î¸) cos(Ï†)) / du
+	= rsin(Î¸) d cos(u * phiMax) / du         // float u = phi / phiMax;ä»£å…¥
+	= -rsin(Î¸)sin(Ï†)phiMax
 	= -y * phiMax
 
 	dy / du
-	= d(r sin(¦È) sin(¦Õ)) / du
-	= rsin(¦È) d sin(u*phiMax) / du
-	= rsin(¦È)cos(¦Õ)phiMax
+	= d(r sin(Î¸) sin(Ï†)) / du
+	= rsin(Î¸) d sin(u*phiMax) / du
+	= rsin(Î¸)cos(Ï†)phiMax
 	= x * phiMax
 
 	dz / du
-	= d(r cos(¦È)) / du
+	= d(r cos(Î¸)) / du
 	= 0
 
 	*/
 
-	// ×îºóµÃµ½dp/du¡£µ±Ç°µãÉÏµÄ
+	// æœ€åå¾—åˆ°dp/duã€‚å½“å‰ç‚¹ä¸Šçš„
 	Vector3f dpdu(-phiMax * hitPoint.y, phiMax * hitPoint.x, 0);
 
-	// Õâ¸öÊÇ¿ÉÒÔÔÚÆÕÍ¨xyz×ø±êÏµÑéÖ¤µÄ¡£
-	// ´ÖÂÔ¿´Ò»ÏÂ¡£¦È²»±äµÄÇé¿öÏÂ£¬zÊÇ²»±äµÄ¡£¿É¼ò»¯³ÉxyµÄ2dÆ½Ãæ¡£
-	// ¿´¿´Ò»¸öÔ²ÉÏÇĞÏß·½Ïò¡£È·Êµ¾ÍÊÇ(-y, x)£¬·½ÏòÄÜ¶ÔÉÏ¡£Èç¹ûÑÏ¸ñ°´uÀ´ËãµÄ»°Ïë±Ø½á¹ûÊÇÒ»ÖÂµÄ¡£
+	// è¿™ä¸ªæ˜¯å¯ä»¥åœ¨æ™®é€šxyzåæ ‡ç³»éªŒè¯çš„ã€‚
+	// ç²—ç•¥çœ‹ä¸€ä¸‹ã€‚Î¸ä¸å˜çš„æƒ…å†µä¸‹ï¼Œzæ˜¯ä¸å˜çš„ã€‚å¯ç®€åŒ–æˆxyçš„2då¹³é¢ã€‚
+	// çœ‹çœ‹ä¸€ä¸ªåœ†ä¸Šåˆ‡çº¿æ–¹å‘ã€‚ç¡®å®å°±æ˜¯(-y, x)ï¼Œæ–¹å‘èƒ½å¯¹ä¸Šã€‚å¦‚æœä¸¥æ ¼æŒ‰uæ¥ç®—çš„è¯æƒ³å¿…ç»“æœæ˜¯ä¸€è‡´çš„ã€‚
 
-	// Í¬Ñù¿ÉËã³ödp/dv¡£
+	// åŒæ ·å¯ç®—å‡ºdp/dvã€‚
 
 	/*
 	
 	dx / dv
-	= d(r sin(¦È) cos(¦Õ)) / dv
-	= rcos(¦Õ) cos(¦È) d((thetaMax - thetaMin) v + thetaMin) / dv
-	= rcos(¦Õ) cos(¦È) (thetaMax - thetaMin)
-	= z * cos(¦Õ) * (thetaMax - thetaMin)
+	= d(r sin(Î¸) cos(Ï†)) / dv
+	= rcos(Ï†) cos(Î¸) d((thetaMax - thetaMin) v + thetaMin) / dv
+	= rcos(Ï†) cos(Î¸) (thetaMax - thetaMin)
+	= z * cos(Ï†) * (thetaMax - thetaMin)
 
 	dy / dv
-	= d(r sin(¦È) sin(¦Õ)) / dv
-	= rsin(¦Õ) cos(¦È) (thetaMax - thetaMin)
-	= z * sin(¦Õ) * (thetaMax - thetaMin)
+	= d(r sin(Î¸) sin(Ï†)) / dv
+	= rsin(Ï†) cos(Î¸) (thetaMax - thetaMin)
+	= z * sin(Ï†) * (thetaMax - thetaMin)
 
 	dz / dv
-	= d (rcos(¦È)) / dv
-	= -r sin(¦È) * (thetaMax - thetaMin)
+	= d (rcos(Î¸)) / dv
+	= -r sin(Î¸) * (thetaMax - thetaMin)
 
 	*/
 
@@ -240,7 +240,7 @@ bool Sphere::Intersect(const Ray& ray, float* tHit, SurfaceInteraction* isect) c
 		std::cout << std::format("Sphere::Intersect shape_n {} {} {}\n\n\n", shape_n.x, shape_n.y, shape_n.z);
 	}
 
-	// ×îºóÉú³ÉĞÅÏ¢²¢×ª»Øworld	
+	// æœ€åç”Ÿæˆä¿¡æ¯å¹¶è½¬å›world	
 	*isect = ObjectToWorld(SurfaceInteraction(
 		hitPoint, 
 		pError,
@@ -248,7 +248,8 @@ bool Sphere::Intersect(const Ray& ray, float* tHit, SurfaceInteraction* isect) c
 		Point2f(u, v),
 		-r.d, 
 		dpdu, dpdv,
-		r.time, this));
+		r.time, this, 
+		(r.o - Point3f(0, 0, 0)).LengthSquared() > (radius * radius)));
 
 	
 
@@ -257,7 +258,7 @@ bool Sphere::Intersect(const Ray& ray, float* tHit, SurfaceInteraction* isect) c
 
 bool Sphere::Intersect(const Ray& ray) const {
 
-	// rayµ½local×ø±ê¡£ÇòÔÚÔ­µã¡£
+	// rayåˆ°localåæ ‡ã€‚çƒåœ¨åŸç‚¹ã€‚
 	Ray r = WorldToObject(ray);
 
 	// https://en.wikipedia.org/wiki/Line%E2%80%93sphere_intersection

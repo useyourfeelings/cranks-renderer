@@ -48,7 +48,12 @@ Spectrum HomogeneousMedium::Sample(const Ray& ray, Sampler& sampler,  MemoryBloc
     std::cout <<"avg "<< sigma_t[channel]<<" " << s / 1000000 << " "  << std::endl;*/
 
     // 对transmittance函数采样得到dist。sigma取2的话，采出来平均值为0.5。
+    // 如果sigma为0，dist为inf。t == ray.tMax。一定采不到介质。
     float dist = -std::log(1 - sampler.Get1D()) / sigma_t[channel];
+
+    /*if (!std::isinf(dist)) {
+        int a = 0;
+    }*/
 
     float t = std::min(dist * ray.d.Length(), ray.tMax);
 

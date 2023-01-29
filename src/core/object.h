@@ -17,6 +17,7 @@
 //#include "material.h"
 
 class Material;
+class Medium;
 
 enum ObjectType {
 	ObjectTypeFolder = 0,
@@ -35,78 +36,7 @@ inline int latest_obj_id = 0;
 
 class Object { // : public std::enable_shared_from_this<Object> {
 public:
-	//Object(const std::string& new_name) {
-	//	std::cout << "Object::Object() new_name = " << new_name << std::endl;
-
-	//	obj_id = ++latest_obj_ids[obj_type];
-	//	name = new_name;
-
-	//	if (new_name == "NoName")
-	//		return;
-
-	//	int index = 2;
-	//	while (objects_name_sets[obj_type].contains(name)) {
-	//		name = new_name + std::format("_{}", index++);
-	//	}
-
-	//	objects_name_sets[obj_type].insert(name);
-	//};
-
 	Object() {}
-
-	// keep_id
-	// 如果为0，分配新id。
-
-	//Object(const json& new_config, int keep_id, int inc_last_id){//const std::string& new_name) {
-	//	//std::cout << "Object::Object() new_name = " << new_name << std::endl;
-
-	//	config = new_config;
-	//	std::string name = config["name"];
-
-	//	config["name"] = name;
-
-	//	if (keep_id == 0) {
-	//		config["id"] = ++latest_obj_id;
-	//	}
-	//	else {
-	//		if (inc_last_id)
-	//			latest_obj_id = config["id"];// keep_id;
-	//	}
-
-	//	if (name == "NoName")
-	//		return;
-
-	//	int index = 2;
-	//	while (objects_name_sets[obj_type].contains(name)) {
-	//		name = std::string(new_config["name"]) + std::format("_{}", index++);
-	//	}
-
-	//	objects_name_sets[obj_type].insert(name);
-	//};
-
-	//virtual ~Object() {
-	//	if (name != "NoName") {
-	//		std::cout << "~Object() count = "<< objects_name_sets[obj_type].size() << " erase " << std::string(config["name"]) << std::endl;
-	//		objects_name_sets[obj_type].erase(std::string(config["name"]));
-	//	}
-	//};
-
-	//std::string Rename(const std::string &new_name) {
-	//	std::cout << "Object.Rename() name = " << name << " new_name = " << new_name << std::endl;
-	//	objects_name_sets[obj_type].erase(std::string(config["name"]));
-
-	//	std::string name = new_name;
-
-	//	int index = 2;
-	//	while (objects_name_sets[obj_type].contains(name)) {
-	//		name = new_name + std::format("_{}", index++);
-	//	}
-
-	//	config["name"] = name;
-	//	objects_name_sets[obj_type].insert(name);
-
-	//	return name;
-	//}
 
 	Object(const json& new_config, ObjectType new_obj_type):
 		obj_type(int(new_obj_type))
@@ -167,6 +97,10 @@ public:
 	}
 
 	virtual std::shared_ptr<Material> GetMaterial() {
+		return nullptr;
+	}
+
+	virtual std::shared_ptr<Medium> GetMedium() {
 		return nullptr;
 	}
 
